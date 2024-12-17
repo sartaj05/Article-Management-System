@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User List</title>
+  <style>
+    /* CSS Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>User List</h1>
+    <table id="user-table">
+      <thead>
+        <tr>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody id="user-list">
+        <!-- User data will be dynamically inserted here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // JavaScript to fetch and display users
+    document.addEventListener("DOMContentLoaded", function () {
+      fetch('/api/users/')  // Replace with your API endpoint
+        .then(response => response.json())
+        .then(data => {
+          const userList = document.getElementById('user-list');
+          data.results.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${user.first_name}</td>
+              <td>${user.last_name}</td>
+              <td>${user.username}</td>
+              <td>${user.email}</td>
+              <td>${user.role}</td>
+            `;
+            userList.appendChild(row);
+          });
+        })
+        .catch(error => console.error('Error fetching user data:', error));
+    });
+  </script>
+
+</body>
+</html>

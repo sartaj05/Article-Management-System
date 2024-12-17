@@ -1,0 +1,184 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .navbar {
+            width: 100%;
+            background-color: #007BFF;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1.1rem;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-container h2 {
+            margin-bottom: 1.5rem;
+            color: #333333;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #007BFF;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-container button:hover {
+            background-color: #0056b3;
+        }
+
+        .login-container .links {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .login-container .links a {
+            color: #007BFF;
+            text-decoration: none;
+            margin: 0 0.5rem;
+        }
+
+        .login-container .links a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #FF0000;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <a href="{% url 'home' %}">Home</a>
+    </div>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form method="POST" id="login-form">
+            {% csrf_token %}
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+            <div class="error-message" id="error-message"></div>
+        </form>
+        <div class="links">
+            <a href="/register-template/">Register</a>
+            <a href="/forgot-password/">Forgot Password?</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault(); // Prevent form from submitting normally
+        
+            // Get user input values
+            const username = document.querySelector('input[name="username"]').value.trim();
+            const password = document.querySelector('input[name="password"]').value.trim();
+        
+            // Clear any previous error messages
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = '';
+        
+            try {
+                // Send a POST request to the login API
+                const response = await fetch('/api/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+        
+                // Parse the response JSON
+                const data = await response.json();
+        
+                if (response.ok) {
+                    // Save the tokens to localStorage
+                    localStorage.setItem('access_token', data.token.access);
+                    localStorage.setItem('refresh_token', data.token.refresh);
+        
+                    // Log success message to console
+                    console.log('Login successful, token stored.');
+        
+                    // Redirect to the dashboard based on the role
+                    if (data.dashboard_url) {
+                        window.location.href = data.dashboard_url; // Dashboard URL is provided in the response
+                    } else {
+                        alert('Login successful, but no dashboard URL found. Contact admin.');
+                    }
+                } else {
+                    // Display an appropriate error message
+                    const errorMsg = data.errors?.username || data.detail || 'Login failed. Please check your credentials.';
+                    errorMessage.textContent = errorMsg;
+                }
+            } catch (error) {
+                // Log and display any unexpected errors
+                console.error('Error during login:', error);
+                errorMessage.textContent = 'An unexpected error occurred. Please try again later.';
+            }
+        });
+        
+
+    </script>
+</body>
+</html>

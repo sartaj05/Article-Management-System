@@ -1,0 +1,152 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        /* Dashboard Container */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: #333;
+            color: white;
+            width: 250px;
+            padding-top: 20px;
+            padding-left: 20px;
+            position: fixed;
+            height: 100%;
+        }
+
+        .sidebar h2 {
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .sidebar a:hover {
+            background-color: #575757;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        header {
+            background-color: #007BFF;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* System Stats Section */
+        .dashboard-content {
+            padding: 20px;
+        }
+
+        .system-stats {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .system-stats p {
+            font-size: 16px;
+            color: #555555;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Admin Dashboard</h2>
+            <a href="#">Home</a>
+            <a href="/articles/">Manage Articles</a>
+            <a href="/users/">Manage Users</a>
+            <a href="/logout/">Logout</a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header>
+                <h1>Welcome, Admin!</h1>
+                <nav>
+                    <a href="#">Dashboard</a>
+                    <a href="/logout/">Logout</a>
+                </nav>
+            </header>
+
+            <!-- System Stats -->
+            <section class="dashboard-content">
+                <h2>System Overview</h2>
+                <div class="system-stats">
+                    <p><strong>Total Articles:</strong> 100</p>
+                    <p><strong>Active Users:</strong> 50</p>
+                    <p><strong>Pending Approvals:</strong> 10</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 My Website. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

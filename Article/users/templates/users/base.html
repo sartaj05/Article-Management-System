@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Home | Article Management System{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background-color: #007BFF; /* Blue background matching the login page */
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-start; /* Align links to the left */
+            padding: 10px 20px;
+        }
+
+        .navbar a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .navbar a:hover {
+            background-color: #0056b3; /* Darker blue for hover effect */
+            color: white;
+        }
+
+        /* Page header styling */
+        .header {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+        }
+
+        /* Body styling */
+        .container {
+            flex: 1; /* Make content area take up remaining space */
+            padding: 40px 20px;
+        }
+
+        /* General content area */
+        .content {
+            margin: 0 auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 1200px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Card for Login/Logout */
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .login-card a {
+            display: block;
+            color: #007BFF;
+            text-decoration: none;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .login-card a:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #007BFF; /* Match the navbar color */
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <a href="{% url 'home' %}">Home</a>
+
+        <a href="{% url 'user-login-template' %}">Login</a>
+        <a href="{% url 'user-register-template' %}">Register</a>
+    </div>
+
+    <!-- Page Header -->
+    <div class="header">
+        <h1>Welcome to Article Management System</h1>
+        <p>Your one-stop solution for managing articles in a media company.</p>
+    </div>
+
+    <!-- Main content area -->
+    <div class="container">
+        {% block content %}
+        <!-- Content will go here -->
+        {% endblock %}
+    </div>
+
+    <!-- Login/Logout Card at the bottom -->
+    <div class="login-card">
+        <a href="{% url 'user-login-template' %}">Login</a>
+        <a href="{% url 'user-register-template' %}">Register</a>
+        {% comment %} 
+        {% if user.is_authenticated %}
+            <a href="{% url 'user-logout' %}">Logout</a>
+        {% endif %}
+        {% endcomment %}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 Article Management System. All rights reserved.</p>
+    </footer>
+</body>
+</html>
