@@ -1,205 +1,337 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Registration</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Registration / Login</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
+      /* Overall Form Styling */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #1e1e2f;
+        color: #d1d1d1;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
 
-        /* Navbar Styling */
-        .navbar {
-            width: 100%;
-            background-color: #007BFF;
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-        }
+      /* Navbar */
+      .navbar {
+        background-color: #232946;
+        padding: 15px;
+        text-align: center;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 1000;
+      }
 
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 1.1rem;
-        }
+      .navbar a {
+        color: #eebbc3;
+        text-decoration: none;
+        font-size: 16px;
+        margin: 0 15px;
+      }
 
-        .navbar a:hover {
-            text-decoration: underline;
-        }
+      .navbar a:hover {
+        text-decoration: underline;
+      }
 
-        /* Registration form container */
-        .container {
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-            margin-top: 80px; /* Adding space for the fixed navbar */
-        }
+      /* Registration Form Card */
+      .register-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #232946;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        max-width: 450px;
+        width: 100%;
+        text-align: center;
+        margin-top: 70px; /* Adjusted to avoid overlap with navbar */
+      }
 
-        .container h2 {
-            color: #333333;
-            margin-bottom: 20px;
-        }
+      /* Form Title */
+      .register-container h2 {
+        color: #eebbc3;
+        margin-bottom: 10px;
+        font-size: 24px;
+      }
 
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
+      /* Form Fields */
+      .register-container form {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-            color: #555555;
-        }
+      .register-container input,
+      .register-container select {
+        margin-bottom: 8px;
+        padding: 6px; /* Increased padding for larger input fields */
+        font-size: 14px;
+        border-radius: 5px;
+        border: 1px solid #d1d1d1;
+        background-color: #121629;
+        color: #d1d1d1;
+        width: 100%; /* Make input fields take full width */
+        box-sizing: border-box;
+      }
 
-        .form-group input,
-        .form-group select {
-            width: calc(100% - 20px);
-            padding: 10px;
-            font-size: 14px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
+      /* Submit Button */
+      .register-container button {
+        padding: 10px; /* Slightly larger padding */
+        font-size: 16px;
+        background-color: #eebbc3;
+        border: none;
+        border-radius: 5px;
+        color: #232946;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.3s ease;
+        width: 100%; /* Make button take full width */
+        box-sizing: border-box;
+      }
 
-        .form-group input[type="checkbox"] {
-            width: auto;
-            margin-right: 5px;
-        }
+      .register-container button:hover {
+        background-color: #d18bbf;
+      }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
+      /* Links for Login / Forgot Password */
+      .register-container .links {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-        button:hover {
-            background-color: #0056b3;
-        }
+      .register-container .links a {
+        color: #eebbc3;
+        text-decoration: none;
+        font-size: 14px;
+        margin: 0 10px;
+      }
 
-        #message {
-            margin-top: 15px;
-            color: #d9534f;
-            font-size: 14px;
-        }
+      .register-container .links a:hover {
+        text-decoration: underline;
+      }
 
-        .links {
-            margin-top: 20px;
-            font-size: 14px;
-        }
+      /* Error Messages */
+      .error-message {
+        color: #e57373;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
 
-        .links a {
-            color: #007bff;
-            text-decoration: none;
-        }
+      /* Footer */
+      footer {
+        background-color: #232946;
+        color: #d1d1d1;
+        padding: 15px;
+        text-align: center;
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+        border-radius: 10px 10px 0 0;
+      }
+      /* Checkbox and Terms */
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-bottom: 15px;
+      }
 
-        .links a:hover {
-            text-decoration: underline;
-        }
-        .error-message {
-            color: #d9534f;
-            font-size: 12px;
-            margin-top: 5px;
-        }
+      .checkbox-group input {
+        margin-right: 10px; /* Space between checkbox and label */
+        accent-color: #eebbc3; /* Change the color of the checkbox (optional) */
+      }
 
-        .error {
-            border-color: #d9534f;
-        }
-        .error {
-            border-color: red;
-        }
-        
-        .error-message {
-            color: red;
-            font-size: 12px;
-        }
-        
+      /* Error Messages */
+      .error-message {
+        color: #e57373;
+        font-size: 12px;
+        margin-top: 5px; /* Adjust the error message position */
+      }
+
+      .modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4); /* Black with opacity */
+        padding-top: 60px; /* Position the modal at the top */
+      }
+
+      .modal-content {
+        background-color: #232946;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 400px;
+        color: #eebbc3;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .close {
+        color: #eebbc3;
+        font-size: 30px;
+        font-weight: bold;
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        cursor: pointer;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: #d18bbf;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .modal p {
+        font-size: 18px;
+        margin-top: 20px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navbar -->
     <div class="navbar">
-        <a href="{% url 'home' %}">Home</a>
+      <a href="{% url 'home' %}">Home</a>
     </div>
 
-    <div class="container">
-        <h2>ArticleUser Registration</h2>
-        <form id="registration-form">
-            <div class="form-group">
-                <label for="first_name">First Name</label>
-                <input type="text" id="first_name" name="first_name" required minlength="2" maxlength="50">
-                <div id="first_name_error" class="error-message"></div>
-            </div>
-            <div class="form-group">
-                <label for="last_name">Last Name</label>
-                <input type="text" id="last_name" name="last_name" required minlength="2" maxlength="50">
-                <div id="last_name_error" class="error-message"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required minlength="4" maxlength="20">
-                <div id="username_error" class="error-message"></div>
-            </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-                <div id="email_error" class="error-message"></div>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="8">
-                <div id="password_error" class="error-message"></div>
-            </div>
-            <div class="form-group">
-                <label for="role">Role</label>
-                <select id="role" name="role" required>
-                    <option value="">Select Role</option>
-                    <option value="Journalist">Journalist</option>
-                    <option value="Editor">Editor</option>
-                    <option value="Admin">Admin</option>
-                </select>
-                <div id="role_error" class="error-message"></div>
-            </div>
-            <div class="form-group">
-                <label for="checkbox">Accept Terms & Conditions</label>
-                <input type="checkbox" id="checkbox" name="checkbox" required>
-                <div id="checkbox_error" class="error-message"></div>
-            </div>
-            <button type="submit">Register</button>
-        </form>
-
-        <div id="message"></div>
-        <div class="links">
-            <p>Already registered? <a href="{% url 'user-login-template' %}">Login here</a></p>
+    <!-- Main Content (Registration Form) -->
+    <div class="register-container">
+      <h2>User Registration Form</h2>
+      <form id="registration-form" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input
+            type="text"
+            id="first_name"
+            name="first_name"
+            required
+            minlength="2"
+            maxlength="31"
+          />
+          <div id="first_name_error" class="error-message"></div>
         </div>
+
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input
+            type="text"
+            id="last_name"
+            name="last_name"
+            minlength="2"
+            maxlength="31"
+          />
+          <div id="last_name_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            minlength="4"
+            maxlength="21"
+          />
+          <div id="username_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            minlength="4"
+            maxlength="35"
+          />
+          <div id="email_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            minlength="8"
+            maxlength="20"
+          />
+          <div id="password_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group confirm-password">
+          <label for="confirm_password">Confirm Password</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            required
+            minlength="8"
+            maxlength="20"
+          />
+          <div id="confirm_password_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="role">Role</label>
+          <select id="role" name="role" required>
+            <option value="">Select Role</option>
+            <option value="Journalist">Journalist</option>
+            <option value="Editor">Editor</option>
+          </select>
+          <div id="role_error" class="error-message"></div>
+        </div>
+
+        <div class="form-group">
+          <input type="checkbox" id="checkbox" name="checkbox" required />
+          <label for="checkbox">Accept Terms & Conditions</label>
+          <div id="checkbox_error" class="error-message"></div>
+        </div>
+
+        <button type="submit">Register</button>
+      </form>
+
+      <div id="message"></div>
+      <div class="links">
+        <p>
+          Already registered?
+          <a href="{% url 'user-login-template' %}">Login here</a>
+        </p>
+      </div>
+      <!-- Success Modal -->
+      <div id="success-modal" style="display: none" class="modal">
+        <div class="modal-content">
+          <span class="close" id="close-modal">&times;</span>
+          <p>Registration successful!</p>
+        </div>
+      </div>
     </div>
 
     <script src="{% static 'js/register.js' %}"></script>
-</body>
+  </body>
 </html>

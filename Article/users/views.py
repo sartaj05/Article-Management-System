@@ -1,5 +1,5 @@
 from tokenize import Token
-from rest_framework import status, permissions, generics
+from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
@@ -8,6 +8,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 from users.serializers import (
     RegistrationSerializer, 
     LoginSerializer,
@@ -16,13 +18,14 @@ from users.serializers import (
     PasswordResetSerializer,
     PasswordResetWithOTPSerializer,
     RequestOTPSerializer,
-    UserSerializer
+    UserSerializer,
+    OTPVerificationSerializer
 )
 from django.utils.crypto import get_random_string
-from .serializers import PasswordResetSerializer
 from django.conf import settings
-from datetime import datetime, timedelta
-
+from datetime import datetime
+from django.core.mail import send_mail
+from rest_framework import status
 from users.models import CustomUser as User
 from rest_framework.exceptions import ValidationError
 
@@ -33,8 +36,6 @@ def get_tokens_for_user(user):
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
-
-# User Registration View
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = RegistrationSerializer
     permission_classes = [AllowAny]
@@ -47,15 +48,39 @@ class UserRegistrationView(generics.CreateAPIView):
             return Response({'status': 'Error', 'message': e.detail}, status=status.HTTP_400_BAD_REQUEST)
         
         user = serializer.save()
-        # refresh = RefreshToken.for_user(user)
+
+        # Send email based on the role
+        self.send_registration_email(user)
+
         return Response({
             'status': 'Success',
             'message': 'Registration successful.',
             'user': serializer.data,
-            # 'access': str(refresh.access_token),
-            # 'refresh': str(refresh)
         }, status=status.HTTP_201_CREATED)
+    
+    def send_registration_email(self, user):
+        subject = "Registration Successful"
+        message = f"Dear {user.first_name},\n\nYour registration was successful!"
 
+        # Customize the message based on the role
+        if user.role == 'Journalist':
+            subject = "Welcome, Journalist!"
+            message += "\n\nYou have successfully registered as a Journalist."
+        elif user.role == 'Editor':
+            subject = "Welcome, Editor!"
+            message += "\n\nYou have successfully registered as an Editor."
+        elif user.role == 'Admin':
+            subject = "Welcome, Admin!"
+            message += "\n\nYou have successfully registered as an Admin."
+
+        # Send the email
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,  # You can configure this in settings.py
+            [user.email],
+            fail_silently=False,
+        )
 def register_template(request):
     return render(request, 'users/register.html')
 
@@ -107,6 +132,16 @@ class LogoutView(APIView):
             return Response({"error": "Invalid token"}, status=400)
 
 
+def journalist_dashboard(request):
+    return render(request, 'articles/journalist_dashboard.html')
+
+# View for Editor Dashboard
+def editor_dashboard(request):
+    return render(request, 'articles/editor_dashboard.html')
+
+# View for Admin Dashboard
+def admin_dashboard(request):
+    return render(request, 'articles/admin_dashboard.html')
 class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -115,11 +150,19 @@ class UserListView(ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['role']
 
-# User Detail View
-class UserDetailView(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]  # Only authenticated users can view their details
+
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user  # Get the authenticated user
+        user_data = {
+            'username': user.username,
+            'email': user.email,
+            'total_articles': user.articles.count(),  # Assuming user has an articles relationship
+        }
+        return JsonResponse(user_data)
 
 # User Update View
 class UserUpdateView(generics.UpdateAPIView):
@@ -152,7 +195,7 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         
         email = serializer.validated_data['email']
-
+        print(email)
         # Generate a 6-digit OTP
         otp = get_random_string(length=6, allowed_chars='0123456789')
         otp_created_at = datetime.now().isoformat()
@@ -160,7 +203,6 @@ class PasswordResetRequestView(APIView):
         try:
             # Retrieve the user based on email
             user = User.objects.get(email=email)
-            
             # Save OTP and expiry time to the user's model (you may customize your model for this)
             request.session['otp'] = otp
             request.session['otp_created_at'] = otp_created_at
@@ -180,9 +222,23 @@ class PasswordResetRequestView(APIView):
 
         except User.DoesNotExist:
             return Response({'error': 'No user found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+        
+class OTPVerificationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        # Initialize the serializer with request data
+        serializer = OTPVerificationSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        
+        # If OTP is valid, we can allow the password reset process
+        return Response({'message': 'OTP verified successfully. You can now reset your password.'}, status=status.HTTP_200_OK)
+    
+    
 
 # Password Reset with OTP View
 class PasswordResetWithOTPView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request, *args, **kwargs):
         serializer = PasswordResetWithOTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -239,3 +295,14 @@ def password_reset_template(request, uidb64, token):
 # Home Template
 def home(request):
     return render(request, 'users/home.html')
+
+
+@login_required
+def user_profile(request):
+    # You can return a simple JsonResponse or render an HTML page
+    return JsonResponse({
+        "username": request.user.username,
+        "email": request.user.email,
+        "bio": getattr(request.user.profile, 'bio', 'No bio available'),
+    })
+

@@ -1,0 +1,181 @@
+/* Reset some default browser styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Basic styling for the body */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+/* Navbar styling */
+nav {
+    background-color: #333;
+    padding: 10px;
+    color: white;
+}
+
+nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-around;
+}
+
+nav ul li {
+    display: inline-block;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+}
+
+nav ul li a:hover {
+    background-color: #575757;
+}
+
+/* Page layout */
+div {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Forms */
+form {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+form input, form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+form button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #45a049;
+}
+
+/* Article list and details */
+ul {
+    list-style-type: none;
+}
+
+ul li {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+ul li a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+ul li a:hover {
+    text-decoration: underline;
+}
+
+/* Dashboard Styling */
+h1 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+h2 {
+    margin-top: 20px;
+    color: #555;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    /* Navbar */
+    nav ul {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    nav ul li {
+        margin-bottom: 10px;
+    }
+
+    /* Page Layout */
+    div {
+        padding: 10px;
+    }
+
+    /* Forms */
+    form {
+        padding: 15px;
+    }
+
+    /* Article list */
+    ul li {
+        padding: 15px;
+    }
+
+    /* Dashboard */
+    h1, h2 {
+        text-align: center;
+    }
+}
+
+/* Responsive design for mobile screens */
+@media (max-width: 480px) {
+    /* Navbar */
+    nav ul {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    nav ul li {
+        text-align: center;
+        width: 100%;
+    }
+
+    /* Page Layout */
+    div {
+        padding: 10px;
+    }
+
+    /* Forms */
+    form {
+        padding: 15px;
+    }
+
+    /* Article list */
+    ul li {
+        padding: 15px;
+        font-size: 14px;
+    }
+
+    /* Dashboard */
+    h1, h2 {
+        font-size: 18px;
+        text-align: center;
+    }
+}

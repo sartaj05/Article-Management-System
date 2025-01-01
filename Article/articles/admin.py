@@ -1,19 +1,13 @@
 from django.contrib import admin
-from .models import Article, Tag, Category
-
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
+from .models import Article  # Only import Article since Tag and Category are now part of Article
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'status', 'review_status', 'category', 'publish_date', 'is_visible')
-    list_filter = ('status', 'review_status', 'category', 'is_visible', 'publish_date')
-    search_fields = ('title', 'subtitle', 'author_name', 'email', 'tags__name')
-    autocomplete_fields = ('tags',)
+    list_filter = ('status', 'review_status', 'is_visible', 'publish_date')  # Removed 'category' as it's now a CharField
+    search_fields = ('title', 'subtitle', 'author_name', 'email', 'tags')  # Adjusted search for 'tags' and 'category'
+    
     readonly_fields = ('created_at', 'updated_at')
-    filter_horizontal = ('tags',)
     date_hierarchy = 'publish_date'
     
     actions = ['mark_as_published', 'mark_as_draft', 'mark_as_approved', 'mark_as_rejected']
@@ -55,9 +49,3 @@ class ArticleAdmin(admin.ModelAdmin):
         count = queryset.update(review_status='rejected', is_visible=False)
         self.message_user(request, f"{count} selected articles marked as Rejected.")
     mark_as_rejected.short_description = "Mark selected articles as Rejected"
-
-# Register the Category model
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name',)  # Display the category name in the list
-    search_fields = ('name',)  # Allow search by category name

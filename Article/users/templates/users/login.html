@@ -1,184 +1,472 @@
 {% load static %}
 
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .navbar {
-            width: 100%;
-            background-color: #007BFF;
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-        }
+      /* Overall Styling */
+      body {
+        font-family: "Arial", sans-serif;
+        background-color: #1e1e2f;
+        margin: 0;
+        padding: 0;
+        color: #d1d1d1;
+      }
 
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 1.1rem;
-        }
+      /* Navbar */
+      .navbar {
+        background: #232946;
+        padding: 10px 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 0 0 10px 10px;
+      }
 
-        .navbar a:hover {
-            text-decoration: underline;
-        }
+      .navbar a {
+        color: #eebbc3;
+        font-weight: bold;
+        padding: 10px 15px;
+        text-decoration: none;
+        margin-right: 15px;
+        border-radius: 5px;
+        transition: background 0.3s ease, color 0.3s ease;
+        font-size: 16px;
+      }
 
-        .login-container {
-            background-color: #ffffff;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
+      .navbar a:hover {
+        background-color: #eebbc3;
+        color: #232946;
+      }
 
-        .login-container h2 {
-            margin-bottom: 1.5rem;
-            color: #333333;
-        }
+      /* Sidebar */
+      .sidebar {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        height: 100%;
+        width: 250px;
+        background-color: #121629;
+        color: #d1d1d1;
+        padding-top: 20px;
+      }
 
-        .login-container input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border: 1px solid #dddddd;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
+      .sidebar a {
+        display: block;
+        padding: 12px 20px;
+        color: #d1d1d1;
+        text-decoration: none;
+        font-size: 18px;
+        transition: background 0.3s ease, color 0.3s ease;
+      }
 
-        .login-container button {
-            width: 100%;
-            padding: 0.75rem;
-            background-color: #007BFF;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
+      .sidebar a:hover {
+        background-color: #eebbc3;
+        color: #232946;
+      }
 
-        .login-container button:hover {
-            background-color: #0056b3;
-        }
+      /* Main Content */
+      .content-wrapper {
+        margin-left: 250px;
+        padding: 70px 30px 30px 30px;
+      }
 
-        .login-container .links {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-        }
+      .card {
+        background-color: #232946;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
 
-        .login-container .links a {
-            color: #007BFF;
-            text-decoration: none;
-            margin: 0 0.5rem;
-        }
+      /* Footer */
+      footer {
+        background-color: #232946;
+        color: #d1d1d1;
+        padding: 15px;
+        text-align: center;
+        position: fixed;
+        width: 100%;
+        bottom: 0;
+        border-radius: 10px 10px;
+      }
 
-        .login-container .links a:hover {
-            text-decoration: underline;
-        }
+      /* Add these styles for centering */
+      .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #232946;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%; /* Make it responsive */
+        text-align: center;
+      }
 
-        .error-message {
-            color: #FF0000;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
-        }
-        
+      .login-container h2 {
+        margin-bottom: 20px;
+        color: #eebbc3;
+      }
+
+      .login-container form {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .login-container input {
+        margin-bottom: 15px;
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 5px;
+        border: 1px solid #d1d1d1;
+        background-color: #121629;
+        color: #d1d1d1;
+      }
+
+      .login-container button {
+        padding: 10px;
+        font-size: 16px;
+        background-color: #eebbc3;
+        border: none;
+        border-radius: 5px;
+        color: #232946;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.3s ease;
+      }
+
+      .login-container button:hover {
+        background-color: #d18bbf;
+      }
+
+      .login-container .links {
+        margin-top: 15px;
+      }
+
+      .login-container .links a {
+        color: #eebbc3;
+        text-decoration: none;
+        font-size: 14px;
+      }
+
+      .login-container .links a:hover {
+        text-decoration: underline;
+      }
+
+      /* Error Message Styling */
+      .error-message {
+        color: #e57373;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+
+      .login-container .links {
+        margin-top: 20px; /* Space between form and links */
+        display: flex; /* Arrange links horizontally */
+        justify-content: space-between; /* Space out the links */
+      }
+
+      .login-container .links a {
+        color: #eebbc3;
+        text-decoration: none;
+        font-size: 14px;
+        margin: 0 10px; /* Add spacing between links */
+      }
+
+      .login-container .links a:hover {
+        text-decoration: underline;
+      }
+      /* Modal Styling */
+      .modal {
+        display: none; /* Hidden by default */
+        position: fixed;
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4); /* Black with opacity */
+        padding-top: 60px; /* Position the modal at the top */
+      }
+
+      .modal-content {
+        background-color: #232946;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 400px;
+        color: #eebbc3;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .close {
+        color: #eebbc3;
+        font-size: 30px;
+        font-weight: bold;
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        cursor: pointer;
+      }
+
+      .close:hover,
+      .close:focus {
+        color: #d18bbf;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .modal p {
+        font-size: 18px;
+        margin-top: 20px;
+      }
     </style>
-</head>
-<body>
+  </head>
+
+  <body>
     <!-- Navbar -->
     <div class="navbar">
-        <a href="{% url 'home' %}">Home</a>
+      <a href="{% url 'home' %}">Home</a>
     </div>
+
+    <!-- Welcome Message -->
+    <div class="welcome-message">Welcome to Article Management System</div>
     <div class="login-container">
-        <h2>Login</h2>
-        <form method="POST" id="login-form">
-            {% csrf_token %}
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-            <div class="error-message" id="error-message"></div>
-        </form>
-        <div class="links">
-            <a href="/register-template/">Register</a>
-            <a href="/forgot-password/">Forgot Password?</a>
-        </div>
+      <h2>Login</h2>
+      <form method="POST" id="login-form">
+        {% csrf_token %}
+        <input
+          type="text"
+          name="username"
+          placeholder="Username"
+          required
+          minlength="4"
+          maxlength="21"
+          id="username"
+          aria-label="Username"
+        />
+        <div id="username-error" class="error-message"></div>
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          required
+          minlength="8"
+          maxlength="21"
+          id="password"
+          aria-label="Password"
+        />
+        <div id="password-error" class="error-message"></div>
+        <button type="submit">Login</button>
+        <div class="error-message" id="error-message"></div>
+      </form>
+      <div class="links">
+        <a href="/register-template/">Register</a>
+        <a href="/forgot-password/">Forgot Password?</a>
+      </div>
     </div>
+    <!-- Success Modal -->
+    <div id="success-modal" style="display: none" class="modal">
+      <div class="modal-content">
+        <span class="close" id="close-modal">&times;</span>
+        <p>Login successful!</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2024 Article Management System. All rights reserved.</p>
+    </footer>
 
     <script>
-        document.getElementById('login-form').addEventListener('submit', async function (e) {
-            e.preventDefault(); // Prevent form from submitting normally
-        
-            // Get user input values
-            const username = document.querySelector('input[name="username"]').value.trim();
-            const password = document.querySelector('input[name="password"]').value.trim();
-        
-            // Clear any previous error messages
-            const errorMessage = document.getElementById('error-message');
-            errorMessage.textContent = '';
-        
-            try {
-                // Send a POST request to the login API
-                const response = await fetch('/api/login/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        password: password
-                    })
-                });
-        
-                // Parse the response JSON
-                const data = await response.json();
-        
-                if (response.ok) {
-                    // Save the tokens to localStorage
-                    localStorage.setItem('access_token', data.token.access);
-                    localStorage.setItem('refresh_token', data.token.refresh);
-        
-                    // Log success message to console
-                    console.log('Login successful, token stored.');
-        
-                    // Redirect to the dashboard based on the role
-                    if (data.dashboard_url) {
-                        window.location.href = data.dashboard_url; // Dashboard URL is provided in the response
-                    } else {
-                        alert('Login successful, but no dashboard URL found. Contact admin.');
-                    }
-                } else {
-                    // Display an appropriate error message
-                    const errorMsg = data.errors?.username || data.detail || 'Login failed. Please check your credentials.';
-                    errorMessage.textContent = errorMsg;
-                }
-            } catch (error) {
-                // Log and display any unexpected errors
-                console.error('Error during login:', error);
-                errorMessage.textContent = 'An unexpected error occurred. Please try again later.';
-            }
-        });
-        
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
 
+          const username = document
+            .querySelector('input[name="username"]')
+            .value.trim();
+          const password = document
+            .querySelector('input[name="password"]')
+            .value.trim();
+
+          // Clear previous error messages
+          document.getElementById("error-message").textContent = "";
+          document.getElementById("username-error").textContent = "";
+          document.getElementById("password-error").textContent = "";
+
+          // Optional loading spinner logic
+          // const loadingSpinner = document.getElementById('loading-spinner');
+          // loadingSpinner.classList.add('show');
+
+          let isValid = true;
+
+          // Validate username
+          const usernameError = validateField({
+            name: "username",
+            value: username,
+          });
+          if (usernameError) {
+            isValid = false;
+            showError("username", usernameError);
+          }
+
+          // Validate password
+          const passwordError = validateField({
+            name: "password",
+            value: password,
+          });
+          if (passwordError) {
+            isValid = false;
+            showError("password", passwordError);
+          }
+
+          // If form is invalid, do not proceed
+          if (!isValid) {
+            // loadingSpinner.classList.remove('show');
+            return;
+          }
+
+          // If validation passes, proceed with the login API call
+          try {
+            const response = await fetch("/api/login/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+
+            // Handle successful login response
+            if (response.ok) {
+              console.log(data);
+              localStorage.setItem("access_token", data.token.access);
+              localStorage.setItem("refresh_token", data.token.refresh);
+              localStorage.setItem("user", JSON.stringify(data.user));
+              document.getElementById("success-modal").style.display = "block";
+
+              setTimeout(function () {
+                if (data.dashboard_url) {
+                  window.location.href = data.dashboard_url;
+                } else {
+                  alert(
+                    "Login successful, but no dashboard URL found. Contact admin."
+                  );
+                }
+              }, 1000);
+            } else {
+              handleLoginError(data);
+            }
+          } catch (error) {
+            console.error("Error during login:", error);
+            document.getElementById("error-message").textContent =
+              "An unexpected error occurred. Please try again later.";
+          } finally {
+            // loadingSpinner.classList.remove('show');
+          }
+        });
+
+      // Function to validate each field
+      function validateField(field) {
+        let error = "";
+        switch (field.name) {
+          case "username":
+            if (field.value.length < 4)
+              error = "Username must be at least 4 characters.";
+            else if (field.value.length > 20)
+              error = "Username must not exceed 20 characters.";
+            break;
+          case "password":
+            if (field.value.length < 8)
+              error = "Password must be at least 8 characters.";
+            else if (field.value.length > 20)
+              error = "Password must not exceed 20 characters.";
+            break;
+        }
+        return error;
+      }
+
+      // Function to display error messages next to the field
+      function showError(fieldName, message) {
+        document.getElementById(`${fieldName}-error`).textContent = message;
+        document
+          .querySelector(`input[name="${fieldName}"]`)
+          .classList.add("error");
+      }
+
+      // Function to handle the login API error response
+      function handleLoginError(data) {
+        document.getElementById("username-error").textContent = "";
+        document.getElementById("password-error").textContent = "";
+        document.getElementById("error-message").textContent = "";
+
+        if (data.errors) {
+          if (data.errors.username) {
+            document.getElementById("username-error").textContent =
+              "Username not found.";
+          }
+          if (data.errors.password) {
+            document.getElementById("password-error").textContent =
+              "Password does not match.";
+          }
+        } else if (data.detail) {
+          document.getElementById("error-message").textContent = data.detail;
+        } else {
+          document.getElementById("error-message").textContent =
+            "An error occurred. Please try again.";
+        }
+      }
+
+      // Close the success modal
+      document
+        .getElementById("close-modal")
+        .addEventListener("click", function () {
+          document.getElementById("success-modal").style.display = "none";
+        });
+
+      // Add live validation on input change
+      document
+        .querySelector('input[name="username"]')
+        .addEventListener("input", function () {
+          const username = this.value.trim();
+          const usernameError = validateField({
+            name: "username",
+            value: username,
+          });
+          showError("username", usernameError); // Show live error message
+        });
+
+      document
+        .querySelector('input[name="password"]')
+        .addEventListener("input", function () {
+          const password = this.value.trim();
+          const passwordError = validateField({
+            name: "password",
+            value: password,
+          });
+          showError("password", passwordError); // Show live error message
+        });
     </script>
-</body>
+  </body>
 </html>

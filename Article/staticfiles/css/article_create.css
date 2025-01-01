@@ -1,0 +1,358 @@
+/* General styling for the page */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    box-sizing: border-box;
+    background-color: #f9f9f9;
+    color: #333;
+}
+
+/* Sidebar styles */
+.sidebar {
+    width: 250px;
+    background-color: #333;
+    color: white;
+    height: 100vh;
+    padding-top: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding-left: 10px;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin-bottom: 15px;
+    padding: 10px 20px;
+    background-color: #34495E;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar ul li:hover {
+    background-color: #1ABC9C;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    display: block;
+}
+
+.sidebar ul li a:hover {
+    color: #ecf0f1;
+}
+
+/* Content Area */
+.content {
+    margin-left: 270px;
+    padding: 20px;
+    flex-grow: 1;
+    background-color: #ecf0f1;
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+/* Form Page Styling */
+.form-page {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+}
+
+.form-page h2 {
+    margin-bottom: 20px;
+}
+
+.form-page label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+
+.form-page input,
+.form-page textarea,
+.form-page select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+.form-page button {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.form-page button:hover {
+    background-color: #2980b9;
+}
+
+/* Navbar (Top Bar) Styling */
+#home-link,
+#create-article-link,
+#article-list-link,
+#logout-link {
+    display: inline-block;
+    padding: 15px 30px;
+    text-align: center;
+    font-size: 18px;
+    text-decoration: none;
+    color: white;
+    background-color: #3498db;
+    border-radius: 5px;
+    margin: 10px;
+    transition: background-color 0.3s ease;
+}
+
+#home-link:hover,
+#create-article-link:hover,
+#article-list-link:hover,
+#logout-link:hover {
+    background-color: #2980b9;
+}
+
+/* Dashboard Cards */
+.dashboard-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.dashboard-card {
+    background-color: #f1f1f1;
+    padding: 20px;
+    border-radius: 8px;
+    width: 45%;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card h3 {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.dashboard-card p {
+    font-size: 1.5em;
+    margin: 0;
+    font-weight: bold;
+}
+
+/* Article Grid */
+.article-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.article-grid li {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.article-grid li button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.article-grid li button:hover {
+    background-color: #0056b3;
+}
+
+/* Article Table */
+.article-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.article-table thead {
+    background-color: #333;
+    color: #fff;
+}
+
+.article-table thead th {
+    padding: 10px 15px;
+    text-align: left;
+}
+
+.article-table tbody td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.article-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.article-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Sidebar Toggle (for Mobile) */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 11;
+    cursor: pointer;
+}
+
+.sidebar-toggle:focus {
+    outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .content {
+        margin-left: 200px;
+    }
+
+    .dashboard-card {
+        flex: 1 1 100%;
+    }
+
+    .sidebar ul li {
+        padding: 10px 15px;
+    }
+
+    #home-link,
+    #create-article-link,
+    #article-list-link,
+    #logout-link {
+        padding: 10px 20px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .sidebar {
+        width: 100%;
+        position: relative;
+        height: auto;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .sidebar.active {
+        width: 200px;
+        padding: 20px;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 10px;
+    }
+
+    .sidebar-toggle {
+        display: block;
+    }
+
+    .dashboard-cards {
+        flex-direction: column;
+    }
+
+    #article-detail-page {
+        display: block;
+        visibility: visible;
+    }
+
+    .pagination-controls {
+        margin-top: 10px;
+        text-align: center;
+    }
+
+    .pagination-controls button {
+        margin: 0 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+    }
+
+    .pagination-controls button:hover {
+        background-color: #0056b3;
+    }
+
+    .pagination-controls span {
+        margin: 0 10px;
+        font-weight: bold;
+    }
+
+    .page {
+        display: none;
+    }
+
+    .page .active {
+        display: block;
+    }
+
+    .error-message {
+        color: red;
+        font-size: 12px;
+        display: none;
+    }
+
+    .error {
+        border-color: red;
+    }
+}

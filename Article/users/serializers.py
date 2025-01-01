@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from users.models import CustomUser as User, Profile
 import re
-
+from datetime import datetime
 User = get_user_model()
 
 # Profile Serializer
@@ -26,16 +26,29 @@ class ProfileSerializer(serializers.ModelSerializer):
         }
 from rest_framework import serializers
 from users.models import CustomUser  # Make sure this import is present
+from rest_framework import serializers
+from .models import CustomUser, Profile
 
-# Registration Serializer
 class RegistrationSerializer(serializers.ModelSerializer):
+    # Include profile as a nested serializer
+    profile = serializers.JSONField(required=False)
+
     class Meta:
         model = CustomUser
-        fields = ['first_name', 'last_name', 'username', 'email', 'password', 'role', 'checkbox']
-
+        fields = ['first_name', 'last_name', 'username', 'email', 'password', 'role', 'checkbox', 'profile']
+    
+    def validate_email(self, value):
+        # Check if the email already exists in the database
+        if CustomUser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email already exists.")
+        return value
+    
     def create(self, validated_data):
+        # Pop profile data if present
         profile_data = validated_data.pop('profile', None)
-        user = User.objects.create_user(
+        
+        # Create the user instance
+        user = CustomUser.objects.create_user(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             username=validated_data['username'],
@@ -45,6 +58,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             role=validated_data.get('role', 'Journalist')
         )
         
+        # If profile data is provided, create a profile for the user
         if profile_data:
             Profile.objects.create(user=user, **profile_data)
         
@@ -124,6 +138,37 @@ class PasswordResetSerializer(serializers.Serializer):
             recipient_list=[user.email],
         )
 
+class OTPVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    def validate(self, data):
+        email = data.get('email')
+        otp = data.get('otp')
+
+        # Check if OTP exists in the session
+        stored_otp = self.context['request'].session.get('otp')
+        stored_otp_time = self.context['request'].session.get('otp_created_at')
+        stored_email = self.context['request'].session.get('otp_email')
+
+        if not stored_otp:
+            raise serializers.ValidationError("OTP is expired or not generated.")
+        
+        if email != stored_email:
+            raise serializers.ValidationError("The email address does not match the one used for OTP generation.")
+        
+        if otp != stored_otp:
+            raise serializers.ValidationError("Invalid OTP.")
+
+        # Check if OTP is expired (10 minutes expiry)
+        otp_creation_time = datetime.fromisoformat(stored_otp_time)
+        if (datetime.now() - otp_creation_time).total_seconds() > 600:  # 600 seconds = 10 minutes
+            raise serializers.ValidationError("OTP has expired.")
+        
+        return data
+    
+
+    
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 

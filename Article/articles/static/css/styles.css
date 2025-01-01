@@ -1,0 +1,499 @@
+/* Global Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f9;
+    display: flex;
+    min-height: 100vh;
+    color: #333;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    color: #333;
+}
+
+/* Reset Default Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Navbar Styling */
+nav {
+    background-color: #333;
+    padding: 10px;
+    color: white;
+}
+
+nav ul {
+    list-style-type: none;
+    display: flex;
+    justify-content: space-around;
+}
+
+nav ul li {
+    display: inline-block;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+}
+
+nav ul li a:hover {
+    background-color: #575757;
+}
+
+/* Dashboard Layout */
+.dashboard-container {
+    display: flex;
+    flex-grow: 1;
+    min-height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    width: 230px;
+    padding: 20px 15px;
+    position: fixed;
+    height: 100%;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: bold;
+}
+
+.sidebar a {
+    color: #ecf0f1;
+    text-decoration: none;
+    display: block;
+    padding: 12px 15px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.sidebar a:hover {
+    background-color: #34495e;
+    transform: scale(1.05);
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 230px;
+    padding: 20px;
+    flex-grow: 1;
+    background-color: #f9f9fb;
+}
+
+header {
+    background-color: #007bff;
+    color: white;
+    padding: 15px 20px;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+nav {
+    margin-top: 10px;
+}
+
+nav a {
+    color: #ffffff;
+    text-decoration: none;
+    margin: 0 10px;
+    font-size: 1rem;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+/* Articles Section */
+.dashboard-content {
+    margin-top: 20px;
+}
+
+.articles-list {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.articles-list h3 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.articles-list ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.articles-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.articles-list li:hover {
+    background-color: #f1f1f1;
+    transform: scale(1.02);
+}
+
+.approve-btn, .edit-btn {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.approve-btn:hover, .edit-btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.1);
+}
+
+.edit-btn {
+    background-color: #6c757d;
+}
+
+.edit-btn:hover {
+    background-color: #495057;
+}
+
+/* Footer */
+footer {
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 10px 15px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+        padding: 15px;
+    }
+
+    .main-content {
+        margin-left: 200px;
+        padding: 15px;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    nav a {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 180px;
+    }
+
+    .main-content {
+        margin-left: 180px;
+        padding: 10px;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+
+    nav a {
+        font-size: 0.8rem;
+    }
+
+    .articles-list li {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .approve-btn, .edit-btn {
+        margin-top: 10px;
+    }
+}
+
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    padding-top: 60px;
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.modal button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.modal button:hover {
+    background-color: #0056b3;
+}
+/* General styles for the dashboard */
+.dashboard-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar styles */
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    color: white;
+    padding: 20px;
+    position: fixed;
+    height: 100%;
+}
+
+.sidebar h2 {
+    color: #ecf0f1;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.sidebar a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 18px;
+    border-bottom: 1px solid #34495e;
+}
+
+.sidebar a:hover {
+    background-color: #34495e;
+}
+
+/* Main content section */
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+    width: 100%;
+}
+
+/* Articles Section */
+.dashboard-content h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+#article-list-page {
+    display: block;
+}
+
+#search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.article-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.article-table th, .article-table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.article-table th {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.article-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.article-table tr:hover {
+    background-color: #e7f3f9;
+}
+
+.article-table img {
+    max-width: 50px;
+    max-height: 50px;
+    object-fit: cover;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 1000;
+}
+
+.modal-content h2 {
+    color: #2c3e50;
+}
+
+.modal-content p {
+    margin: 10px 0;
+}
+
+#close-modal-btn {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#close-modal-btn:hover {
+    background-color: #2980b9;
+}
+
+/* Footer styles */
+footer {
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+/* Style for the action buttons container */
+.article-table td:last-child {
+    white-space: nowrap; /* Prevent wrapping of buttons */
+    max-width: 200px;  /* Set a maximum width for the actions column */
+    overflow-x: auto;  /* Enable horizontal scrolling */
+    padding: 10px;
+}
+
+.article-table td:last-child a,
+.article-table td:last-child button {
+    margin-right: 5px; /* Space between buttons */
+    display: inline-block;
+}
+
+.article-table td:last-child::-webkit-scrollbar {
+    height: 8px; /* Set scrollbar height */
+}
+
+.article-table td:last-child::-webkit-scrollbar-thumb {
+    background-color: #888; /* Scrollbar color */
+    border-radius: 10px;
+}
+
+.article-table td:last-child::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* Scrollbar hover color */
+}
+  /* Card Layout */
+  .user-info-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin: 20px;
+  }
+  
+  .user-info-card h3 {
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    color: #333;
+  }
+  
+  /* Row Layout for User Information */
+  .user-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  
+  /* Individual User Information Item */
+  .user-info-item {
+    flex: 1 1 200px;  /* Ensures each item takes up equal space and wraps on smaller screens */
+    display: flex;
+    flex-direction: column;
+    font-size: 1em;
+    color: #555;
+  }
+  
+  .user-info-item strong {
+    color: #333;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .user-info-item span {
+    color: #777;
+  }

@@ -4,145 +4,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Home | Article Management System{% endblock %}</title>
+    <title>{% block title %}Dashboard | Article Management System{% endblock %}</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="{% static 'css/styleBase.css' %}">
+    <!-- External JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: #f4f4f4;
-        }
-
-        /* Navbar Styling */
-        .navbar {
-            background-color: #007BFF; /* Blue background matching the login page */
-            overflow: hidden;
-            display: flex;
-            justify-content: flex-start; /* Align links to the left */
-            padding: 10px 20px;
-        }
-
-        .navbar a {
-            display: block;
-            color: white;
-            text-align: center;
-            padding: 14px 16px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .navbar a:hover {
-            background-color: #0056b3; /* Darker blue for hover effect */
-            color: white;
-        }
-
-        /* Page header styling */
-        .header {
-            text-align: center;
-            padding: 60px 20px;
-            background-color: #007BFF;
-            color: white;
-        }
-
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
-        }
-
-        .header p {
-            font-size: 1.2rem;
-        }
-
-        /* Body styling */
-        .container {
-            flex: 1; /* Make content area take up remaining space */
-            padding: 40px 20px;
-        }
-
-        /* General content area */
-        .content {
-            margin: 0 auto;
-            padding: 20px;
-            width: 80%;
-            max-width: 1200px;
-            background-color: white;
+        /* Card styling */
+        .article-card {
+            border: 1px solid #ccc;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 20px;
+            background-color: #fff;
+            transition: transform 0.3s ease;
         }
 
-        /* Card for Login/Logout */
-        .login-card {
-            width: 100%;
-            max-width: 400px;
+        .article-card:hover {
+            transform: scale(1.05);
+        }
+
+        .article-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .article-card p {
+            font-size: 1em;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .article-card a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        .article-card a:hover {
+            text-decoration: underline;
+        }
+
+        /* Layout for the articles */
+        #articles-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        /* Pagination button */
+        #load-more {
+            display: block;
+            width: 200px;
             margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .login-card a {
-            display: block;
-            color: #007BFF;
-            text-decoration: none;
-            padding: 10px;
-            margin: 10px 0;
-        }
-
-        .login-card a:hover {
-            background-color: #f1f1f1;
-        }
-
-        /* Footer */
-        footer {
-            background-color: #007BFF; /* Match the navbar color */
-            color: white;
             padding: 10px;
             text-align: center;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #load-more:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
 <body>
+
     <!-- Navbar -->
-    <div class="navbar">
-        <a href="{% url 'home' %}">Home</a>
+    <nav class="navbar">
+        <a class="navbar-brand" href="{% url 'home' %}">Dashboard</a>
+        <div class="right-buttons">
+            <a href="{% url 'user-login-template' %}" class="btn-interactive">Login</a>
+            <a href="{% url 'user-register-template' %}" class="btn-interactive">Register</a>
+        </div>
+    </nav>
 
-        <a href="{% url 'user-login-template' %}">Login</a>
-        <a href="{% url 'user-register-template' %}">Register</a>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="{% url 'article-list' %}">Articles</a>
+        <!-- Add more sidebar links as needed -->
     </div>
 
-    <!-- Page Header -->
-    <div class="header">
-        <h1>Welcome to Article Management System</h1>
-        <p>Your one-stop solution for managing articles in a media company.</p>
-    </div>
-
-    <!-- Main content area -->
-    <div class="container">
-        {% block content %}
-        <!-- Content will go here -->
-        {% endblock %}
-    </div>
-
-    <!-- Login/Logout Card at the bottom -->
-    <div class="login-card">
-        <a href="{% url 'user-login-template' %}">Login</a>
-        <a href="{% url 'user-register-template' %}">Register</a>
-        {% comment %} 
-        {% if user.is_authenticated %}
-            <a href="{% url 'user-logout' %}">Logout</a>
-        {% endif %}
-        {% endcomment %}
+    <!-- Main Content -->
+    <div class="content-wrapper">
+        <div class="card">
+            <h2>Welcome to the Article Management System</h2>
+            <h2>Articles List</h2>
+            <div id="articles-container"></div>
+            <button id="load-more" onclick="loadArticles()">Load More</button>
+        </div>
     </div>
 
     <!-- Footer -->
     <footer>
         <p>&copy; 2024 Article Management System. All rights reserved.</p>
     </footer>
+
+    <script>
+        {% comment %} let currentPage = 1;  // To track the current page for pagination
+        const articlesPerPage = 3;  // Number of articles per load
+
+        // Function to fetch articles from the API
+        function loadArticles() {
+            $.ajax({
+                url: `/editor/dashboard/articles/api/articles/list/`,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')  // Assuming JWT is stored in localStorage
+                },
+                success: function(data) {
+                    let articlesHtml = '';
+        
+                    data.results.forEach(function(article) {
+                        let articleDetailUrl = `/editor/dashboard/articles/articles/${article.id}/`;
+        
+                        articlesHtml += `
+                            <div class="article-card">
+                                <h3><a href="${articleDetailUrl}">${article.title}</a></h3>
+                                <p>${article.summary}</p>
+                                <p><a href="${articleDetailUrl}">Read More</a></p>
+                            </div>
+                        `;
+                    });
+        
+                    $('#articles-container').append(articlesHtml);
+        
+                    currentPage++;
+        
+                    if (data.next === null) {
+                        $('#load-more').hide();
+                    }
+                },
+                error: function(error) {
+                    console.log('Error fetching articles:', error);
+                }
+            });
+        }
+        
+        
+        // Initially load articles when the page loads
+        $(document).ready(function() {
+            loadArticles();  // Load the first batch of articles
+        });
+        
+    </script> {% endcomment %}
 </body>
 </html>
