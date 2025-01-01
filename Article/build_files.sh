@@ -1,4 +1,8 @@
 echo "BUILD START"
-python3.11.51830 -m pip install -r requirements.txt
-python3.11.51830 manage.py collectstatic --noinput --clear
+# Ensure the correct Python version
+python3.11 -m pip install -r requirements.txt
+
+# Collect static files
+python3.11 manage.py collectstatic --noinput --clear
+
 echo "BUILD END"
