@@ -1,20 +1,22 @@
-/* static/css/styles.css */
+/* Global Styles */
 body {
     font-family: 'Arial', sans-serif;
     background-color: #1e1e2f;
     margin: 0;
     padding: 0;
     color: #d1d1d1;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    padding-bottom: 80px; /* Prevent content from being hidden under the footer */
 }
 
 /* Navbar Styling */
 .navbar {
     background: #232946;
-    padding: 10px 20px;
+    padding: 10px 40px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     position: fixed;
     top: 0;
-    left: 0;
+    left: -30px;
     width: 100%;
     z-index: 1000;
     display: flex;
@@ -40,7 +42,7 @@ body {
 }
 
 .navbar .right-buttons .btn-interactive {
-    padding: 10px 20px;
+    padding: 10px 30px;
     font-size: 14px;
     font-weight: bold;
     border-radius: 8px;
@@ -57,43 +59,101 @@ body {
     color: #eebbc3;
 }
 
-/* Sidebar Styling */
-.sidebar {
-    position: fixed;
-    top: 60px;
-    left: 0;
-    height: 100%;
-    width: 250px;
-    background-color: #121629;
-    color: #d1d1d1;
-    padding-top: 20px;
-}
-
-.sidebar a {
-    display: block;
-    padding: 12px 20px;
-    color: #d1d1d1;
-    text-decoration: none;
-    font-size: 18px;
-    transition: background 0.3s ease, color 0.3s ease;
-}
-
-.sidebar a:hover {
-    background-color: #eebbc3;
-    color: #232946;
-}
-
 /* Main Content Area */
 .content-wrapper {
-    margin-left: 250px;
-    padding: 70px 30px 30px 30px;
+    padding: 80px 40px 40px 40px;
+    padding-bottom: 120px; /* Ensure space for footer at the bottom of the page */
 }
 
-.card {
-    background-color: #232946;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+/* Article Layout */
+#articles-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px; /* Reduced space between the cards */
+}
+
+/* Card styling */
+.article-card {
+    width: 25%; /* Three items per row */
+    margin-bottom: 10px; /* Reduced bottom margin */
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column; /* Changed to column to stack the content */
+    justify-content: space-between; /* To distribute space between content */
+}
+
+/* Hover effect for cards */
+.article-card:hover {
+    transform: scale(1.05);
+}
+
+/* Article info section */
+.article-info {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex-grow: 1; /* To take up the available space */
+}
+
+.article-info h3 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.article-info p {
+    font-size: 1.2em;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+/* Card image styling */
+.article-card img {
+    margin: auto;
+    width: 90%; /* Full width of the card */
+    height: 200px; /* Fixed height for image */
+    align-items: center;
+    border-top: 2px solid #ccc;
+    border-radius: 8px;
+}
+
+/* View button */
+.view-btn {
+    padding: 8px 12px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.view-btn:hover {
+    background-color: #45a049;
+}
+
+/* Pagination button */
+#load-more {
+    display: block;
+    width: 200px;
+    margin: 20px auto;
+    padding: 10px;
+    text-align: center;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#load-more:hover {
+    background-color: #0056b3;
 }
 
 /* Footer */
@@ -105,5 +165,19 @@ footer {
     position: fixed;
     width: 100%;
     bottom: 0;
-    border-radius: 10px 10px 0 0;
+    border-radius: 10px 10px;
+    z-index: 999; /* Make sure footer is above content */
+}
+
+/* Ensure the page is responsive */
+@media (max-width: 768px) {
+    .article-card {
+        width: 48%; /* Two items per row on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .article-card {
+        width: 100%; /* One item per row on very small screens */
+    }
 }

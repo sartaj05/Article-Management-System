@@ -15,12 +15,15 @@ $(document).ready(function () {
   const $articleDetailModal = $("#article-detail-modal");
   const $articleDetailContent = $("#article-detail-content");
   const $closeArticleModal = $("#close-article-modal"); // Close button for modal
-
+  const $closeEditModal=$("#close-edit-modal")
   // Sidebar navigation logic
   $homeLink.click(function () {
     showPage("home-page");
   });
-
+  $closeEditModal.click(function (){
+    $("#editArticleModal").hide();
+  })
+  
   $createArticleLink.click(function () {
     showPage("create-article-page");
   });
@@ -110,7 +113,7 @@ $(document).ready(function () {
       type: "GET",
       headers: { Authorization: "Bearer " + token },
       success: function (response) {
-        console.log(response);
+        // console.log(response);
         $articleCount.text(response.article_count || 0);
         $userfullname.text(user.first_name + " " + user.last_name);
         $userName.text(user.username);
@@ -122,51 +125,6 @@ $(document).ready(function () {
       },
     });
   }
-//   $(document).ready(function () {
-//     // Handle page navigation for multi-page form
-//     $(document).on("click", "#next-to-page2", function () {
-//       // Check if all required fields on Page 1 are filled
-//       const title = $("#title").val();
-//       const content = $("#content").val();
-//       const email = $("#email").val();
-
-//       let isValid = true;
-
-//       if (!title || title.length < 5 || title.length > 35) {
-//         $("#title-error").text("Please enter a valid title (5-35 characters)");
-//         isValid = false;
-//       } else {
-//         $("#title-error").text("");
-//       }
-
-//       if (!content || content.length < 10) {
-//         $("#content-error").text("Content must be at least 10 characters long");
-//         isValid = false;
-//       } else {
-//         $("#content-error").text("");
-//       }
-
-//       if (!email || !validateEmail(email)) {
-//         $("#email-error").text("Please enter a valid email address");
-//         isValid = false;
-//       } else {
-//         $("#email-error").text("");
-//       }
-
-//       if (isValid) {
-//         $("#page1").removeClass("active");
-//         $("#page2").addClass("active");
-//       } else {
-//         alert("Please fill all required fields on Page 1.");
-//       }
-//     });
-
-//     $(document).on("click", "#prev-to-page1", function () {
-//       $("#page2").removeClass("active");
-//       $("#page1").addClass("active");
-//     });
-//   });
-
   $articleForm.submit(function (e) {
     e.preventDefault();
 
@@ -266,62 +224,107 @@ $(document).ready(function () {
       processData: false,
       headers: { Authorization: "Bearer " + token },
       success: function (response) {
-        alert("Article created successfully!");
+        console.log("Article created successfully!");
         appendArticle(response);
         fetchArticles();
         fetchArticleCount();
         $articleForm[0].reset();
         showPage("article-list-page");
+        // Show Success Modal
+        showSuccessModal();
       },
       error: function () {
         alert("Error creating article.");
       },
     });
   });
+  function showSuccessModal() {
+    // Show the success message modal after successful article creation
+    const successModal = $('#success-modal');
+    successModal.fadeIn();
+  
+    // Auto-close modal after a few seconds
+    setTimeout(function () {
+      successModal.fadeOut();
+    }, 2000);
+  }
 
   window.onload = () => {
     fetchArticleCount();
   };
-  // Append article to the list
-  function appendArticle(article) {
-    const tableBody = $("#article-list");
-    const srNo = tableBody.children("tr").length + 1; // Calculate Sr. No.
 
-    const articleItem = `
-        <tr id="article-${article.id}">
-            <td>${srNo}</td> <!-- Serial Number -->
-            <td>${
-              article.title || "No Title"
-            }</td> <!-- Article Title column -->
-            <td>${
-              article.category || "No Category"
-            }</td> <!-- Article Category column -->
-            <td>${
-              article.publish_date || "No Date"
-            }</td> <!-- Article Publish Date column -->
-            <td>${
-              article.status || "No Status"
-            }</td> <!-- Article Status column -->
-            <td><img src="${article.image}" alt="${
-      article.imageUrl
-    }" width="100" /></td> 
-            <td>
-                <button class="view-article" data-id="${
-                  article.id
-                }">View</button>
-                <button class="edit-article" data-id="${
-                  article.id
-                }">Edit</button>
-                <button class="delete-article" data-id="${
-                  article.id
-                }">Delete</button>
-            </td> 
-        </tr>
-    `;
+  
 
-    // Append the article item as a table row
-    tableBody.append(articleItem);
+// Function to append the article to the table
+function appendArticle(article) {
+  const tableBody = $("#article-list");
+  // Calculate Serial Number
+  const srNo = tableBody.children("tr").length + 1;
+
+  // Default values for missing article properties
+  const title = article.title || "No Title";
+  const category = article.category || "No Category";
+  const publishDate = article.publish_date || "No Date";
+  const status = article.status || "No Status";
+  const imageUrl = article.image || "/path/to/default-image.jpg"; // Default image if not provided
+  const imageAlt = article.title || "Article Image"; // Use the article title as alt text
+
+  // Create the article row using template literals
+  const articleItem = `
+    <tr id="article-${article.id}">
+      <td>${srNo}</td>
+      <td>${title}</td>
+      <td>${category}</td>
+      <td>${publishDate}</td>
+      <td>${status}</td>
+      <td><img src="${imageUrl}" alt="${imageAlt}" width="100" /> </td>
+      <td>
+       
+ <button class="view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>        
+ <button class="edit-article" data-id="${article.id}">Edit</button>
+        <button class="delete-article" data-id="${article.id}">Delete</button>
+      </td>
+    </tr>
+  `;
+
+  // Append the article item to the table body
+  tableBody.append(articleItem);
+
+  // Optional: If no articles are present, display a "No Articles" message
+  const noArticlesMessage = $('#no-articles-message');
+  if (tableBody.children("tr").length > 0) {
+    noArticlesMessage.hide();
+  } else {
+    noArticlesMessage.show();
   }
+}
+
+// Event listener for the "View" button click
+$(document).on('click', '.view-article', function () {
+  const article = $(this).data();
+  // console.log(article)
+  // Populate modal with article details
+  $('#modal-id').text(`ID: ${article.id}`);
+  $('#modal-title').text(`Title: ${article.title}`);
+  $('#modal-subtitle').text(`SubTitle: ${article.subtitle}`);
+  $('#modal-email').text(`Email: ${article.email}`);
+  $('#modal-category').text(`Category: ${article.category}`);
+  $('#modal-tags').text(`Tags: ${article.tags}`);
+  $('#modal-publish-date').text(`Published Date: ${article.publishDate}`);
+  $('#modal-status').text(`Status: ${article.status}`);
+  $('#modal-image').attr('src', article.image);
+  $('#modal-content').text(`Content: ${article.content}`);
+  // Show the modal
+  $('#article-modal').show();
+});
+
+// Event listener for the "Close" button click
+$(document).on('click', '#close-modal', function () {
+  // Hide the modal
+  $('#article-modal').hide();
+});
+
+  
 
   // Fetch and display articles
   function fetchArticles() {
@@ -350,102 +353,141 @@ $(document).ready(function () {
       },
     });
   }
-
-  // Event listener for "View Article" button
-  document.querySelectorAll(".view-article").forEach(function (viewButton) {
-    viewButton.addEventListener("click", function () {
-      const articleId = this.getAttribute("data-id");
-      const token = localStorage.getItem("access_token");
-
+$(document).ready(function () {
+    // Edit Article (Dynamic Content Event Delegation)
+    $(document).on('click', '.edit-article', function () {
+      const articleId = $(this).data('id');
+      
       if (!articleId) {
-        console.error("Article ID is missing from the 'view' button.");
+        console.error("Article ID is missing.");
         return;
       }
-
+  
+      const token = localStorage.getItem('access_token');
       if (!token) {
-        alert("Please log in to view the article.");
+        alert("Please log in to edit the article.");
         return;
       }
-
-      console.log(`Fetching article details for ID: ${articleId}`);
-
-      fetch(`/api/articles/${articleId}/`, {
+  
+      console.log(`Fetching article details for editing: ID ${articleId}`);
+  
+      // Fetch the article details via AJAX
+      $.ajax({
+        url: `/articles/edit/${articleId}/`, // Ensure the correct API URL
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.article) {
-            const article = data.article;
-            const articleDetails = `
-                        <h3>${article.title}</h3>
-                        <p><strong>Subtitle:</strong> ${article.subtitle}</p>
-                        <p><strong>Content:</strong> ${article.content}</p>
-                        <p><strong>Tags:</strong> ${article.tags}</p>
-                        <p><strong>Category:</strong> ${article.category}</p>
-                        <p><strong>Publish Date:</strong> ${article.publish_date}</p>
-                        <img src="/media/${article.image}" alt="${article.image}" width="200" />
-                    `;
-            articleDetailContent.innerHTML = articleDetails;
-            articleDetailModal.style.display = "block"; // Show the modal
+        success: function (response) {
+          if (response.article) {
+            const article = response.article;
+  
+            // Populate the modal fields with article data
+            $('#editTitle').val(article.title);
+            $('#editSubtitle').val(article.subtitle);
+            $('#editContent').val(article.content);
+            $('#editCategory').val(article.category);
+            $('#editTags').val(article.tags);  // Ensure it's an array of tags
+            $('#editArticleId').val(article.id);  // Set hidden input for article ID
+  
+            // Open the modal to edit the article
+            $('#editArticleModal').show();
           } else {
             alert("Article not found.");
           }
-        })
-        .catch((error) => {
-          alert("Error fetching article details.");
-          console.error("Error fetching article details:", error);
-        });
-    });
-  });
-  // Function definition
-  function closeArticleModal() {
-    $("#articleModal").modal("hide"); // Hides the modal
-    console.log("Modal closed");
-  }
-
-  // Call the function when a button is clicked
-  $(document).ready(function () {
-    $("#close-modal-button").on("click", function () {
-      closeArticleModal();
-    });
-  });
-
-  // Event listener for "Edit Article" button
-  document.querySelectorAll(".edit-article").forEach(function (editButton) {
-    editButton.addEventListener("click", function () {
-      const articleId = this.getAttribute("data-id");
-
-      if (!articleId) {
-        console.error("Article ID is missing from the 'edit' button.");
-        return;
-      }
-
-      console.log(`Redirecting to edit page for Article ID: ${articleId}`);
-
-      // Redirect to the edit page
-      window.location.href = `/articles/edit/${articleId}/`;
-    });
-  });
-
-  // Handle delete article action
-  $(document).on("click", ".delete-article", function () {
-    const articleId = $(this).data("id");
-    if (confirm("Are you sure you want to delete this article?")) {
-      const token = localStorage.getItem("access_token");
-      $.ajax({
-        url: `/articles/delete/${articleId}/`,
-        type: "DELETE",
-        headers: { Authorization: "Bearer " + token },
-        success: function () {
-          alert("Article deleted successfully!");
-          $(`#article-${articleId}`).remove(); // Remove article from the list
-          fetchArticleCount();
         },
-        error: function () {
-          alert("Error deleting article.");
+        error: function (error) {
+          alert("Error fetching article details.");
+          console.error(error);
         },
       });
-    }
+    });
+  
+    // Save Edited Article (Submit Changes)
+    $('#edit-article-form').on('submit', function (e) {
+      e.preventDefault();
+  
+      const articleId = $('#editArticleId').val();
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        alert("Please log in to save the article.");
+        return;
+      }
+  
+      // Collect updated article data from the form
+      const updatedArticle = {
+        title: $('#editTitle').val(),
+        subtitle: $('#editSubtitle').val(),
+        content: $('#editContent').val(),
+        category: $('#editCategory').val(),
+        tags: $('#editTags').val().split(", "),  // Convert tags string to an array
+      };
+  
+      // Send the updated article data via AJAX
+      $.ajax({
+        url: `/articles/edit/${articleId}/`,  // Ensure the update URL is correct
+        method: "PATCH",  // Method to update the article
+        headers: { Authorization: `Bearer ${token}` },
+        data: updatedArticle,
+        success: function (response) {
+          if (response.success) {
+            // Show success modal
+            showSuccessModal();
+            $('#editArticleModal').show();
+
+            $('#editArticleModal').hide(); // Close the edit modal
+            
+            // Optionally reload the page to reflect changes
+            setTimeout(function () {
+              location.reload();
+            }, 1000);  // Close after 2 seconds or you can hide the modal manually
+          } else {
+            console.log(" Updating article successfully.");
+            $('#editArticleModal').hide();
+          }
+        },
+        error: function (err) {
+          alert("Error updating article.");
+          console.error(err);
+        }
+      });
+       // Close the success modal
+    $('.modal-close').on('click', function () {
+      $('#successModal').hide();
+    });
+    });
+  
+   
   });
+  
+
+// Handle delete article action
+$(document).on("click", ".delete-article", function () {
+  const articleId = $(this).data("id");
+  
+  // Show the custom confirmation modal
+  $('#confirmation-modal').fadeIn();
+  
+  // When the "Yes" button is clicked
+  $('#confirm-delete').click(function () {
+    const token = localStorage.getItem("access_token");
+    $.ajax({
+      url: `/articles/delete/${articleId}/`,
+      type: "DELETE",
+      headers: { Authorization: "Bearer " + token },
+      success: function () {
+        console.log("Article deleted successfully!");
+        $(`#article-${articleId}`).remove(); // Remove article from the list
+        fetchArticleCount();
+        $('#confirmation-modal').fadeOut();  // Close the modal
+      },
+      error: function () {
+        alert("Error deleting article.");
+        $('#confirmation-modal').fadeOut();  
+      },
+    });
+  });
+  $('#cancel-delete').click(function () {
+    $('#confirmation-modal').fadeOut();  
+  });
+});
+
 });

@@ -47,15 +47,15 @@
       .register-container {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        {% comment %} align-items: center; {% endcomment %}
+        {% comment %} justify-content: center; {% endcomment %}
         background-color: #232946;
         padding: 15px;
         border-radius: 10px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         max-width: 450px;
         width: 100%;
-        text-align: center;
+        {% comment %} text-align: center; {% endcomment %}
         margin-top: 70px; /* Adjusted to avoid overlap with navbar */
       }
 
@@ -64,6 +64,7 @@
         color: #eebbc3;
         margin-bottom: 10px;
         font-size: 24px;
+        text-align: center;
       }
 
       /* Form Fields */
@@ -110,7 +111,7 @@
         margin-top: 20px;
         display: flex;
         justify-content: center;
-        align-items: center;
+        {% comment %} align-items: center; {% endcomment %}
       }
 
       .register-container .links a {

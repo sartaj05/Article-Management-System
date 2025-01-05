@@ -13,148 +13,91 @@
     <!-- External JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <style>
-        /* Card styling */
-        .article-card {
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            margin: 20px;
-            background-color: #fff;
-            transition: transform 0.3s ease;
-        }
-
-        .article-card:hover {
-            transform: scale(1.05);
-        }
-
-        .article-card h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .article-card p {
-            font-size: 1em;
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        .article-card a {
-            text-decoration: none;
-            color: #007bff;
-        }
-
-        .article-card a:hover {
-            text-decoration: underline;
-        }
-
-        /* Layout for the articles */
-        #articles-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-
-        /* Pagination button */
-        #load-more {
-            display: block;
-            width: 200px;
-            margin: 20px auto;
-            padding: 10px;
-            text-align: center;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #load-more:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <style> </style>
 </head>
 <body>
 
     <!-- Navbar -->
-    <nav class="navbar">
-        <a class="navbar-brand" href="{% url 'home' %}">Dashboard</a>
-        <div class="right-buttons">
-            <a href="{% url 'user-login-template' %}" class="btn-interactive">Login</a>
-            <a href="{% url 'user-register-template' %}" class="btn-interactive">Register</a>
-        </div>
-    </nav>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <a href="{% url 'article-list' %}">Articles</a>
-        <!-- Add more sidebar links as needed -->
+<nav class="navbar">
+    <a class="navbar-brand" href="{% url 'home' %}">Article Management Websites</a>
+    <div class="right-buttons">
+        <a href="{% url 'user-login-template' %}" class="btn-interactive">Login</a>
+        <a href="{% url 'user-register-template' %}" class="btn-interactive">Register</a>
     </div>
+</nav>
 
-    <!-- Main Content -->
-    <div class="content-wrapper">
-        <div class="card">
-            <h2>Welcome to the Article Management System</h2>
-            <h2>Articles List</h2>
-            <div id="articles-container"></div>
-            <button id="load-more" onclick="loadArticles()">Load More</button>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <footer>
-        <p>&copy; 2024 Article Management System. All rights reserved.</p>
-    </footer>
+<!-- Main Content -->
+<div id="articles-container" class="content-wrapper">
+    <!-- Articles will be dynamically inserted here -->
+</div>
 
-    <script>
-        {% comment %} let currentPage = 1;  // To track the current page for pagination
-        const articlesPerPage = 3;  // Number of articles per load
+<!-- "Load More" Button -->
+<button id="load-more">Load More</button>
+<!-- Footer -->
+<footer>
+    <p>&copy; 2024 Article Management System. All rights reserved.</p>
+</footer>
 
-        // Function to fetch articles from the API
-        function loadArticles() {
-            $.ajax({
-                url: `/editor/dashboard/articles/api/articles/list/`,
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')  // Assuming JWT is stored in localStorage
-                },
-                success: function(data) {
-                    let articlesHtml = '';
-        
-                    data.results.forEach(function(article) {
-                        let articleDetailUrl = `/editor/dashboard/articles/articles/${article.id}/`;
-        
-                        articlesHtml += `
-                            <div class="article-card">
-                                <h3><a href="${articleDetailUrl}">${article.title}</a></h3>
-                                <p>${article.summary}</p>
-                                <p><a href="${articleDetailUrl}">Read More</a></p>
+<script>
+    let nextUrl = '/articles/publishedlist/'; // Initial URL to fetch articles
+
+// Load articles when the page loads
+loadArticles(nextUrl);
+
+// Function to load articles
+function loadArticles(url) {
+    $.ajax({
+        url: url, // Fetch from the current URL (or next URL)
+        type: 'GET',
+        success: function (response) {
+            const articles = response.results; // Use results from paginated response
+            const container = $('#articles-container');
+            if (articles.length === 0) {
+                container.append('<p>No published articles available.</p>');
+            } else {
+                // Loop through each article and create an article card
+                articles.forEach(article => {
+                    const articleCard = `
+                        <div class="article-card">
+                            <img src="${article.image || '/static/images/default.jpg'}" alt="Article Image" class="article-image">
+                            <div class="article-info">
+                                <h3>${article.title}</h3>
+                                <p>Published on: ${new Date(article.publish_date).toLocaleDateString()}</p>
+                                <p>Category: ${article.category}</p>
+                                <a href="{% url 'user-login-template' %}" class="view-btn" data-article-id="${article.id}">View Article</a>
                             </div>
-                        `;
-                    });
-        
-                    $('#articles-container').append(articlesHtml);
-        
-                    currentPage++;
-        
-                    if (data.next === null) {
-                        $('#load-more').hide();
-                    }
-                },
-                error: function(error) {
-                    console.log('Error fetching articles:', error);
+                        </div>
+                    `;
+                    container.append(articleCard); // Append the article card to the container
+                });
+
+                // Update the "Load More" button based on the next page URL
+                if (response.next) {
+                    nextUrl = response.next; // Set the next URL for future requests
+                } else {
+                    $('#load-more').hide(); // Hide the "Load More" button if no more articles
                 }
-            });
+            }
+        },
+        
+
+        error: function (xhr, status, error) {
+            console.error('Error fetching articles:', status, error);
+            alert('Error fetching articles. Please try again later.');
         }
+    });
+}
+
+// "Load More" button click event
+$('#load-more').on('click', function () {
+    loadArticles(nextUrl); // Load the next set of articles when clicked
+});
+
+</script>
+
+
         
-        
-        // Initially load articles when the page loads
-        $(document).ready(function() {
-            loadArticles();  // Load the first batch of articles
-        });
-        
-    </script> {% endcomment %}
+     
 </body>
 </html>

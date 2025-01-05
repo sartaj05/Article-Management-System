@@ -9,6 +9,9 @@ def editor_dashboard(request):
 # View for Admin Dashboard
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
+
+# def journalist_dashboard(request):
+#     return render(request, 'journalist_dashboard.html')
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponseRedirect
@@ -16,15 +19,16 @@ from django.test import tag
 from django.urls import reverse
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import Article, Comment, Like, ArticleView
+from .models import Article, Comment, Like, ArticleView,Category
 from rest_framework.views import APIView
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import CreateAPIView
 from rest_framework import status
-from .serializers import ArticleSerializer, CommentSerializer
-from .forms import ArticleForm, CommentForm
+from .serializers import ArticleSerializer
+from .forms import ArticleForm
 from django.db.models import Q
 from django.core.paginator import Paginator
 from rest_framework import generics
@@ -32,22 +36,22 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.pagination import PageNumberPagination
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Category, Article
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from articles.models import Article
+from users.models import CustomUser
 
 class ArticleListAPIView(generics.ListAPIView):
     # queryset = Article.objects.filter(is_visible=True).order_by('-created_at')
     queryset = Article.objects.order_by('-created_at')
     serializer_class = ArticleSerializer
 
-from django.http import JsonResponse
-
 def user_profile(request):
     # Return user profile data
     return JsonResponse({'username': 'JohnDoe', 'email': 'john@example.com'})
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from articles.models import Article
-
 class ArticleCountAPIView(APIView):
     def get(self, request):
         article_count = Article.objects.count()  # Get the count of articles
@@ -115,14 +119,6 @@ class ArticleDetailView(View):
 
 
         # return render(request, 'articles/article_detail.html', context)
-
-from django.http import JsonResponse
-from rest_framework.permissions import IsAuthenticated
-from django.views import View
-from .models import Article
-from .serializers import ArticleSerializer
-from django.core.paginator import Paginator
-from django.db.models import Q
 
 class ArticleSearchView(View):
     def get(self, request):
@@ -233,18 +229,32 @@ def user_is_author(user, article):
     return article.author == user
 
 
-
 class ArticleUpdateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def has_edit_permission(self, user, article):
+        """
+        Checks if the user has permission to edit the article.
+        - Admin and Editor can edit all articles.
+        - Journalists can only edit their own articles.
+        """
+        if user.role in ['Admin', 'Editor']:
+            return True
+        if user.role == 'Journalist' and article.author == user:
+            return True
+        return False
+
     def get(self, request, article_id):
+        """
+        Fetch article details for editing (GET).
+        """
         # Fetch the article by its ID
         article = get_object_or_404(Article, id=article_id)
 
-        # Check if the logged-in user is the author
-        if request.user != article.author:
-            return Response({'error': 'You do not have permission to view this article'}, status=403)
+        # Check if the user has permission to view the article
+        if not self.has_edit_permission(request.user, article):
+            return Response({'error': 'You do not have permission to view or edit this article.'}, status=403)
 
         # Serialize the article details
         article_data = ArticleSerializer(article).data
@@ -257,9 +267,9 @@ class ArticleUpdateView(APIView):
         # Fetch the article by its ID
         article = get_object_or_404(Article, id=article_id)
 
-        # Check if the logged-in user is the author
-        if request.user != article.author:
-            return Response({'error': 'You do not have permission to edit this article'}, status=403)
+        # Check if the user has permission to edit the article
+        if not self.has_edit_permission(request.user, article):
+            return Response({'error': 'You do not have permission to edit this article.'}, status=403)
 
         # Pass the request context to the serializer
         serializer = ArticleSerializer(article, data=request.data, context={'request': request})
@@ -281,9 +291,9 @@ class ArticleUpdateView(APIView):
         # Fetch the article by its ID
         article = get_object_or_404(Article, id=article_id)
 
-        # Check if the logged-in user is the author
-        if request.user != article.author:
-            return Response({'error': 'You do not have permission to edit this article'}, status=403)
+        # Check if the user has permission to edit the article
+        if not self.has_edit_permission(request.user, article):
+            return Response({'error': 'You do not have permission to edit this article.'}, status=403)
 
         # Pass the request context to the serializer for partial update
         serializer = ArticleSerializer(article, data=request.data, partial=True, context={'request': request})
@@ -297,8 +307,6 @@ class ArticleUpdateView(APIView):
 
         # If serializer is invalid, return the validation errors
         return Response({'errors': serializer.errors}, status=400)
-
-
 
 class ArticleDeleteView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -317,15 +325,6 @@ class ArticleDeleteView(APIView):
 
         return Response({'message': 'Article deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from django.core.mail import send_mail
-from django.conf import settings
-from .models import Article
-from django.shortcuts import get_object_or_404
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class ArticleApproveView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -361,7 +360,6 @@ class ArticleApproveView(APIView):
         return Response({'message': 'Article approved successfully.'}, status=status.HTTP_200_OK)
     
 
-
 class ArticlePublishedView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -370,30 +368,40 @@ class ArticlePublishedView(APIView):
         # Fetch the article by its ID
         article = get_object_or_404(Article, id=article_id)
 
-        # Check if the user has the required role (Editor or Admin)
+        # Check user role
         if request.user.role not in ['Editor', 'Admin']:
-            return Response({'error': 'You do not have permission to publish this article'}, status=403)
+            return Response(
+                {'error': 'You do not have permission to publish this article'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         # Check if the article is already published
         if article.status == "published":
-            return Response({'error': 'This article is already published'}, status=400)
+            return Response(
+                {'error': 'This article is already published.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Mark the article as published
+        # Update the article status
         article.status = "published"
-        # article.publish_date = timezone.now()  # Uncomment if you want to set the publish date at the time of publishing
-        email = article.email
+        article.publish_date = timezone.now()
         article.save()
 
-        # Send a success email notification to the article author
-        send_mail(
-            subject="Article Published",
-            message=f"Your article '{article.title}' has been published successfully.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+        # Send email notification to the article author
+        if article.email:
+            send_mail(
+                subject="Article Published",
+                message=f"Your article '{article.title}' has been published successfully.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[article.email],
+                fail_silently=True,
+            )
+
+        return Response(
+            {'message': 'Article published successfully.', 'status': 'published'},
+            status=status.HTTP_200_OK
         )
 
-        return Response({'message': 'Article published successfully.'}, status=status.HTTP_200_OK)
 
     def get(self, request, article_id=None):
         # Check if the user has the required role (Editor or Admin)
@@ -402,52 +410,29 @@ class ArticlePublishedView(APIView):
                 {"detail": "Permission denied."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-
+      
         if article_id:
             # Fetch a single published article
             article = get_object_or_404(Article, id=article_id, status='published')  # Ensure 'status' field exists
             article_data = {
-                "id": article.id,
-                "title": article.title,
-                "publish_date": article.publish_date,
-            }
+            "id": article.id,
+            "title": article.title,
+            "content": article.content,  # Add content field
+            "tags": article.tags,  # Add tags field
+            "email": article.author.email if article.author else None,  # Add author email
+            "subtitle": article.subtitle,  # Add subtitle field
+            "category": article.category,
+            "publish_date": article.publish_date,
+            "status": article.status,
+            "image": article.image,
+        }
             return Response(article_data)
 
         # Fetch all published articles
         published_articles = Article.objects.filter(status='published').order_by('-publish_date')  # Adjust as needed
-        articles = [
-            {
-                "id": article.id,
-                "title": article.title,
-                "publish_date": article.publish_date,
-            }
-            for article in published_articles
-        ]
-        return Response({"published_articles": articles})
-
-
-
-# class LikeToggleView(LoginRequiredMixin, View):
-#     def post(self, request, slug):
-#         article = get_object_or_404(Article, slug=slug)
-#         like, created = Like.objects.get_or_create(article=article, user=request.user)
-#         if not created:
-#             like.delete()
-#             return JsonResponse({'liked': False}, status=200)
-#         return JsonResponse({'liked': True}, status=201)
-# Tagged Articles View
-# class TaggedArticleListView(View):
-#     def get(self, request, tag_name):
-#         # Filter articles by tag (check for a match in the tags field)
-#         articles = Article.objects.filter(is_visible=True, tags__icontains=tag_name)
-#         context = {'articles': articles, 'tag': tag_name}
-#         return render(request, 'articles/tagged_article_list.html', context)
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Article
-from .serializers import ArticleSerializer
+        serializer = ArticleSerializer(published_articles, many=True)
+        return Response({"published_articles": serializer.data})
+        
 
 class PendingApprovalArticleView(APIView):
     permission_classes = [IsAuthenticated]
@@ -556,7 +541,7 @@ class ArticleStatusUpdateView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
         article = get_object_or_404(Article, id=self.kwargs['article_id'])
         return self.request.user.role in ['Editor', 'Admin']
-# In articles/views.py
+
 from django.shortcuts import render,redirect
 class ArticleSubmitView(View):
     def get(self, request):
@@ -571,10 +556,6 @@ class ArticleSubmitView(View):
             article.save()
             return redirect('articles:article-detail', slug=article.slug)
         return render(request, 'articles/article_form.html', {'form': form})
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from articles.models import Article
-from users.models import CustomUser
 
 @login_required
 def admin_dashboard_data(request):
@@ -591,8 +572,9 @@ def admin_dashboard_data(request):
         'pending_approvals': pending_approvals
     })
 
-
-@login_required
+@csrf_exempt
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
 def reject_article(request, article_id):
     # Check if the user is an Admin or Editor
     if not (request.user.is_staff or request.user.role == 'Editor'):
@@ -600,14 +582,55 @@ def reject_article(request, article_id):
 
     # Get the article to reject
     article = get_object_or_404(Article, pk=article_id)
-    
-    # Mark article as rejected (you can customize status names as per your model)
+
+    # Handle already rejected or approved cases
+    if article.status == 'rejected':
+        return JsonResponse({"error": "This article has already been rejected."}, status=400)
+
+    if article.status == 'approved':
+        return JsonResponse({"error": "This article has already been approved and cannot be rejected."}, status=400)
+
+    # Mark article as rejected
     article.status = 'rejected'
     article.save()
 
     return JsonResponse({"message": "Article rejected successfully."}, status=200)
-# In your views.py
-from django.shortcuts import render
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Article
+from .serializers import ArticleSerializer
+from rest_framework import status
 
-def journalist_dashboard(request):
-    return render(request, 'journalist_dashboard.html')
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .models import Article
+from .serializers import ArticleSerializer
+from rest_framework import status
+
+class PublishedArticleListView(APIView):
+    # Remove authentication and permission classes to make it public
+    permission_classes = []  # No authentication required
+
+    def get(self, request):
+        # Fetch all published articles
+        published_articles = Article.objects.filter(status='published').order_by('-publish_date')
+        
+        # Paginate the results using the custom ArticlePagination class
+        paginator = ArticlePagination()
+        result_page = paginator.paginate_queryset(published_articles, request)
+        
+        # Serialize the paginated articles
+        serializer = ArticleSerializer(result_page, many=True)
+        
+        # Return the paginated response with articles and pagination info
+        return paginator.get_paginated_response(serializer.data)
+
+from rest_framework.pagination import PageNumberPagination
+
+class ArticlePagination(PageNumberPagination):
+    page_size = 3  # Limit to 3 articles per page
+    page_size_query_param = 'page_size'  # Allow clients to set page size (optional)
+    max_page_size = 3  # Optional: Max page size limit (optional)

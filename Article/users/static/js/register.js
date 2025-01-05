@@ -181,8 +181,9 @@ function validateField(field, form) {
             if (field.value.length > 20) return "Username must not exceed 20 characters.";
             return "";
         case 'email':
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            return !emailRegex.test(field.value) ? "Please enter a valid email address." : "";
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Modified regex to disallow spaces
+            return !emailRegex.test(field.value.trim()) ? "Please enter a valid email address without spaces." : "";
+            
         case 'password':
             const passwordRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
             return !passwordRegex.test(field.value) ? "Password must be at least 8 characters long, and include a number and special character." : "";

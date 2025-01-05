@@ -100,6 +100,9 @@ class ArticleSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+    def validate(self, data):
+        # Add any custom validation logic if needed
+        return data
 
 # Helper function for slug generation
 def generate_unique_slug(title):

@@ -19,7 +19,7 @@ urlpatterns = [
     # Filter articles by category
     path('category/<str:category_name>/', views.CategoryArticleListView.as_view(), name='article-category'),  
     # Edit an existing article (for editors or the author)
-    path('edit/<int:article_id>/', views.ArticleUpdateView.as_view(), name='article-edit'),  
+    path('edit/<int:article_id>/', views.ArticleUpdateView.as_view(), name='article-edit'), 
      
     # Delete an article (for editors/admins)
     path('delete/<int:article_id>/', views.ArticleDeleteView.as_view(), name='article-delete'),  
@@ -28,13 +28,14 @@ urlpatterns = [
     path('approve/<int:pk>/', views.ArticleApproveView.as_view(), name='approve-article'), 
 
     # View published articles (for admins/editors)
-
-    path('published/', views.ArticlePublishedView.as_view(), name='published_articles'),
-    # Add the pending approval endpoint
-    path('pending_approval/', views.PendingApprovalArticleView.as_view(), name='article-pending-approval'),
+    
+    path('publish/<int:article_id>/', views.ArticlePublishedView.as_view(), name='publish-article'),
+    path('published/', views.ArticlePublishedView.as_view(), name='published-articles'),
 
     path('reject/<int:article_id>/', views.reject_article, name='reject_article'),  
-    
+     # Add the pending approval endpoint
+    path('pending_approval/', views.PendingApprovalArticleView.as_view(), name='article-pending-approval'),
+    path('publishedlist/', views.PublishedArticleListView.as_view(), name='published_articles_list'),
     # Submit an article (for journalists)
     path('submit/', views.SubmitArticleAPIView.as_view(), name='article-submit'),  
     

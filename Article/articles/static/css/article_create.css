@@ -336,7 +336,7 @@ body {
         display: none;
     }
 
-    .page .active {
+    .page.active {
         display: block;
     }
 
@@ -438,6 +438,192 @@ body {
     #article-table .approve-btn:hover, #article-table .edit-btn:hover {
         background-color: #2980b9;
     }
-    
 }
 
+/* Card Layout */
+.user-info-card {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+}
+
+.user-info-card h3 {
+  margin-bottom: 15px;
+  font-size: 1.5em;
+  color: #333;
+}
+
+/* Row Layout for User Information */
+.user-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* Individual User Information Item */
+.user-info-item {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  font-size: 1em;
+  color: #555;
+}
+
+.user-info-item strong {
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.user-info-item span {
+  color: #777;
+}
+
+/* Error Message Styling */
+.error-message {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 1px;
+  display: block;
+}
+
+.error-input {
+  border: 1px solid red;
+}
+/* General Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.modal-footer {
+    text-align: right;
+}
+
+.modal-footer .btn {
+    padding: 8px 15px;
+    margin: 5px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+
+.modal-footer .btn:hover {
+    background-color: #0056b3;
+}
+
+/* Close Button Styling */
+#close-modal,
+#close-edit-modal {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#close-modal:hover,
+#close-edit-modal:hover {
+    color: #000;
+}
+
+/* Input and Textarea Styling */
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+textarea {
+    height: 150px;
+}
+
+/* Modal Fields and Content */
+#modal-id, 
+#modal-title, 
+#modal-subtitle, 
+#modal-category, 
+#modal-content, 
+#modal-email, 
+#modal-publish-date, 
+#modal-status {
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #333;
+}
+
+#modal-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+#modal-content {
+    color: #555;
+}
+
+/* Modal Image Styling */
+#modal-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 10px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Confirmation Modal Specific Styling */
+#confirmation-modal .modal-content {
+    padding: 30px;
+    text-align: center;
+}
+
+#confirmation-modal .modal-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#confirmation-modal .btn {
+    padding: 10px 20px;
+    font-size: 16px;
+}
+
+#confirmation-modal .btn:hover {
+    opacity: 0.8;
+}
+
+/* Cancel Button Styling */
+#cancel-delete {
+    background-color: #dc3545;
+}
+
+#cancel-delete:hover {
+    background-color: #c82333;
+}

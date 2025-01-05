@@ -1,156 +1,211 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Editor Dashboard</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{% static 'js/editor.js' %}"></script>
-  </head>
-  <body>
-    <div class="dashboard-container">
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <h2>Editor Dashboard</h2>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor Dashboard</title>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="{% static 'js/editor.js' %}"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Editor Dashboard</h2>
+      <nav>
         <a href="#" id="home-btn">Home</a>
         <a href="#" id="manage-articles-btn">Manage Articles</a>
         <a href="#" id="approve-articles-btn">Approve Articles</a>
         <a href="#" id="reject-articles-btn">Reject Articles</a>
         <a href="#" id="published-articles-btn">Published Articles</a>
         <a href="#" id="logout-btn">Logout</a>
-      </div>
+      </nav>
+    </aside>
 
-      <!-- Main Content -->
-      <div class="main-content">
-        <!-- Home Section -->
-        <section id="home-section" class="dashboard-content">
-          <h2>Welcome to the Editor Dashboard</h2>
-          <div class="user-info-card">
-            <h3>User Information</h3>
-            <div class="user-info-row">
-              <div class="user-info-item">
-                <strong>Full Name:</strong>
-                <span id="userfullname">Loading...</span>
-              </div>
-              <div class="user-info-item">
-                <strong>Username:</strong>
-                <span id="username">Loading...</span>
-              </div>
-              <div class="user-info-item">
-                <strong>Role:</strong>
-                <span id="role">Loading...</span>
-              </div>
-              <div class="user-info-item">
-                <strong>Email:</strong>
-                <span id="email">Loading...</span>
-              </div>
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Home Section -->
+      <section id="home-section" class="dashboard-content">
+        <h2>Welcome to the Editor Dashboard</h2>
+        <div class="user-info-card">
+          <h3>User Information</h3>
+          <div class="user-info-row">
+            <div class="user-info-item">
+              <strong>Full Name:</strong> <span id="userfullname">Loading...</span>
+            </div>
+            <div class="user-info-item">
+              <strong>Username:</strong> <span id="username">Loading...</span>
+            </div>
+            <div class="user-info-item">
+              <strong>Role:</strong> <span id="role">Loading...</span>
+            </div>
+            <div class="user-info-item">
+              <strong>Email:</strong> <span id="email">Loading...</span>
+            </div>
+            <div class="user-info-item">
+              <strong>Total Articles Created:</strong> <span id="article-count">Loading...</span>
             </div>
           </div>
-        </section>
-
-        <!-- Manage Articles Section -->
-        <section id="article-list-page" class="page">
-          <h1>Manage Articles</h1>
-          <input type="text" id="search-bar" placeholder="Search by title or category" />
-          <table id="article-table" class="article-table">
-            <thead>
-              <tr>
-                <th>Sr. No.</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Publish Date</th>
-                <th>Status</th>
-                <th>Image</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="article-list"></tbody>
-          </table>
-          <div id="no-articles-message" style="display: none">No articles available.</div>
-        </section>
-
-        <!-- Approve Articles Section -->
-        <section id="approve-articles-page" class="page" style="display: none">
-          <h1>Approve Articles</h1>
-          <table id="approve-article-table" class="article-table">
-            <thead>
-              <tr>
-                <th>Sr. No.</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Publish Date</th>
-                <th>Image</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="approve-article-list"></tbody>
-          </table>
-          <div id="no-approve-articles-message" style="display: none">No articles pending approval.</div>
-        </section>
-
-        <!-- Reject Articles Section -->
-        <section id="reject-articles-page" class="page" style="display: none">
-          <h1>Reject Articles</h1>
-          <table id="reject-article-table" class="article-table">
-            <thead>
-              <tr>
-                <th>Sr. No.</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Publish Date</th>
-                <th>Status</th>
-                <th>Image</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="reject-article-list"></tbody>
-          </table>
-          <div id="no-reject-articles-message" style="display: none">No articles available for rejection.</div>
-        </section>
-
-        <!-- Published Articles Section -->
-        <section id="published-articles-page" class="page" style="display: none">
-          <h1>Published Articles</h1>
-          <table id="published-article-table" class="article-table">
-            <thead>
-              <tr>
-                <th>Sr. No.</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th>Publish Date</th>
-                <th>Status</th>
-                <th>Image</th>
-              </tr>
-            </thead>
-            <tbody id="published-article-list"></tbody>
-          </table>
-          <div id="no-published-articles-message" style="display: none">No published articles available.</div>
-        </section>
-      </div>
-
-      <!-- Modals for Approve/Rejection Success -->
-      <div id="approval-modal" class="modal" style="display: none">
-        <div class="modal-content">
-          <h2>Article Approved Successfully!</h2>
-          <p>Your article has been approved.</p>
-          <button id="close-modal-btn">Close</button>
         </div>
-      </div>
+      </section>
 
-      <div id="rejection-modal" class="modal" style="display: none">
-        <div class="modal-content">
-          <h2>Article Rejected</h2>
-          <p>Your article has been rejected.</p>
-          <button id="close-rejection-modal-btn">Close</button>
-        </div>
-      </div>
+      <!-- Manage Articles Section -->
+<section id="article-list-page" class="page" style="display: none;">
+  <h1>Manage Articles</h1>
+  
+  <!-- Search Bar -->
+  <input type="text" id="search-bar" placeholder="Search by title or category">
+
+  <table class="article-table">
+      <thead>
+          <tr>
+              <th>Sr. No.</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Publish Date</th>
+              <th>Status</th>
+              <th>Image</th>
+              <th>Actions</th>
+          </tr>
+      </thead>
+      <tbody id="article-list"></tbody>
+  </table>
+  <p id="no-articles-message" class="empty-message" style="display: none;">No articles available.</p>
+</section>
+<!-- Article Details Modal -->
+<div id="article-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <button id="close-modal" class="modal-close btn">X</button>
+    <h4>Article Details</h4>
+    <p id="modal-id"></p>
+    <p id="modal-title"></p>
+    <p id="modal-subtitle"></p>
+    <p id="modal-category"></p>
+    <p id="modal-content"></p>
+    <p id="modal-email"></p>
+    <p id="modal-publish-date"></p>
+    <p id="modal-status"></p>
+    <img id="modal-image" src="" alt="Article Image" style="max-width: 100%; height: auto;" />
+  </div>
+  <div class="modal-footer">
+    <button id="close-modal" class="btn">Close</button>
+  </div>
+</div>
+
+
+      <!-- Approve Articles Section -->
+<section id="approve-articles-page" class="page" style="display: none;">
+  <h1>Approve Articles</h1>
+  
+  <!-- Search Bar -->
+  <input type="text" id="search-bar" placeholder="Search by title or category">
+
+  <table class="article-table">
+    <thead>
+      <tr>
+        <th>Sr. No.</th>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Approval Date</th>
+        <th>Image</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="approve-article-list">
+      <!-- Articles will be dynamically loaded here -->
+    </tbody>
+  </table>
+  <p id="no-approve-articles-message" class="empty-message" style="display: none;">No articles pending approval.</p>
+</section>
+
+
+      <!-- Reject Articles Section -->
+<section id="reject-articles-page" class="page" style="display: none;">
+  <h1>Reject Articles</h1>
+
+  <!-- Search Bar -->
+  <input type="text" class="search-bar" placeholder="Search by title or category">
+
+  <table class="article-table">
+    <thead>
+      <tr>
+        <th>Sr. No.</th>
+        <th>Title</th>
+        <th>Category</th>
+        <th>Reject Date</th>
+        <th>Image</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="reject-article-list"></tbody>
+  </table>
+  <p id="no-reject-articles-message" class="empty-message" style="display: none;">No rejected articles available.</p>
+</section>
+      <!-- Notification Modal for Approval/Reject -->
+<div id="approval-rejection-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h3 id="modal-title"></h3>
+    <p id="modal-message"></p>
+    <button id="modal-close-btn" class="btn">Close</button>
+  </div>
+</div>
+
+
+      <!-- Published Articles Section -->
+      <section id="published-articles-page" class="page" style="display: none;">
+        <h1>Published Articles</h1>
+        <!-- Search Bar -->
+  <input type="text" id="search-bar" placeholder="Search by title or category">
+
+        <table class="article-table">
+          <thead>
+            <tr>
+              <th>Sr. No.</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Published Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+              <th>Image</th>
+              
+            </tr>
+          </thead>
+          <tbody id="published-article-list"></tbody>
+        </table>
+        <p id="no-published-articles-message" class="empty-message" style="display: none;">No published articles available.</p>
+      </section>
+    </main>
+
+    <!-- Logout Confirmation Modal -->
+<div id="logout-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="close-logout-modal">&times;</span>
+    <p>Are you sure you want to log out?</p>
+    <div class="modal-buttons">
+      <button id="confirm-logout" class="btn btn-primary">Yes</button>
+      <button id="cancel-logout" class="btn btn-secondary">No</button>
     </div>
+  </div>
+</div>
 
-    <!-- Footer -->
+<!-- Logout Success Modal -->
+<div id="success-modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="close-success-modal">&times;</span>
+    <p>Logout successful!</p>
+  </div>
+</div>
+   
+
+
+    {% comment %} <!-- Footer -->
     <footer>
       <p>&copy; 2024 My Website. All rights reserved.</p>
-    </footer>
-  </body>
+    </footer> {% endcomment %}
+  </div>
+</body>
 </html>
