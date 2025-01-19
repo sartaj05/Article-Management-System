@@ -14,4 +14,7 @@
         { "src": "/static/(.*)", "dest": "/static/$1" },
         { "src": "/(.*)", "dest": "Article/wsgi.py" }
     ]
+  "rewrites":[
+    {"source": "/(.*)","destination":"/"}
+  ]
 }
