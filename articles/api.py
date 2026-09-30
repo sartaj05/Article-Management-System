@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -23,6 +23,7 @@ from .api_serializers import (
     ArticleAssignmentSerializer,
     ArticleImageSerializer,
     ArticleAutosaveSerializer,
+    ArticleSEOSerializer,
     AuditLogSerializer,
     CategorySerializer,
     TagSerializer,
@@ -540,6 +541,33 @@ class ArticleAutosaveView(APIView):
             return Response({'detail': 'You cannot clear this draft.'}, status=status.HTTP_403_FORBIDDEN)
         ArticleAutosave.objects.filter(article=article).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ArticleSEOView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot access this article SEO data.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(ArticleSEOSerializer(article, context={'request': request}).data)
+
+    def patch(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot edit this article SEO data.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ArticleSEOSerializer(article, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        record_audit_event(actor=request.user, action='article_seo_updated', article=article, details={'fields': sorted(request.data.keys())})
+        return Response(serializer.data)
 
 
 class ArticleDiscoveryView(generics.ListAPIView):

@@ -74,6 +74,12 @@ class ArticleAutosaveSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'article', 'editor', 'updated_at']
 
 
+class ArticleSEOSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Article
+        fields = ['meta_title', 'meta_description', 'seo_keywords', 'canonical_url', 'og_image']
+
+
 class ArticleWorkflowSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.username', read_only=True)
     comments_count = serializers.IntegerField(source='comments.count', read_only=True)
@@ -84,6 +90,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             'id', 'title', 'subtitle', 'content', 'content_format', 'summary', 'author', 'author_name',
+            'meta_title', 'meta_description', 'seo_keywords', 'canonical_url', 'og_image',
             'email', 'image', 'tags', 'category', 'publish_date', 'agreed_to_terms',
             'category_ref', 'tag_objects',
             'workflow_status', 'rejection_reason', 'submitted_at', 'reviewed_at',
