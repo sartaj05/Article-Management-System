@@ -76,6 +76,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'reviewed_by', 'published_at', 'is_visible', 'slug', 'created_at',
             'scheduled_publish_at', 'updated_at', 'comments_count', 'likes_count', 'views_count',
             'is_deleted', 'deleted_at',
+            'is_featured', 'featured_at',
         ]
         read_only_fields = [
             'id', 'author', 'author_name', 'workflow_status', 'rejection_reason',
@@ -83,6 +84,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'slug', 'created_at', 'updated_at', 'comments_count', 'likes_count',
             'views_count',
             'is_deleted', 'deleted_at',
+            'is_featured', 'featured_at',
         ]
 
 

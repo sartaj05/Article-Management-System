@@ -429,6 +429,39 @@ class ArticleAssignmentView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ArticleFeatureView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, article_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can feature articles.'}, status=status.HTTP_403_FORBIDDEN)
+        article = get_object_or_404(Article, pk=article_id)
+        is_featured = request.data.get('is_featured')
+        if not isinstance(is_featured, bool):
+            return Response({'is_featured': 'This value must be true or false.'}, status=status.HTTP_400_BAD_REQUEST)
+        article.is_featured = is_featured
+        article.featured_at = timezone.now() if is_featured else None
+        article.save(update_fields=['is_featured', 'featured_at', 'updated_at'])
+        record_audit_event(actor=request.user, action='article_featured' if is_featured else 'article_unfeatured', article=article)
+        return Response(ArticleWorkflowSerializer(article).data)
+
+
+class ArticleDiscoveryView(generics.ListAPIView):
+    serializer_class = ArticleWorkflowSerializer
+    pagination_class = ArticlePagination
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
+        mode = self.request.query_params.get('mode', 'featured')
+        if mode == 'trending':
+            return queryset.annotate(
+                view_count=Count('views'),
+                like_count=Count('likes'),
+            ).order_by('-view_count', '-like_count', '-published_at')
+        return queryset.filter(is_featured=True).order_by('-featured_at', '-published_at')
+
+
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.order_by('name')
     serializer_class = CategorySerializer
