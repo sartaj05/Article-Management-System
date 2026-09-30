@@ -16,13 +16,16 @@ from .api_serializers import (
     ArticleReviewSerializer,
     ArticleScheduleSerializer,
     AuditLogSerializer,
+    CategorySerializer,
+    TagSerializer,
     ArticleWorkflowSerializer,
     CommentSerializer,
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleRevision, ArticleView, AuditLog, Comment, Like, Notification
+from .models import Article, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
+from .permissions import IsAdmin
 from .audit import record_audit_event
 from .notifications import notify
 
@@ -381,6 +384,70 @@ class ArticleTrashView(APIView):
         if article_id:
             queryset = queryset.filter(pk=article_id)
         return Response(ArticleWorkflowSerializer(queryset, many=True).data)
+
+
+class CategoryListCreateView(generics.ListCreateAPIView):
+    queryset = Category.objects.order_by('name')
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        if self.request.user.role != 'Admin':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only admins can create categories.')
+        serializer.save()
+
+
+class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+
+    def check_admin(self):
+        if self.request.user.role != 'Admin':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only admins can manage categories.')
+
+    def perform_update(self, serializer):
+        self.check_admin()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.check_admin()
+        instance.is_active = False
+        instance.save(update_fields=['is_active', 'updated_at'])
+
+
+class TagListCreateView(generics.ListCreateAPIView):
+    queryset = Tag.objects.order_by('name')
+    serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        if self.request.user.role != 'Admin':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only admins can create tags.')
+        serializer.save()
+
+
+class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated]
+
+    def check_admin(self):
+        if self.request.user.role != 'Admin':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only admins can manage tags.')
+
+    def perform_update(self, serializer):
+        self.check_admin()
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self.check_admin()
+        instance.is_active = False
+        instance.save(update_fields=['is_active', 'updated_at'])
 
 
 class ArticleAnalyticsView(APIView):

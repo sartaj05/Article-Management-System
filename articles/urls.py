@@ -17,6 +17,10 @@ from .api import (
     RevisionListView,
     AuditLogListView,
     ArticleTrashView,
+    CategoryDetailView,
+    CategoryListCreateView,
+    TagDetailView,
+    TagListCreateView,
 )
 urlpatterns = [
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -86,6 +90,10 @@ urlpatterns = [
     path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
     path('api/v2/audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
     path('api/v2/trash/', ArticleTrashView.as_view(), name='article-trash'),
+    path('api/v2/categories/', CategoryListCreateView.as_view(), name='category-list'),
+    path('api/v2/categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),
+    path('api/v2/tags/', TagListCreateView.as_view(), name='tag-list'),
+    path('api/v2/tags/<int:pk>/', TagDetailView.as_view(), name='tag-detail'),
     path('api/v2/articles/<int:article_id>/trash/', ArticleTrashView.as_view(), {'action': 'trash'}, name='article-trash-action'),
     path('api/v2/articles/<int:article_id>/restore/', ArticleTrashView.as_view(), {'action': 'restore'}, name='article-restore-action'),
     path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),

@@ -55,6 +55,8 @@ class Article(models.Model):
     # Tags and Categories
     tags = models.CharField(max_length=255, blank=True, null=True)
     category = models.CharField(max_length=255, choices=CATEGORY_CHOICES, blank=True, null=True)
+    category_ref = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True, related_name='articles')
+    tag_objects = models.ManyToManyField('Tag', blank=True, related_name='articles')
 
     summary = models.TextField(max_length=500, blank=True, null=True)
     publish_date = models.DateField(null=True, blank=True)
@@ -166,6 +168,31 @@ from django.db import models
 class Category(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
+    slug = models.SlugField(unique=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(unique=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
