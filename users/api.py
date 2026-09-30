@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import NotificationPreference, Profile
+from .models import CustomUser, NotificationPreference, Profile
+from articles.models import Article
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
@@ -85,3 +86,41 @@ class NotificationPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PublicAuthorView(APIView):
+    permission_classes = []
+
+    def get(self, request, user_id):
+        from django.shortcuts import get_object_or_404
+        author = get_object_or_404(CustomUser, pk=user_id, is_active=True)
+        articles = Article.objects.filter(
+            author=author,
+            workflow_status='published',
+            is_visible=True,
+        ).order_by('-published_at', '-created_at')
+        return Response({
+            'id': author.id,
+            'username': author.username,
+            'first_name': author.first_name,
+            'last_name': author.last_name,
+            'display_name': author.get_full_name() or author.username,
+            'bio': getattr(getattr(author, 'profile', None), 'bio', '') or '',
+            'profile_picture': (
+                author.profile.profile_picture.url
+                if hasattr(author, 'profile') and author.profile.profile_picture else None
+            ),
+            'published_count': articles.count(),
+            'total_views': sum(article.views.count() for article in articles),
+            'articles': [
+                {
+                    'id': article.id,
+                    'title': article.title,
+                    'slug': article.slug,
+                    'summary': article.summary,
+                    'category': article.category,
+                    'published_at': article.published_at,
+                }
+                for article in articles
+            ],
+        })
