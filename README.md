@@ -33,7 +33,27 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+Copy `.env.example` to `.env` and provide deployment secrets before using SMTP or production settings.
+
 For future model changes, run `python scripts/migrate.py` from the repository root.
+
+## Implemented feature set
+
+The versioned `/articles/api/v2/` API now supports:
+
+1. Draft, submit, approve, reject, and publish workflow.
+2. Journalist, Editor, and Admin role permissions.
+3. Rejection reasons and editorial review comments.
+4. Article revision history.
+5. Article comments and discussion notifications.
+6. Search, filters, and pagination.
+7. In-app and best-effort email notifications.
+8. Profile and password updates.
+9. Per-article and dashboard analytics.
+10. Automated workflow/profile tests and environment-controlled security settings.
+
+Useful endpoints include `/articles/api/v2/articles/search/`,
+`/articles/api/v2/notifications/`, and `/articles/api/v2/analytics/`.
 
 ## Branch workflow
 
@@ -45,7 +65,6 @@ For future model changes, run `python scripts/migrate.py` from the repository ro
 ## Checks
 
 ```powershell
-cd Article
 python manage.py check
 python manage.py test
 ```
