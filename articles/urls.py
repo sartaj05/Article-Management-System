@@ -3,6 +3,19 @@ from . import views
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from rest_framework.urls import path
 from .views import ArticleCountAPIView
+from .api import (
+    ArticleAnalyticsView,
+    ArticleReviewView,
+    ArticleSearchViewV2,
+    ArticleWorkflowActionView,
+    ArticleWorkflowView,
+    CommentDeleteView,
+    CommentListCreateView,
+    LikeToggleView,
+    NotificationListView,
+    NotificationReadView,
+    RevisionListView,
+)
 urlpatterns = [
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
 
@@ -58,5 +71,19 @@ urlpatterns = [
     # Update article status (for editors/admins)
     path('status/<int:article_id>/', views.ArticleStatusUpdateView.as_view(), name='article-status-update'),
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
+
+    # Versioned API for the updated article-management workflow.
+    path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
+    path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
+    path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
+    path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),
+    path('api/v2/articles/<int:article_id>/comments/', CommentListCreateView.as_view(), name='article-comments-v2'),
+    path('api/v2/comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete-v2'),
+    path('api/v2/articles/<int:article_id>/like/', LikeToggleView.as_view(), name='article-like-toggle'),
+    path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),
+    path('api/v2/notifications/', NotificationListView.as_view(), name='notifications'),
+    path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
+    path('api/v2/analytics/', ArticleAnalyticsView.as_view(), name='analytics'),
+    path('api/v2/analytics/<int:article_id>/', ArticleAnalyticsView.as_view(), name='article-analytics'),
 
 ]
