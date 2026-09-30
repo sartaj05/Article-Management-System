@@ -5,7 +5,7 @@ from django.utils.text import slugify
 import random
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
+    user = serializers.StringRelatedField(source='author', read_only=True)
 
     class Meta:
         model = Comment
@@ -21,8 +21,8 @@ class ArticleSerializer(serializers.ModelSerializer):
     tags = serializers.CharField(read_only=True)  # If tags is a string field; adjust if it's ManyToMany
     category = serializers.CharField(read_only=True)  # Adjust if category is a ForeignKey
     comments = CommentSerializer(many=True, read_only=True)
-    likes_count = serializers.IntegerField(source='like_set.count', read_only=True)
-    views_count = serializers.IntegerField(source='articleview_set.count', read_only=True)
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+    views_count = serializers.IntegerField(source='views.count', read_only=True)
     author_name = serializers.CharField(source='author.username', read_only=True)
     image = serializers.ImageField(required=False, allow_null=True)  # Include image field for the API response
     latitude = serializers.FloatField(required=False, allow_null=True)  # Latitude field
