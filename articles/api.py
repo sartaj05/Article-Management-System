@@ -22,6 +22,7 @@ from .api_serializers import (
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
     ArticleImageSerializer,
+    ArticleAutosaveSerializer,
     AuditLogSerializer,
     CategorySerializer,
     TagSerializer,
@@ -31,7 +32,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleImage, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -491,6 +492,53 @@ class ArticleImageDeleteView(APIView):
         article = image.article
         image.delete()
         record_audit_event(actor=request.user, action='article_image_deleted', article=article, details={'image_id': pk})
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ArticleAutosaveView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot access this draft.'}, status=status.HTTP_403_FORBIDDEN)
+        autosave = ArticleAutosave.objects.filter(article=article).first()
+        if autosave is None:
+            return Response({'autosave': None})
+        return Response(ArticleAutosaveSerializer(autosave).data)
+
+    def put(self, request, article_id):
+        return self.save_autosave(request, article_id)
+
+    def patch(self, request, article_id):
+        return self.save_autosave(request, article_id)
+
+    def save_autosave(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot edit this draft.'}, status=status.HTTP_403_FORBIDDEN)
+        if article.workflow_status == 'published' and request.user.role == 'Journalist':
+            return Response({'detail': 'Published articles cannot be autosaved by journalists.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ArticleAutosaveSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        autosave, _ = ArticleAutosave.objects.update_or_create(
+            article=article,
+            defaults={**serializer.validated_data, 'editor': request.user},
+        )
+        record_audit_event(actor=request.user, action='article_autosaved', article=article)
+        return Response(ArticleAutosaveSerializer(autosave).data)
+
+    def delete(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot clear this draft.'}, status=status.HTTP_403_FORBIDDEN)
+        ArticleAutosave.objects.filter(article=article).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

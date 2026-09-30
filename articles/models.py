@@ -13,6 +13,11 @@ class ActiveArticleManager(models.Manager):
 
 
 class Article(models.Model):
+    CONTENT_FORMAT_CHOICES = [
+        ('plain', 'Plain text'),
+        ('markdown', 'Markdown'),
+        ('html', 'Rich text HTML'),
+    ]
     WORKFLOW_STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('submitted', 'Submitted for review'),
@@ -47,6 +52,7 @@ class Article(models.Model):
     title = models.CharField(max_length=35, validators=[MinLengthValidator(10)])
     subtitle = models.CharField(max_length=50, blank=True, null=True)
     content = models.TextField()
+    content_format = models.CharField(max_length=20, choices=CONTENT_FORMAT_CHOICES, default='plain')
     author_name = models.CharField(max_length=80, null=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     email = models.EmailField(validators=[EmailValidator()], null=True)
@@ -222,6 +228,21 @@ class ArticleRevision(models.Model):
 
     def __str__(self):
         return f"Revision {self.pk} for {self.article.title}"
+
+
+class ArticleAutosave(models.Model):
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name='autosave')
+    editor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_autosaves')
+    title = models.CharField(max_length=35, blank=True)
+    subtitle = models.CharField(max_length=50, blank=True)
+    content = models.TextField(blank=True)
+    content_format = models.CharField(max_length=20, choices=Article.CONTENT_FORMAT_CHOICES, default='plain')
+    summary = models.TextField(max_length=500, blank=True)
+    editor_state = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Autosave for {self.article.title}"
 
 
 class Notification(models.Model):

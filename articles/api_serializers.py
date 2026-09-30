@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleImage, ArticleRevision, AuditLog, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, AuditLog, Category, Comment, Like, Notification, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -67,6 +67,13 @@ class ArticleImageSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'article', 'created_at']
 
 
+class ArticleAutosaveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleAutosave
+        fields = ['id', 'article', 'editor', 'title', 'subtitle', 'content', 'content_format', 'summary', 'editor_state', 'updated_at']
+        read_only_fields = ['id', 'article', 'editor', 'updated_at']
+
+
 class ArticleWorkflowSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.username', read_only=True)
     comments_count = serializers.IntegerField(source='comments.count', read_only=True)
@@ -76,7 +83,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'subtitle', 'content', 'summary', 'author', 'author_name',
+            'id', 'title', 'subtitle', 'content', 'content_format', 'summary', 'author', 'author_name',
             'email', 'image', 'tags', 'category', 'publish_date', 'agreed_to_terms',
             'category_ref', 'tag_objects',
             'workflow_status', 'rejection_reason', 'submitted_at', 'reviewed_at',
