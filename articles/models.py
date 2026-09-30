@@ -224,6 +224,25 @@ class PlagiarismCheck(models.Model):
     class Meta:
         ordering = ['-checked_at']
 
+
+class ModerationFlag(models.Model):
+    SEVERITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='moderation_flags')
+    checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='moderation_checks')
+    flag_type = models.CharField(max_length=50)
+    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES)
+    message = models.CharField(max_length=500)
+    matched_text = models.CharField(max_length=255, blank=True)
+    is_resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='views')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

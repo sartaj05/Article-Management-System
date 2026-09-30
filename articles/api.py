@@ -27,6 +27,7 @@ from .api_serializers import (
     BookmarkSerializer,
     ArticleReactionSerializer,
     PlagiarismCheckSerializer,
+    ModerationFlagSerializer,
     ArticleSEOSerializer,
     AuditLogSerializer,
     CategorySerializer,
@@ -37,7 +38,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -132,6 +133,13 @@ class ArticleWorkflowActionView(APIView):
                 return Response({'detail': 'Only the author can submit this article.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status not in {'draft', 'rejected'}:
                 return Response({'detail': 'Only draft or rejected articles can be submitted.'}, status=status.HTTP_400_BAD_REQUEST)
+            from .moderation import moderate_text
+            moderation_flags = moderate_text(article.title, article.content)
+            high_risk = [flag for flag in moderation_flags if flag['severity'] == 'high']
+            for flag in moderation_flags:
+                ModerationFlag.objects.create(article=article, checked_by=request.user, **flag)
+            if high_risk:
+                return Response({'detail': 'Article submission blocked by content moderation.', 'flags': high_risk}, status=status.HTTP_400_BAD_REQUEST)
             article.workflow_status = 'submitted'
             article.review_status = 'pending'
             article.status = 'draft'
@@ -477,6 +485,31 @@ class PlagiarismCheckView(APIView):
             matched_excerpt=matched_article.content[:500] if matched_article else '',
         )
         return Response(PlagiarismCheckSerializer(check).data, status=status.HTTP_201_CREATED)
+
+
+class ModerationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot view moderation results for this article.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(ModerationFlagSerializer(article.moderation_flags.select_related('checked_by'), many=True).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot moderate this article.'}, status=status.HTTP_403_FORBIDDEN)
+        from .moderation import moderate_text
+        flags = moderate_text(article.title, article.content)
+        created = [ModerationFlag.objects.create(article=article, checked_by=request.user, **flag) for flag in flags]
+        return Response(ModerationFlagSerializer(created, many=True).data, status=status.HTTP_201_CREATED)
 
 
 class NotificationListView(generics.ListAPIView):
