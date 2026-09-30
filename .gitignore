@@ -1,0 +1,37 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Django local/runtime files
+*.log
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+staticfiles_build/
+media/
+profile_pictures/
+
+# Editors and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Obsolete local project artifact
+Article/redme.md
