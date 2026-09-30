@@ -2,6 +2,7 @@ import csv
 
 from django.db import transaction
 from django.db.models import Count, Q
+from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -539,6 +540,19 @@ class ReportExportView(APIView):
             for item in queryset:
                 writer.writerow([item.id, item.title, item.author.username, item.category, item.workflow_status, item.is_featured, item.published_at.isoformat() if item.published_at else '', item.created_at.isoformat()])
         return response
+
+
+class HealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+                cursor.fetchone()
+        except Exception:
+            return Response({'status': 'unhealthy', 'database': 'unavailable'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'status': 'healthy', 'database': 'ok'})
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):

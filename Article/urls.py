@@ -20,12 +20,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from users import views 
+from articles.api import HealthCheckView
 # Redirect root URL to login page
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('users.urls')),  # Include users API for login
     path('', include('users.urls')), 
     path('articles/', include('articles.urls')),
+    path('health/', HealthCheckView.as_view(), name='health-check'),
     #   path('users/', include('users.urls')), 
     
 ]

@@ -37,6 +37,13 @@ Copy `.env.example` to `.env` and provide deployment secrets before using SMTP o
 
 For future model changes, run `python scripts/migrate.py` from the repository root.
 
+## Deployment and monitoring
+
+The project includes `Dockerfile`, `docker-compose.yml`, and a GitHub Actions workflow at `.github/workflows/ci.yml`.
+Run `docker compose up --build` for a PostgreSQL-backed deployment. The health endpoint is available at
+`/health/` and verifies database connectivity. Set `DATABASE_ENGINE=postgresql` and the `POSTGRES_*`
+environment variables in production.
+
 ## Implemented feature set
 
 The versioned `/articles/api/v2/` API now supports:
