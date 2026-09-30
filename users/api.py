@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import Profile
+from .models import NotificationPreference, Profile
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
@@ -59,3 +59,29 @@ class UserProfileView(APIView):
                 setattr(profile, field, values[field])
         profile.save()
         return self.get(request)
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = ['in_app_enabled', 'email_enabled', 'workflow_enabled', 'comments_enabled', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
+class NotificationPreferenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_preferences(self, user):
+        preferences, _ = NotificationPreference.objects.get_or_create(user=user)
+        return preferences
+
+    def get(self, request):
+        return Response(NotificationPreferenceSerializer(self.get_preferences(request.user)).data)
+
+    def patch(self, request):
+        preferences = self.get_preferences(request.user)
+        serializer = NotificationPreferenceSerializer(preferences, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

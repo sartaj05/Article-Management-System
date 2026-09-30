@@ -8,7 +8,7 @@ from .views import (
 )
 from . import views
 from .views import user_profile
-from .api import UserProfileView
+from .api import NotificationPreferenceView, UserProfileView
 urlpatterns = [
     
 
@@ -34,6 +34,7 @@ path('', views.home, name='home'),
     # Update User (Authenticated User)
     path('users/update/', UserUpdateView.as_view(), name='user-update'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
+    path('notification-preferences/', NotificationPreferenceView.as_view(), name='notification-preferences'),
     # Change Password (Authenticated User)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     
