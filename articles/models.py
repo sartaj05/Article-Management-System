@@ -318,6 +318,40 @@ class ArticleAutosave(models.Model):
         return f"Autosave for {self.article.title}"
 
 
+class ArticleTranslation(models.Model):
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('hi', 'Hindi'),
+        ('gu', 'Gujarati'),
+        ('mr', 'Marathi'),
+        ('es', 'Spanish'),
+        ('fr', 'French'),
+        ('de', 'German'),
+        ('ar', 'Arabic'),
+    ]
+    STATUS_CHOICES = [('draft', 'Draft'), ('published', 'Published')]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='translations')
+    language_code = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
+    title = models.CharField(max_length=35)
+    subtitle = models.CharField(max_length=50, blank=True)
+    content = models.TextField()
+    summary = models.TextField(max_length=500, blank=True)
+    content_format = models.CharField(max_length=20, choices=Article.CONTENT_FORMAT_CHOICES, default='plain')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    translated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_translations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['language_code']
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'language_code'], name='unique_article_translation_language'),
+        ]
+
+    def __str__(self):
+        return f"{self.article.title} ({self.language_code})"
+
+
 class Notification(models.Model):
     TYPE_CHOICES = [
         ('submitted', 'Submitted'),

@@ -27,6 +27,7 @@ from .api_serializers import (
     BookmarkSerializer,
     ArticleReactionSerializer,
     PlagiarismCheckSerializer,
+    ArticleTranslationSerializer,
     ModerationFlagSerializer,
     ArticleSEOSerializer,
     AuditLogSerializer,
@@ -38,7 +39,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -510,6 +511,58 @@ class ModerationView(APIView):
         flags = moderate_text(article.title, article.content)
         created = [ModerationFlag.objects.create(article=article, checked_by=request.user, **flag) for flag in flags]
         return Response(ModerationFlagSerializer(created, many=True).data, status=status.HTTP_201_CREATED)
+
+
+class ArticleTranslationListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (
+            not request.user.is_authenticated or (article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'})
+        ):
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'Translations are not publicly available.'}, status=status.HTTP_403_FORBIDDEN)
+        queryset = article.translations.all()
+        if not request.user.is_authenticated or (request.user.role == 'Journalist' and request.user.id != article.author_id):
+            queryset = queryset.filter(status='published')
+        return Response(ArticleTranslationSerializer(queryset, many=True).data)
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot manage translations for this article.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ArticleTranslationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data.get('status') == 'published' and request.user.role == 'Journalist':
+            return Response({'detail': 'Only editors and admins can publish translations.'}, status=status.HTTP_403_FORBIDDEN)
+        translation, _ = ArticleTranslation.objects.update_or_create(
+            article=article,
+            language_code=serializer.validated_data['language_code'],
+            defaults={**serializer.validated_data, 'translated_by': request.user},
+        )
+        record_audit_event(actor=request.user, action='article_translation_updated', article=article, details={'language_code': translation.language_code})
+        return Response(ArticleTranslationSerializer(translation).data, status=status.HTTP_201_CREATED)
+
+
+class ArticleTranslationDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, translation_id):
+        translation = get_object_or_404(ArticleTranslation, pk=translation_id)
+        if translation.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot edit this translation.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ArticleTranslationSerializer(translation, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data.get('status') == 'published' and request.user.role == 'Journalist':
+            return Response({'detail': 'Only editors and admins can publish translations.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class NotificationListView(generics.ListAPIView):

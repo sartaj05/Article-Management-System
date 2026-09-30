@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -72,6 +72,15 @@ class ArticleAutosaveSerializer(serializers.ModelSerializer):
         model = ArticleAutosave
         fields = ['id', 'article', 'editor', 'title', 'subtitle', 'content', 'content_format', 'summary', 'editor_state', 'updated_at']
         read_only_fields = ['id', 'article', 'editor', 'updated_at']
+
+
+class ArticleTranslationSerializer(serializers.ModelSerializer):
+    translated_by_name = serializers.CharField(source='translated_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleTranslation
+        fields = ['id', 'article', 'language_code', 'title', 'subtitle', 'content', 'summary', 'content_format', 'status', 'translated_by', 'translated_by_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'translated_by', 'translated_by_name', 'created_at', 'updated_at']
 
 
 class ArticleSEOSerializer(serializers.ModelSerializer):
