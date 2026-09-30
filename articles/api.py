@@ -1,4 +1,5 @@
 import csv
+import difflib
 
 from django.db import transaction
 from django.db.models import Count, Q
@@ -276,6 +277,36 @@ class RevisionListView(generics.ListAPIView):
         if article.author_id != self.request.user.id and self.request.user.role not in {'Editor', 'Admin'}:
             return ArticleRevision.objects.none()
         return article.revisions.select_related('editor').all()
+
+
+class RevisionCompareView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot compare revisions for this article.'}, status=status.HTTP_403_FORBIDDEN)
+        from_id = request.query_params.get('from')
+        to_id = request.query_params.get('to')
+        if not from_id or not to_id:
+            return Response({'detail': 'Both from and to revision IDs are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        def snapshot(revision_id):
+            if revision_id == 'current':
+                return {'id': 'current', 'title': article.title, 'content': article.content, 'summary': article.summary or ''}
+            revision = get_object_or_404(article.revisions, pk=revision_id)
+            return {'id': revision.id, 'title': revision.title, 'content': revision.content, 'summary': revision.summary or ''}
+
+        left = snapshot(from_id)
+        right = snapshot(to_id)
+        diff = list(difflib.unified_diff(
+            left['content'].splitlines(),
+            right['content'].splitlines(),
+            fromfile=f"revision-{left['id']}",
+            tofile=f"revision-{right['id']}",
+            lineterm='',
+        ))
+        return Response({'from': left, 'to': right, 'changed': left != right, 'content_diff': diff})
 
 
 class CommentListCreateView(generics.ListCreateAPIView):
