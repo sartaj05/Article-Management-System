@@ -1,10 +1,19 @@
 from django.db import models
 from django.core.validators import MinLengthValidator, EmailValidator
 from django.utils.timezone import now
+from django.utils import timezone
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 class Article(models.Model):
+    WORKFLOW_STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted for review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('published', 'Published'),
+    ]
+
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('published', 'Published'),
@@ -45,6 +54,18 @@ class Article(models.Model):
     agreed_to_terms = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     review_status = models.CharField(max_length=20, choices=REVIEW_STATUS_CHOICES, default='pending')
+    workflow_status = models.CharField(max_length=20, choices=WORKFLOW_STATUS_CHOICES, default='draft')
+    rejection_reason = models.TextField(blank=True, null=True)
+    submitted_at = models.DateTimeField(blank=True, null=True)
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='reviewed_articles',
+    )
+    published_at = models.DateTimeField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
     is_visible = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -58,7 +79,7 @@ class Article(models.Model):
     location_name = models.CharField(max_length=255, blank=True, null=True)
 
     def clean(self):
-        if self.publish_date and self.publish_date <= now().date():
+        if self.publish_date and self.workflow_status != 'published' and self.publish_date <= now().date():
             raise ValidationError('Publish date must be in the future.')
 
         if not self.agreed_to_terms:
@@ -90,8 +111,10 @@ class Article(models.Model):
 class Comment(models.Model):
     author = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)  # Correct reference
     content = models.TextField()
-    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='comments')
+    is_editorial = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.content[:50]
@@ -113,6 +136,11 @@ class Like(models.Model):
     def __str__(self):
         return f"{self.user.username} liked {self.article.title}"
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'user'], name='unique_article_like'),
+        ]
+
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='views')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
@@ -128,4 +156,51 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ArticleRevision(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='revisions')
+    editor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=35)
+    subtitle = models.CharField(max_length=50, blank=True, null=True)
+    content = models.TextField()
+    summary = models.TextField(max_length=500, blank=True, null=True)
+    category = models.CharField(max_length=255, blank=True, null=True)
+    tags = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Revision {self.pk} for {self.article.title}"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('submitted', 'Submitted'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('published', 'Published'),
+        ('comment', 'Comment'),
+    ]
+
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    message = models.CharField(max_length=500)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+def create_notification(*, recipient, notification_type, message, article=None):
+    return Notification.objects.create(
+        recipient=recipient,
+        notification_type=notification_type,
+        message=message,
+        article=article,
+    )
 
