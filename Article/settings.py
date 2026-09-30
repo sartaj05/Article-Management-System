@@ -31,7 +31,9 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() in {'1', 'true', 'yes'}
+# Local development serves app static files through Django's staticfiles finder.
+# Set DJANGO_DEBUG=false in production.
+DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
 
 ALLOWED_HOSTS = [
     host.strip()
