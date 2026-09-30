@@ -1,4 +1,3 @@
-from tokenize import Token
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -28,6 +27,7 @@ from django.core.mail import send_mail
 from rest_framework import status
 from users.models import CustomUser as User
 from rest_framework.exceptions import ValidationError
+from articles.permissions import IsAdmin
 
 # Utility function for generating tokens
 def get_tokens_for_user(user):
@@ -124,12 +124,9 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        try:
-            token = Token.objects.get(user=request.user)
-            token.delete()
-            return Response({"message": "Successfully logged out"}, status=200)
-        except Token.DoesNotExist:
-            return Response({"error": "Invalid token"}, status=400)
+        # JWT access tokens are stateless; the client must remove its access and
+        # refresh tokens after receiving this response.
+        return Response({"message": "Successfully logged out"}, status=200)
 
 
 def journalist_dashboard(request):
@@ -146,7 +143,7 @@ class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = PageNumberPagination
-    permission_classes = [IsAuthenticated]  # All authenticated users can view the list
+    permission_classes = [IsAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['role']
 
@@ -160,7 +157,7 @@ class UserDetailView(APIView):
         user_data = {
             'username': user.username,
             'email': user.email,
-            'total_articles': user.articles.count(),  # Assuming user has an articles relationship
+            'total_articles': user.article_set.count(),
         }
         return JsonResponse(user_data)
 

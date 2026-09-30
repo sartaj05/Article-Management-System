@@ -12,7 +12,7 @@ class CustomUser(AbstractUser):
         ('Admin', 'Admin'),
     ]
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Admin')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Journalist')
     checkbox = models.BooleanField(default=False)  # Example extra field
 
     def save(self, *args, **kwargs):

@@ -32,6 +32,11 @@ from .models import CustomUser, Profile
 class RegistrationSerializer(serializers.ModelSerializer):
     # Include profile as a nested serializer
     profile = serializers.JSONField(required=False)
+    role = serializers.ChoiceField(
+        choices=[('Journalist', 'Journalist'), ('Editor', 'Editor')],
+        default='Journalist',
+    )
+    password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = CustomUser
@@ -55,7 +60,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             checkbox=validated_data.get('checkbox', False),
-            role=validated_data.get('role', 'Journalist')
+             role=validated_data.get('role', 'Journalist')
         )
         
         # If profile data is provided, create a profile for the user
