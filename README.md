@@ -16,8 +16,8 @@ Article-Management-System/
 │   ├── vercel.json
 │   └── build_files.sh
 ├── scripts/
-│   ├── migrate.ps1              # Create migrations and apply them
-│   └── clean_migrations.ps1     # Remove local custom-app migrations/caches after confirmation
+│   ├── migrate.py               # Create migrations and apply them
+│   └── clean_migrations.py      # Remove local custom-app migrations/caches after confirmation
 ├── .gitignore
 └── README.md
 ```
@@ -35,7 +35,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-For future model changes, run `..\scripts\migrate.ps1` from the repository root or run the Django commands manually from `Article/`.
+For future model changes, run `python scripts/migrate.py` from the repository root or run the Django commands manually from `Article/`.
 
 ## Branch workflow
 
