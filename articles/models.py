@@ -175,6 +175,18 @@ class Like(models.Model):
             models.UniqueConstraint(fields=['article', 'user'], name='unique_article_like'),
         ]
 
+
+class Bookmark(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'user'], name='unique_article_bookmark'),
+        ]
+
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='views')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

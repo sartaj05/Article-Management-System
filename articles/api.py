@@ -24,6 +24,7 @@ from .api_serializers import (
     ArticleAssignmentSerializer,
     ArticleImageSerializer,
     ArticleAutosaveSerializer,
+    BookmarkSerializer,
     ArticleSEOSerializer,
     AuditLogSerializer,
     CategorySerializer,
@@ -34,7 +35,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -357,6 +358,25 @@ class LikeToggleView(APIView):
         if not created:
             like.delete()
         return Response({'article': article.id, 'liked': created, 'likes_count': article.likes.count()})
+
+
+class BookmarkListView(generics.ListAPIView):
+    serializer_class = BookmarkSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Bookmark.objects.filter(user=self.request.user).select_related('article')
+
+
+class BookmarkToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        bookmark, created = Bookmark.objects.get_or_create(article=article, user=request.user)
+        if not created:
+            bookmark.delete()
+        return Response({'article': article.id, 'bookmarked': created})
 
 
 class NotificationListView(generics.ListAPIView):
