@@ -1,50 +1,47 @@
 from rest_framework.permissions import BasePermission
 
-class IsAdmin(BasePermission):
-    """
-    Permission to grant access only to Admin users.
-    """
+
+class HasRole(BasePermission):
+    """Allow a request when the authenticated user has an allowed role."""
+
+    allowed_roles = frozenset()
+
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'Admin'
-
-
-class IsEditor(BasePermission):
-    """
-    Permission to grant access only to Editor users.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'Editor'
-
-
-class IsJournalist(BasePermission):
-    """
-    Permission to grant access only to Journalist users.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == 'Journalist'
-
-
-class IsEditorOrAdmin(BasePermission):
-    """
-    Permission to grant access to both Editors and Admins.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in ['Editor', 'Admin']
-
-
-class IsOwnerOrAdmin(BasePermission):
-    """
-    Permission to allow access to the resource's owner or an Admin user.
-    """
-    def has_object_permission(self, request, view, obj):
-        return request.user.is_authenticated and (
-            obj.author == request.user or request.user.role == 'Admin'
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in self.allowed_roles
         )
-    
-from rest_framework import permissions
 
-class IsEditorOrAdmin(permissions.BasePermission):
+
+class IsAdmin(HasRole):
+    allowed_roles = frozenset({'Admin'})
+
+
+class IsEditor(HasRole):
+    allowed_roles = frozenset({'Editor'})
+
+
+class IsJournalist(HasRole):
+    allowed_roles = frozenset({'Journalist'})
+
+
+class IsEditorOrAdmin(HasRole):
+    allowed_roles = frozenset({'Editor', 'Admin'})
+
+
+class IsJournalistEditorOrAdmin(HasRole):
+    allowed_roles = frozenset({'Journalist', 'Editor', 'Admin'})
+
+
+class IsOwnerOrEditorOrAdmin(BasePermission):
+    """Allow article access to its author, editors, and admins."""
+
     def has_permission(self, request, view):
-        # Allow access to Editors and Admins only
-        return request.user and (request.user.role == 'Editor' or request.user.is_staff)
+        return bool(request.user and request.user.is_authenticated)
 
+    def has_object_permission(self, request, view, obj):
+        return bool(
+            obj.author_id == request.user.id
+            or request.user.role in {'Editor', 'Admin'}
+        )
