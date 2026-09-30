@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, AuditLog, Bookmark, Category, Comment, Like, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -146,3 +146,12 @@ class ArticleReactionSerializer(serializers.ModelSerializer):
         model = ArticleReaction
         fields = ['id', 'article', 'user', 'username', 'reaction', 'created_at', 'updated_at']
         read_only_fields = ['id', 'article', 'user', 'username', 'created_at', 'updated_at']
+
+
+class PlagiarismCheckSerializer(serializers.ModelSerializer):
+    matched_article_title = serializers.CharField(source='matched_article.title', read_only=True, default=None)
+
+    class Meta:
+        model = PlagiarismCheck
+        fields = ['id', 'article', 'checked_by', 'similarity_score', 'status', 'matched_article', 'matched_article_title', 'matched_excerpt', 'checked_at']
+        read_only_fields = fields

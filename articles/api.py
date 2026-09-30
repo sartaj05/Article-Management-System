@@ -26,6 +26,7 @@ from .api_serializers import (
     ArticleAutosaveSerializer,
     BookmarkSerializer,
     ArticleReactionSerializer,
+    PlagiarismCheckSerializer,
     ArticleSEOSerializer,
     AuditLogSerializer,
     CategorySerializer,
@@ -36,7 +37,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -443,6 +444,39 @@ class ArticleReactionView(APIView):
                 ArticleReaction.objects.create(article=article, user=request.user, reaction=reaction)
             active = reaction
         return Response({'article': article.id, 'my_reaction': active, 'counts': {value: article.reactions.filter(reaction=value).count() for value, _ in ArticleReaction.REACTION_CHOICES}})
+
+
+class PlagiarismCheckView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot view this plagiarism report.'}, status=status.HTTP_403_FORBIDDEN)
+        check = article.plagiarism_checks.select_related('matched_article', 'checked_by').first()
+        return Response(PlagiarismCheckSerializer(check).data if check else {'check': None})
+
+    def post(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot check this article.'}, status=status.HTTP_403_FORBIDDEN)
+        from .plagiarism import find_plagiarism_match
+        matched_article, score, result_status = find_plagiarism_match(article)
+        check = PlagiarismCheck.objects.create(
+            article=article,
+            checked_by=request.user,
+            similarity_score=score,
+            status=result_status,
+            matched_article=matched_article,
+            matched_excerpt=matched_article.content[:500] if matched_article else '',
+        )
+        return Response(PlagiarismCheckSerializer(check).data, status=status.HTTP_201_CREATED)
 
 
 class NotificationListView(generics.ListAPIView):
