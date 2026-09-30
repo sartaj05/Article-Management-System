@@ -141,6 +141,12 @@ class Comment(models.Model):
 class ArticleImage(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='articles/gallery/')
+    caption = models.CharField(max_length=255, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        ordering = ['sort_order', 'created_at']
 
     def __str__(self):
         return f"Image for {self.article.title}"

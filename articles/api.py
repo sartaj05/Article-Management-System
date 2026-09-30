@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from .api_serializers import (
     ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
+    ArticleImageSerializer,
     AuditLogSerializer,
     CategorySerializer,
     TagSerializer,
@@ -25,7 +27,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleImage, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -444,6 +446,48 @@ class ArticleFeatureView(APIView):
         article.save(update_fields=['is_featured', 'featured_at', 'updated_at'])
         record_audit_event(actor=request.user, action='article_featured' if is_featured else 'article_unfeatured', article=article)
         return Response(ArticleWorkflowSerializer(article).data)
+
+
+class ArticleGalleryView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (
+            article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}
+        ):
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'This gallery is not publicly available.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(ArticleImageSerializer(article.images.all(), many=True, context={'request': request}).data)
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot add images to this article.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ArticleImageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        image = serializer.save(article=article)
+        record_audit_event(actor=request.user, action='article_image_added', article=article, details={'image_id': image.id})
+        return Response(ArticleImageSerializer(image, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+
+class ArticleImageDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        image = get_object_or_404(ArticleImage, pk=pk)
+        if image.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot delete this image.'}, status=status.HTTP_403_FORBIDDEN)
+        article = image.article
+        image.delete()
+        record_audit_event(actor=request.user, action='article_image_deleted', article=article, details={'image_id': pk})
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ArticleDiscoveryView(generics.ListAPIView):
