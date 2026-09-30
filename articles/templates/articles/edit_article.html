@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Article</title>
+    <link rel="stylesheet" href="{% static 'css/article_create.css' %}" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+<body>
+    <!-- Sidebar navigation -->
+    <div class="sidebar">
+        <h2>Dashboard</h2>
+        <ul>
+            <li><a href="#" id="home-link">Home</a></li>
+            <li><a href="#" id="create-article-link">Create Article</a></li>
+            <li><a href="#" id="article-list-link">Article List</a></li>
+            <li><a href="#" id="logout-link">Logout</a></li>
+        </ul>
+    </div>
+
+    <!-- Main content area -->
+    <div class="content">
+        <!-- Edit Article Page -->
+        <div id="edit-article-page" class="page">
+            <h1>Edit Article</h1>
+            <form id="article-form" enctype="multipart/form-data" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="id" value="{{ article.id }}">
+
+                <!-- Page 1: Article Details -->
+                <div id="page1" class="form-page active">
+                    <h2>Page 1: Article Details</h2>
+
+                    <!-- Title with min and max length -->
+                    <label for="title">Title:</label>
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      value="{{ article.title }}"
+                      required
+                      minlength="5"
+                      maxlength="35"
+                    />
+                    <span id="title-error" class="error-message"></span>
+
+                    <!-- Subtitle with max length -->
+                    <label for="subtitle">Subtitle:</label>
+                    <input type="text" id="subtitle" name="subtitle" value="{{ article.subtitle }}" minlength="5" maxlength="35" />
+                    <span id="subtitle-error" class="error-message"></span>
+
+                    <!-- Content with min length -->
+                    <label for="content">Content:</label>
+                    <textarea
+                      id="content"
+                      name="content"
+                      required
+                      minlength="10"
+                    >{{ article.content }}</textarea>
+                    <span id="content-error" class="error-message"></span>
+
+                    <!-- Email with pattern validation -->
+                    <label for="email">Email Address:</label>
+                    <input type="email" id="email" name="email" value="{{ article.email }}" required minlength="5" maxlength="30" />
+                    <span id="email-error" class="error-message"></span>
+
+                    <button type="button" id="next-to-page2">Next</button>
+                </div>
+
+                <!-- Page 2: Additional Details -->
+                <div id="page2" class="form-page">
+                    <h2>Page 2: Additional Details</h2>
+
+                    <!-- Tags with max length -->
+                    <label for="tags">Tags:</label>
+                    <input type="text" id="tags" name="tags" value="{{ article.tags }}" required minlength="5" maxlength="30" />
+                    <span id="tags-error" class="error-message"></span>
+
+                    <!-- Category with required attribute -->
+                    <label for="category">Category:</label>
+                    <select id="category" name="category" required>
+                        <option value="news" {% if article.category == 'news' %}selected{% endif %}>News</option>
+                        <option value="opinion" {% if article.category == 'opinion' %}selected{% endif %}>Opinion</option>
+                        <option value="feature" {% if article.category == 'feature' %}selected{% endif %}>Feature</option>
+                    </select>
+                    <span id="category-error" class="error-message"></span>
+
+                    <!-- Publish Date with required attribute -->
+                    <label for="publish_date">Publish Date:</label>
+                    <input type="date" id="publish_date" name="publish_date" value="{{ article.publish_date }}" required />
+                    <span id="publish_date-error" class="error-message"></span>
+
+                    <!-- Image with file accept type -->
+                    <label for="image">Image:</label>
+                    <input type="file" id="image" name="image" accept="image/*" />
+                    <span id="image-error" class="error-message"></span>
+
+                    <!-- Map for location -->
+                    <label for="location">Location:</label>
+                    <div id="map" style="height: 300px; width: 50%;"></div>
+                    <input type="text" id="latitude" name="latitude" value="{{ article.latitude }}" readonly>
+                    <input type="text" id="longitude" name="longitude" value="{{ article.longitude }}" readonly>
+
+                    <!-- Input field for the location name -->
+                    <label for="location_name">Location Name:</label>
+                    <input type="text" id="location_name" name="location_name" value="{{ article.location_name }}" readonly>
+
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="prev-to-page1">Previous</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{% static 'js/script.js' %}"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('publish_date').setAttribute('min', today);
+
+            // Initialize the map using Leaflet.js
+            var latitude = {{ article.latitude|default:0 }};
+            var longitude = {{ article.longitude|default:0 }};
+
+            // Set the map view to the article's latitude and longitude (if available)
+            var map = L.map('map').setView([latitude, longitude], 13);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add a marker at the article's location (if available)
+            var marker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
+
+            // Reverse geocoding function to get the place name based on lat/lng
+            function getLocationName(lat, lng) {
+                var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+                $.get(url, function(data) {
+                    // Update the location name input with the place name
+                    if (data && data.display_name) {
+                        document.getElementById('location_name').value = data.display_name;
+                    } else {
+                        document.getElementById('location_name').value = 'Location not found';
+                    }
+                }).fail(function() {
+                    console.error('Geocoding request failed');
+                    document.getElementById('location_name').value = 'Location not found';
+                });
+            }
+
+            // Update latitude and longitude inputs when the marker is dragged
+            marker.on('dragend', function(e) {
+                var lat = e.target.getLatLng().lat;
+                var lng = e.target.getLatLng().lng;
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+                getLocationName(lat, lng); // Update the location name
+            });
+
+            // Add click event to add a marker and update latitude/longitude
+            map.on('click', function(e) {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+                marker.setLatLng([lat, lng]);
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+                getLocationName(lat, lng); // Update the location name
+            });
+
+            // Get the initial location name for the article's coordinates (if available)
+            getLocationName(latitude, longitude);
+        });
+    </script>
+</body>
+</html>

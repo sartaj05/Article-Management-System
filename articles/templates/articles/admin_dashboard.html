@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{% static 'js/admin.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Admin Dashboard</h2>
+            <ul>
+                <li><a href="#" class="nav-link" data-page="articles">Manage Articles</a></li>
+                <li><a href="#" class="nav-link" data-page="users">Manage Users</a></li>
+                <li><a href="#" id="logout-btn">Logout</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header>
+                <h1>Welcome, Admin!</h1>
+                <nav>
+                    <a href="#" class="nav-link" data-page="articles">Articles</a>
+                    <a href="#" class="nav-link" data-page="users">Users</a>
+                </nav>
+            </header>
+
+            <!-- Dynamic Sections -->
+            <section id="articles-section" style="display: none;">
+                <h2>Manage Articles</h2>
+                <table class="articles-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Publish Date</th>
+                            <th>Image</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="articles-list"></tbody>
+                </table>
+                <p id="no-articles-message" style="display: none;">No articles available.</p>
+            </section>
+
+            <section id="users-section" style="display: none;">
+                <h2>Manage Users</h2>
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list"></tbody>
+                </table>
+                <p id="no-users-message" style="display: none;">No users available.</p>
+            </section>
+        </div>
+    </div>
+    <!-- Success Modal -->
+<div id="success-modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="close-modal">&times;</span>
+        <p>Logout successful!</p>
+    </div>
+</div>
+
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 My Website. All rights reserved.</p>
+    </footer>
+
+    <script>
+        $(document).ready(function () {
+            // Logout functionality
+            $('#logout-btn').click(function (e) {
+                e.preventDefault();
+    
+                // Show the success modal
+                $('#success-modal').fadeIn();
+    
+                // Remove token and redirect after 1 seconds
+                localStorage.removeItem('access_token');
+    
+                setTimeout(function () {
+                    window.location.href = '/login/';
+                }, 1000); // 1-second delay before redirecting to the login page
+            });
+    
+            // Close the success modal
+            $('#close-modal').click(function () {
+                $('#success-modal').fadeOut();
+            });
+    
+            // Navigation
+            $('.nav-link').click(function (e) {
+                e.preventDefault();
+                const page = $(this).data('page');
+    
+                if (page === 'articles') {
+                    $('#articles-section').show();
+                    $('#users-section').hide();
+                    fetchArticles();
+                } else if (page === 'users') {
+                    $('#users-section').show();
+                    $('#articles-section').hide();
+                    fetchUsers();
+                }
+            });
+    
+            // Initialize with articles section
+            $('#articles-section').show();
+            fetchArticles();
+        });
+    </script>
+    
+</body>
+</html>

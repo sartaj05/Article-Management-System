@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-PROJECT_DIRECTORY = REPOSITORY_ROOT / "Article"
+PROJECT_DIRECTORY = REPOSITORY_ROOT
 MANAGE_PY = PROJECT_DIRECTORY / "manage.py"
 
 

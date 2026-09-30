@@ -1,0 +1,207 @@
+{% comment %} {% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar">
+    <div class="navbar-container">
+        <a href="/" class="logo">MyBlog</a>
+        <ul class="navbar-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/articles/">Articles</a></li>
+            <li><a href="/dashboard/">Dashboard</a></li>
+            <li><a href="/logout/">Logout</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Container for Article Form with Card Design -->
+<div class="container">
+    <div class="card">
+        <h1 class="card-title">Create a New Article</h1>
+
+        <form method="POST" class="article-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="content">Content:</label>
+                <textarea id="content" name="content" class="form-control" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="publish_date">Publish Date:</label>
+                <input type="date" id="publish_date" name="publish_date" class="form-control" required>
+            </div>
+            <button type="submit" class="btn-submit">Create Article</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(this);
+        const token = localStorage.getItem('auth_token');  // Example for storing the token
+
+        fetch('/api/articles/create/', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Token ' + token,
+            },
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Article created successfully!');
+                window.location.href = '/dashboard';  // Redirect to dashboard
+            } else {
+                alert('Error creating article: ' + data.errors);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f8fc;
+        margin: 0;
+        padding: 0;
+    }
+
+    .navbar {
+        background-color: #007bff;
+        padding: 1rem 2rem;
+        color: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .navbar-links {
+        list-style-type: none;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .navbar-links li a {
+        text-decoration: none;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .navbar-links li a:hover {
+        color: #ffb400;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .card {
+        background-color: white;
+        padding: 2.5rem;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        border: 1px solid #e0e0e0;
+        width: 100%;
+        max-width: 700px;  /* Make the card a bit wider */
+        margin: 0 auto;
+    }
+
+    .card-title {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #007bff;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #555;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #f4f8fc;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        background-color: white;
+    }
+
+    .btn-submit {
+        display: block;
+        width: 100%;
+        padding: 0.9rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-submit:hover {
+        background-color: #0056b3;
+    }
+
+    /* Media Query for responsiveness */
+    @media (max-width: 768px) {
+        .navbar-links {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .card {
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.6rem;
+        }
+
+        .form-control {
+            font-size: 1rem;
+        }
+
+        .btn-submit {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %} {% endcomment %}

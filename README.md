@@ -6,15 +6,14 @@ Django and Django REST Framework application for managing articles through Journ
 
 ```text
 Article-Management-System/
-├── Article/
-│   ├── Article/                 # Django project settings, URLs, ASGI/WSGI
-│   ├── articles/                # Article models, APIs, forms, templates, static files
-│   ├── users/                   # Authentication, profiles, and user APIs
-│   ├── static/                  # Source static assets
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── vercel.json
-│   └── build_files.sh
+├── Article/                     # Django project settings, URLs, ASGI/WSGI
+├── articles/                    # Article models, APIs, forms, templates, static files
+├── users/                       # Authentication, profiles, and user APIs
+├── static/                      # Source static assets
+├── manage.py
+├── requirements.txt
+├── vercel.json
+├── build_files.sh
 ├── scripts/
 │   ├── migrate.py               # Create migrations and apply them
 │   └── clean_migrations.py      # Remove local custom-app migrations/caches after confirmation
@@ -27,15 +26,14 @@ Generated files such as `__pycache__`, `*.pyc`, `db.sqlite3`, uploaded media, co
 ## Local setup
 
 ```powershell
-cd Article
-python -m venv ..\venv
-..\venv\Scripts\Activate.ps1
+python -m venv venv
+venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
 
-For future model changes, run `python scripts/migrate.py` from the repository root or run the Django commands manually from `Article/`.
+For future model changes, run `python scripts/migrate.py` from the repository root.
 
 ## Branch workflow
 
