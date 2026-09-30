@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleRevision, AuditLog, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleRevision, AuditLog, Category, Comment, Like, Notification, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -49,6 +49,15 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name', 'slug', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+
+
+class ArticleAssignmentSerializer(serializers.ModelSerializer):
+    editor_name = serializers.CharField(source='editor.username', read_only=True)
+
+    class Meta:
+        model = ArticleAssignment
+        fields = ['id', 'article', 'editor', 'editor_name', 'can_review', 'can_edit', 'can_publish', 'created_at']
+        read_only_fields = ['id', 'article', 'editor_name', 'created_at']
 
 
 class ArticleWorkflowSerializer(serializers.ModelSerializer):

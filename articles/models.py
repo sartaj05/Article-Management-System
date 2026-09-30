@@ -250,6 +250,20 @@ class AuditLog(models.Model):
         ordering = ['-created_at']
 
 
+class ArticleAssignment(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='assignments')
+    editor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_assignments')
+    can_review = models.BooleanField(default=True)
+    can_edit = models.BooleanField(default=False)
+    can_publish = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'editor'], name='unique_article_editor_assignment'),
+        ]
+
+
 def create_notification(*, recipient, notification_type, message, article=None):
     return Notification.objects.create(
         recipient=recipient,

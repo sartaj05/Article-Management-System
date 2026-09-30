@@ -45,3 +45,14 @@ class IsOwnerOrEditorOrAdmin(BasePermission):
             obj.author_id == request.user.id
             or request.user.role in {'Editor', 'Admin'}
         )
+
+
+def editor_has_capability(user, article, capability):
+    if user.role == 'Admin':
+        return True
+    if user.role != 'Editor':
+        return False
+    assignments = article.assignments.all()
+    if not assignments.exists():
+        return True
+    return assignments.filter(editor=user, **{f'can_{capability}': True}).exists()

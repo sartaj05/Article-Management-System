@@ -15,6 +15,7 @@ from users.models import CustomUser
 from .api_serializers import (
     ArticleReviewSerializer,
     ArticleScheduleSerializer,
+    ArticleAssignmentSerializer,
     AuditLogSerializer,
     CategorySerializer,
     TagSerializer,
@@ -24,8 +25,8 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
-from .permissions import IsAdmin
+from .models import Article, ArticleAssignment, ArticleRevision, ArticleView, AuditLog, Category, Comment, Like, Notification, Tag
+from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
 
@@ -71,6 +72,8 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
 
     def patch(self, request, article_id):
         article = self.get_article(request, article_id)
+        if request.user.role == 'Editor' and not editor_has_capability(request.user, article, 'edit'):
+            return Response({'detail': 'You are not assigned edit access for this article.'}, status=status.HTTP_403_FORBIDDEN)
         if request.user.role == 'Journalist' and article.author_id != request.user.id:
             return Response({'detail': 'You can only edit your own articles.'}, status=status.HTTP_403_FORBIDDEN)
         if article.workflow_status == 'published' and request.user.role == 'Journalist':
@@ -135,7 +138,7 @@ class ArticleWorkflowActionView(APIView):
             return Response(ArticleWorkflowSerializer(article).data, status=status.HTTP_200_OK)
 
         if action == 'publish':
-            if request.user.role not in {'Editor', 'Admin'}:
+            if request.user.role not in {'Editor', 'Admin'} or not editor_has_capability(request.user, article, 'publish'):
                 return Response({'detail': 'Only editors and admins can publish articles.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status != 'approved':
                 return Response({'detail': 'Only approved articles can be published.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -196,6 +199,8 @@ class ArticleReviewView(APIView):
             return Response({'detail': 'Only editors and admins can review articles.'}, status=status.HTTP_403_FORBIDDEN)
 
         article = get_object_or_404(Article, pk=article_id)
+        if not editor_has_capability(request.user, article, 'review'):
+            return Response({'detail': 'You are not assigned review access for this article.'}, status=status.HTTP_403_FORBIDDEN)
         if article.workflow_status != 'submitted':
             return Response({'detail': 'Only submitted articles can be reviewed.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -384,6 +389,44 @@ class ArticleTrashView(APIView):
         if article_id:
             queryset = queryset.filter(pk=article_id)
         return Response(ArticleWorkflowSerializer(queryset, many=True).data)
+
+
+class ArticleAssignmentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view assignments.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(ArticleAssignmentSerializer(article.assignments.select_related('editor'), many=True).data)
+
+    def post(self, request, article_id):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage article assignments.'}, status=status.HTTP_403_FORBIDDEN)
+        article = get_object_or_404(Article, pk=article_id)
+        serializer = ArticleAssignmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        editor = serializer.validated_data['editor']
+        if editor.role != 'Editor':
+            return Response({'detail': 'Assignments can only be given to Editors.'}, status=status.HTTP_400_BAD_REQUEST)
+        assignment, _ = ArticleAssignment.objects.update_or_create(
+            article=article,
+            editor=editor,
+            defaults={key: serializer.validated_data.get(key, False) for key in ('can_review', 'can_edit', 'can_publish')},
+        )
+        record_audit_event(actor=request.user, action='article_assignment_updated', article=article, details={'editor_id': editor.id})
+        return Response(ArticleAssignmentSerializer(assignment).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, article_id):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage article assignments.'}, status=status.HTTP_403_FORBIDDEN)
+        article = get_object_or_404(Article, pk=article_id)
+        editor_id = request.query_params.get('editor_id')
+        deleted, _ = ArticleAssignment.objects.filter(article=article, editor_id=editor_id).delete()
+        if not deleted:
+            return Response({'detail': 'Assignment not found.'}, status=status.HTTP_404_NOT_FOUND)
+        record_audit_event(actor=request.user, action='article_assignment_removed', article=article, details={'editor_id': editor_id})
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
