@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -137,3 +137,12 @@ class BookmarkSerializer(serializers.ModelSerializer):
         model = Bookmark
         fields = ['id', 'article', 'article_title', 'created_at']
         read_only_fields = ['id', 'article_title', 'created_at']
+
+
+class ArticleReactionSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = ArticleReaction
+        fields = ['id', 'article', 'user', 'username', 'reaction', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'user', 'username', 'created_at', 'updated_at']

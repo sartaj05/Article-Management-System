@@ -187,6 +187,25 @@ class Bookmark(models.Model):
             models.UniqueConstraint(fields=['article', 'user'], name='unique_article_bookmark'),
         ]
 
+
+class ArticleReaction(models.Model):
+    REACTION_CHOICES = [
+        ('like', 'Like'),
+        ('helpful', 'Helpful'),
+        ('informative', 'Informative'),
+        ('interesting', 'Interesting'),
+    ]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_reactions')
+    reaction = models.CharField(max_length=20, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'user'], name='unique_article_reaction'),
+        ]
+
 class ArticleView(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='views')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)

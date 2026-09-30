@@ -25,6 +25,7 @@ from .api_serializers import (
     ArticleImageSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
+    ArticleReactionSerializer,
     ArticleSEOSerializer,
     AuditLogSerializer,
     CategorySerializer,
@@ -35,7 +36,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleView, AuditLog, Bookmark, Category, Comment, Like, Notification, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -377,6 +378,39 @@ class BookmarkToggleView(APIView):
         if not created:
             bookmark.delete()
         return Response({'article': article.id, 'bookmarked': created})
+
+
+class ArticleReactionView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        counts = {value: article.reactions.filter(reaction=value).count() for value, _ in ArticleReaction.REACTION_CHOICES}
+        current = None
+        if request.user.is_authenticated:
+            current = article.reactions.filter(user=request.user).values_list('reaction', flat=True).first()
+        return Response({'article': article.id, 'counts': counts, 'my_reaction': current})
+
+    def post(self, request, article_id):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Authentication is required to react.'}, status=status.HTTP_401_UNAUTHORIZED)
+        article = get_object_or_404(Article, pk=article_id)
+        reaction = request.data.get('reaction')
+        valid_reactions = {value for value, _ in ArticleReaction.REACTION_CHOICES}
+        if reaction not in valid_reactions:
+            return Response({'reaction': f'Choose one of: {", ".join(sorted(valid_reactions))}.'}, status=status.HTTP_400_BAD_REQUEST)
+        current = ArticleReaction.objects.filter(article=article, user=request.user).first()
+        if current and current.reaction == reaction:
+            current.delete()
+            active = None
+        else:
+            if current:
+                current.reaction = reaction
+                current.save(update_fields=['reaction', 'updated_at'])
+            else:
+                ArticleReaction.objects.create(article=article, user=request.user, reaction=reaction)
+            active = reaction
+        return Response({'article': article.id, 'my_reaction': active, 'counts': {value: article.reactions.filter(reaction=value).count() for value, _ in ArticleReaction.REACTION_CHOICES}})
 
 
 class NotificationListView(generics.ListAPIView):
