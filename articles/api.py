@@ -2,7 +2,7 @@ import csv
 import difflib
 
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -257,6 +257,17 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
         query = self.request.query_params.get('q', '').strip()
         if query:
             queryset = queryset.filter(Q(title__icontains=query) | Q(content__icontains=query) | Q(summary__icontains=query) | Q(tags__icontains=query))
+            queryset = queryset.annotate(
+                relevance=Case(
+                    When(title__iexact=query, then=Value(100)),
+                    When(title__istartswith=query, then=Value(80)),
+                    When(title__icontains=query, then=Value(60)),
+                    When(summary__icontains=query, then=Value(40)),
+                    When(content__icontains=query, then=Value(20)),
+                    default=Value(10),
+                    output_field=IntegerField(),
+                )
+            )
         for field in ('workflow_status', 'category', 'author_id'):
             value = self.request.query_params.get(field)
             if value:
@@ -267,7 +278,28 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
             queryset = queryset.filter(publish_date__gte=published_from)
         if published_to:
             queryset = queryset.filter(publish_date__lte=published_to)
-        return queryset.order_by('-created_at')
+        sort = self.request.query_params.get('sort', 'relevance' if query else 'recent')
+        if sort == 'popular':
+            return queryset.annotate(view_count=Count('views'), like_count=Count('likes')).order_by('-view_count', '-like_count', '-created_at')
+        if sort == 'recent':
+            return queryset.order_by('-created_at')
+        return queryset.order_by('-relevance', '-created_at')
+
+
+class ArticleAutocompleteView(generics.ListAPIView):
+    serializer_class = ArticleWorkflowSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        query = self.request.query_params.get('q', '').strip()
+        if len(query) < 2:
+            return Article.objects.none()
+        return Article.objects.filter(
+            workflow_status='published',
+            is_visible=True,
+            title__icontains=query,
+        ).select_related('author').order_by('title')[:10]
 
 
 class RevisionListView(generics.ListAPIView):

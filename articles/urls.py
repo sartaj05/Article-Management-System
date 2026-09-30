@@ -7,6 +7,7 @@ from .api import (
     ArticleAnalyticsView,
     ArticleReviewView,
     ArticleSearchViewV2,
+    ArticleAutocompleteView,
     ArticleWorkflowActionView,
     ArticleWorkflowView,
     CommentDeleteView,
@@ -92,6 +93,7 @@ urlpatterns = [
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
+    path('api/v2/articles/autocomplete/', ArticleAutocompleteView.as_view(), name='article-autocomplete'),
     path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
     path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
     path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),
