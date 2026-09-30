@@ -41,7 +41,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'email', 'image', 'tags', 'category', 'publish_date', 'agreed_to_terms',
             'workflow_status', 'rejection_reason', 'submitted_at', 'reviewed_at',
             'reviewed_by', 'published_at', 'is_visible', 'slug', 'created_at',
-            'updated_at', 'comments_count', 'likes_count', 'views_count',
+            'scheduled_publish_at', 'updated_at', 'comments_count', 'likes_count', 'views_count',
         ]
         read_only_fields = [
             'id', 'author', 'author_name', 'workflow_status', 'rejection_reason',
@@ -59,6 +59,10 @@ class ArticleReviewSerializer(serializers.Serializer):
         if attrs['decision'] == 'reject' and not attrs.get('reason', '').strip():
             raise serializers.ValidationError({'reason': 'A rejection reason is required.'})
         return attrs
+
+
+class ArticleScheduleSerializer(serializers.Serializer):
+    scheduled_publish_at = serializers.DateTimeField(required=False, allow_null=True)
 
 
 class LikeSerializer(serializers.ModelSerializer):

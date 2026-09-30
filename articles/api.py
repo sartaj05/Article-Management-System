@@ -14,6 +14,7 @@ from users.models import CustomUser
 
 from .api_serializers import (
     ArticleReviewSerializer,
+    ArticleScheduleSerializer,
     ArticleWorkflowSerializer,
     CommentSerializer,
     LikeSerializer,
@@ -139,6 +140,29 @@ class ArticleWorkflowActionView(APIView):
                 notification_type='published',
                 message=f'{article.title} was published.',
             )
+            return Response(ArticleWorkflowSerializer(article).data)
+
+        if action in {'schedule', 'unschedule'}:
+            if request.user.role not in {'Editor', 'Admin'}:
+                return Response({'detail': 'Only editors and admins can schedule publishing.'}, status=status.HTTP_403_FORBIDDEN)
+            if article.workflow_status != 'approved':
+                return Response({'detail': 'Only approved articles can be scheduled.'}, status=status.HTTP_400_BAD_REQUEST)
+            if action == 'unschedule':
+                article.scheduled_publish_at = None
+            else:
+                schedule = ArticleScheduleSerializer(data=request.data)
+                schedule.is_valid(raise_exception=True)
+                scheduled_at = schedule.validated_data.get('scheduled_publish_at')
+                if not scheduled_at or scheduled_at <= now:
+                    return Response({'detail': 'scheduled_publish_at must be a future datetime.'}, status=status.HTTP_400_BAD_REQUEST)
+                article.scheduled_publish_at = scheduled_at
+                notify(
+                    recipient=article.author,
+                    article=article,
+                    notification_type='scheduled',
+                    message=f'{article.title} is scheduled for publication at {scheduled_at.isoformat()}.',
+                )
+            article.save(update_fields=['scheduled_publish_at', 'updated_at'])
             return Response(ArticleWorkflowSerializer(article).data)
 
         return Response({'detail': 'Unknown workflow action.'}, status=status.HTTP_404_NOT_FOUND)

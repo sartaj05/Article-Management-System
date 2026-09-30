@@ -66,6 +66,7 @@ class Article(models.Model):
         related_name='reviewed_articles',
     )
     published_at = models.DateTimeField(blank=True, null=True)
+    scheduled_publish_at = models.DateTimeField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
     is_visible = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -182,6 +183,7 @@ class Notification(models.Model):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
         ('published', 'Published'),
+        ('scheduled', 'Scheduled'),
         ('comment', 'Comment'),
     ]
 
