@@ -16,6 +16,7 @@ from .api import (
     NotificationReadView,
     RevisionListView,
     AuditLogListView,
+    ArticleTrashView,
 )
 urlpatterns = [
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -81,10 +82,13 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/comments/', CommentListCreateView.as_view(), name='article-comments-v2'),
     path('api/v2/comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete-v2'),
     path('api/v2/articles/<int:article_id>/like/', LikeToggleView.as_view(), name='article-like-toggle'),
-    path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),
     path('api/v2/notifications/', NotificationListView.as_view(), name='notifications'),
     path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
     path('api/v2/audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
+    path('api/v2/trash/', ArticleTrashView.as_view(), name='article-trash'),
+    path('api/v2/articles/<int:article_id>/trash/', ArticleTrashView.as_view(), {'action': 'trash'}, name='article-trash-action'),
+    path('api/v2/articles/<int:article_id>/restore/', ArticleTrashView.as_view(), {'action': 'restore'}, name='article-restore-action'),
+    path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),
     path('api/v2/analytics/', ArticleAnalyticsView.as_view(), name='analytics'),
     path('api/v2/analytics/<int:article_id>/', ArticleAnalyticsView.as_view(), name='article-analytics'),
 

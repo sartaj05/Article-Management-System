@@ -5,6 +5,13 @@ from django.utils import timezone
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+
+
+class ActiveArticleManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Article(models.Model):
     WORKFLOW_STATUS_CHOICES = [
         ('draft', 'Draft'),
@@ -69,6 +76,8 @@ class Article(models.Model):
     scheduled_publish_at = models.DateTimeField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
     is_visible = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -78,6 +87,9 @@ class Article(models.Model):
 
     # New Location Name Field
     location_name = models.CharField(max_length=255, blank=True, null=True)
+
+    objects = ActiveArticleManager()
+    all_objects = models.Manager()
 
     def clean(self):
         if self.publish_date and self.workflow_status != 'published' and self.publish_date <= now().date():

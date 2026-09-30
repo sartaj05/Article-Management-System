@@ -348,6 +348,41 @@ class AuditLogListView(generics.ListAPIView):
         return queryset
 
 
+class ArticleTrashView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id, action):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can manage the article trash.'}, status=status.HTTP_403_FORBIDDEN)
+        article = get_object_or_404(Article.all_objects, pk=article_id)
+        if action == 'trash':
+            if article.is_deleted:
+                return Response({'detail': 'Article is already in the trash.'}, status=status.HTTP_400_BAD_REQUEST)
+            article.is_deleted = True
+            article.deleted_at = timezone.now()
+            article.is_visible = False
+            article.save(update_fields=['is_deleted', 'deleted_at', 'is_visible', 'updated_at'])
+            record_audit_event(actor=request.user, action='article_trashed', article=article)
+        elif action == 'restore':
+            if not article.is_deleted:
+                return Response({'detail': 'Article is not in the trash.'}, status=status.HTTP_400_BAD_REQUEST)
+            article.is_deleted = False
+            article.deleted_at = None
+            article.save(update_fields=['is_deleted', 'deleted_at', 'updated_at'])
+            record_audit_event(actor=request.user, action='article_restored', article=article)
+        else:
+            return Response({'detail': 'Unknown trash action.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(ArticleWorkflowSerializer(article).data)
+
+    def get(self, request, article_id=None, action=None):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view the article trash.'}, status=status.HTTP_403_FORBIDDEN)
+        queryset = Article.all_objects.filter(is_deleted=True).select_related('author').order_by('-deleted_at')
+        if article_id:
+            queryset = queryset.filter(pk=article_id)
+        return Response(ArticleWorkflowSerializer(queryset, many=True).data)
+
+
 class ArticleAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
