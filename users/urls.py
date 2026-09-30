@@ -8,6 +8,7 @@ from .views import (
 )
 from . import views
 from .views import user_profile
+from .api import UserProfileView
 urlpatterns = [
     
 
@@ -32,7 +33,7 @@ path('', views.home, name='home'),
     path('users/', UserDetailView.as_view(), name='user-detail'),
     # Update User (Authenticated User)
     path('users/update/', UserUpdateView.as_view(), name='user-update'),
-    path('profile/', user_profile, name='user_profile'),  # Profile endpoint
+    path('profile/', UserProfileView.as_view(), name='user_profile'),
     # Change Password (Authenticated User)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     
