@@ -198,6 +198,19 @@ class Notification(models.Model):
         ordering = ['-created_at']
 
 
+class AuditLog(models.Model):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_events')
+    article = models.ForeignKey(Article, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    action = models.CharField(max_length=80)
+    target_model = models.CharField(max_length=100, default='Article')
+    target_id = models.CharField(max_length=100, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 def create_notification(*, recipient, notification_type, message, article=None):
     return Notification.objects.create(
         recipient=recipient,

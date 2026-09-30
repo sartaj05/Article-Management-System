@@ -15,13 +15,15 @@ from users.models import CustomUser
 from .api_serializers import (
     ArticleReviewSerializer,
     ArticleScheduleSerializer,
+    AuditLogSerializer,
     ArticleWorkflowSerializer,
     CommentSerializer,
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleRevision, ArticleView, Comment, Like, Notification
+from .models import Article, ArticleRevision, ArticleView, AuditLog, Comment, Like, Notification
+from .audit import record_audit_event
 from .notifications import notify
 
 
@@ -90,6 +92,12 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            record_audit_event(
+                actor=request.user,
+                action='article_updated',
+                article=article,
+                details={'fields': sorted(request.data.keys())},
+            )
         return Response(serializer.data)
 
 
@@ -113,6 +121,7 @@ class ArticleWorkflowActionView(APIView):
             article.submitted_at = now
             article.is_visible = False
             article.save(update_fields=['workflow_status', 'review_status', 'status', 'rejection_reason', 'submitted_at', 'is_visible', 'updated_at'])
+            record_audit_event(actor=request.user, action='article_submitted', article=article)
             for editor in CustomUser.objects.filter(role__in=['Editor', 'Admin'], is_active=True):
                 notify(
                     recipient=editor,
@@ -134,6 +143,7 @@ class ArticleWorkflowActionView(APIView):
             article.publish_date = now.date()
             article.is_visible = True
             article.save(update_fields=['workflow_status', 'review_status', 'status', 'published_at', 'publish_date', 'is_visible', 'updated_at'])
+            record_audit_event(actor=request.user, action='article_published', article=article)
             notify(
                 recipient=article.author,
                 article=article,
@@ -163,6 +173,12 @@ class ArticleWorkflowActionView(APIView):
                     message=f'{article.title} is scheduled for publication at {scheduled_at.isoformat()}.',
                 )
             article.save(update_fields=['scheduled_publish_at', 'updated_at'])
+            record_audit_event(
+                actor=request.user,
+                action=f'article_{action}d' if action == 'schedule' else 'article_unscheduled',
+                article=article,
+                details={'scheduled_publish_at': article.scheduled_publish_at.isoformat() if article.scheduled_publish_at else None},
+            )
             return Response(ArticleWorkflowSerializer(article).data)
 
         return Response({'detail': 'Unknown workflow action.'}, status=status.HTTP_404_NOT_FOUND)
@@ -193,6 +209,12 @@ class ArticleReviewView(APIView):
         article.status = 'draft'
         article.is_visible = False
         article.save(update_fields=['reviewed_by', 'reviewed_at', 'rejection_reason', 'review_status', 'workflow_status', 'status', 'is_visible', 'updated_at'])
+        record_audit_event(
+            actor=request.user,
+            action=f'article_{decision}d',
+            article=article,
+            details={'reason': reason} if reason else {},
+        )
 
         if decision == 'reject':
             Comment.objects.create(article=article, author=request.user, content=reason, is_editorial=True)
@@ -306,6 +328,24 @@ class NotificationReadView(APIView):
         notification.is_read = True
         notification.save(update_fields=['is_read'])
         return Response(NotificationSerializer(notification).data)
+
+
+class AuditLogListView(generics.ListAPIView):
+    serializer_class = AuditLogSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = ArticlePagination
+
+    def get_queryset(self):
+        if self.request.user.role not in {'Editor', 'Admin'}:
+            return AuditLog.objects.filter(actor=self.request.user)
+        queryset = AuditLog.objects.select_related('actor', 'article').all()
+        article_id = self.request.query_params.get('article_id')
+        action = self.request.query_params.get('action')
+        if article_id:
+            queryset = queryset.filter(article_id=article_id)
+        if action:
+            queryset = queryset.filter(action=action)
+        return queryset
 
 
 class ArticleAnalyticsView(APIView):

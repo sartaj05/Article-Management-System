@@ -15,6 +15,7 @@ from .api import (
     NotificationListView,
     NotificationReadView,
     RevisionListView,
+    AuditLogListView,
 )
 urlpatterns = [
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -83,6 +84,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),
     path('api/v2/notifications/', NotificationListView.as_view(), name='notifications'),
     path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
+    path('api/v2/audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
     path('api/v2/analytics/', ArticleAnalyticsView.as_view(), name='analytics'),
     path('api/v2/analytics/<int:article_id>/', ArticleAnalyticsView.as_view(), name='article-analytics'),
 

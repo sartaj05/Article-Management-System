@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleRevision, Comment, Like, Notification
+from .models import Article, ArticleRevision, AuditLog, Comment, Like, Notification
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -25,6 +25,15 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['id', 'article', 'notification_type', 'message', 'is_read', 'created_at']
+        read_only_fields = fields
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.CharField(source='actor.username', read_only=True, default=None)
+
+    class Meta:
+        model = AuditLog
+        fields = ['id', 'actor', 'actor_name', 'article', 'action', 'target_model', 'target_id', 'details', 'created_at']
         read_only_fields = fields
 
 
