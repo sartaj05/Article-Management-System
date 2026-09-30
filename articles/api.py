@@ -1,5 +1,8 @@
+import csv
+
 from django.db import transaction
 from django.db.models import Count, Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -504,6 +507,38 @@ class ArticleDiscoveryView(generics.ListAPIView):
                 like_count=Count('likes'),
             ).order_by('-view_count', '-like_count', '-published_at')
         return queryset.filter(is_featured=True).order_by('-featured_at', '-published_at')
+
+
+class ReportExportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, report_type):
+        if report_type == 'audit':
+            queryset = AuditLog.objects.select_related('actor', 'article').all()
+            return queryset if self.request.user.role in {'Editor', 'Admin'} else queryset.filter(actor=self.request.user)
+        queryset = Article.objects.select_related('author').prefetch_related('views', 'likes')
+        return queryset if self.request.user.role in {'Editor', 'Admin'} else queryset.filter(author=self.request.user)
+
+    def get(self, request, report_type):
+        if report_type not in {'articles', 'analytics', 'audit'}:
+            return Response({'detail': 'Supported reports are articles, analytics, and audit.'}, status=status.HTTP_404_NOT_FOUND)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{report_type}-report.csv"'
+        writer = csv.writer(response)
+        queryset = self.get_queryset(report_type)
+        if report_type == 'audit':
+            writer.writerow(['id', 'actor', 'article_id', 'action', 'target_model', 'target_id', 'details', 'created_at'])
+            for item in queryset:
+                writer.writerow([item.id, item.actor.username if item.actor else '', item.article_id, item.action, item.target_model, item.target_id, item.details, item.created_at.isoformat()])
+        elif report_type == 'analytics':
+            writer.writerow(['article_id', 'title', 'views', 'likes', 'comments', 'workflow_status'])
+            for item in queryset:
+                writer.writerow([item.id, item.title, item.views.count(), item.likes.count(), item.comments.count(), item.workflow_status])
+        else:
+            writer.writerow(['id', 'title', 'author', 'category', 'workflow_status', 'is_featured', 'published_at', 'created_at'])
+            for item in queryset:
+                writer.writerow([item.id, item.title, item.author.username, item.category, item.workflow_status, item.is_featured, item.published_at.isoformat() if item.published_at else '', item.created_at.isoformat()])
+        return response
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
