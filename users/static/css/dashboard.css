@@ -1,0 +1,243 @@
+/* Article Studio workspace dashboard */
+body.dashboard-shell {
+  min-height: 100vh;
+  color: #172033;
+  background: #f4f6fb;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body.dashboard-shell > .sidebar,
+.dashboard-container > .sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: 272px;
+  height: 100vh;
+  padding: 22px 16px;
+  overflow-y: auto;
+  color: #dce2ff;
+  background: linear-gradient(180deg, #171b3a 0%, #23204f 100%);
+  box-shadow: 14px 0 36px rgba(23, 27, 58, .14);
+}
+
+body.dashboard-shell > .sidebar h2,
+.dashboard-container > .sidebar h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 10px 28px;
+  color: #fff;
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
+}
+
+body.dashboard-shell > .sidebar h2::before,
+.dashboard-container > .sidebar h2::before {
+  content: "✦";
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: #fff;
+  background: linear-gradient(135deg, #5b5ce2, #8f72ee);
+  box-shadow: 0 8px 18px rgba(91, 92, 226, .3);
+}
+
+body.dashboard-shell > .sidebar ul,
+.dashboard-container > .sidebar nav,
+.dashboard-container > .sidebar ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body.dashboard-shell > .sidebar li a,
+.dashboard-container > .sidebar nav a,
+.dashboard-container > .sidebar li a {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 11px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #b8c0e4;
+  text-decoration: none;
+  font-size: .88rem;
+  font-weight: 700;
+  transition: .2s ease;
+}
+
+body.dashboard-shell > .sidebar li a:hover,
+.dashboard-container > .sidebar nav a:hover,
+.dashboard-container > .sidebar li a:hover {
+  color: #fff;
+  border-color: rgba(158, 241, 221, .18);
+  background: rgba(255, 255, 255, .1);
+  transform: translateX(2px);
+}
+
+body.dashboard-shell > .sidebar li:last-child a,
+.dashboard-container > .sidebar nav a:last-child {
+  margin-top: 20px;
+  color: #ffb6c4;
+  background: rgba(217, 74, 100, .1);
+}
+
+body.dashboard-shell > .content,
+.dashboard-container > .main-content {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 272px;
+  padding: 26px clamp(20px, 4vw, 58px) 50px;
+}
+
+.dashboard-container { display: block !important; min-height: 100vh; }
+body.dashboard-shell > .workspace-topbar,
+.dashboard-container > .workspace-topbar {
+  max-width: none;
+  margin: 0 0 0 272px;
+  padding: 18px clamp(20px, 4vw, 58px);
+}
+
+.workspace-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  max-width: 1280px;
+  margin: 0 auto 26px;
+  padding: 10px 0;
+}
+
+.workspace-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #172033;
+  text-decoration: none;
+  font-weight: 850;
+  letter-spacing: -.025em;
+}
+
+.workspace-topbar__brand small {
+  display: block;
+  margin-top: 2px;
+  color: #667085;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.workspace-topbar__mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #5b5ce2, #8f72ee);
+  box-shadow: 0 8px 18px rgba(91, 92, 226, .25);
+}
+
+/* Keep the small brand controls readable even when legacy templates contain
+   an incorrectly encoded icon character. */
+.workspace-topbar__mark {
+  font-size: 0;
+}
+.workspace-topbar__mark::after {
+  content: "*";
+  font-size: 1rem;
+}
+.dashboard-shell .sidebar h2::before,
+.dashboard-container .sidebar h2::before {
+  content: "*";
+}
+.sidebar-toggle {
+  font-size: 0;
+}
+.sidebar-toggle::after {
+  content: "+";
+  font-size: 1rem;
+}
+
+.workspace-topbar__actions { display: flex; align-items: center; gap: 9px; }
+.workspace-topbar__actions a,
+.workspace-topbar__actions button {
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid #e1e5ef;
+  border-radius: 10px;
+  color: #53607d;
+  background: #fff;
+  text-decoration: none;
+  font-size: .82rem;
+  font-weight: 750;
+}
+.workspace-topbar__actions a:hover,
+.workspace-topbar__actions button:hover { color: #5b5ce2; border-color: #cfd2fb; background: #f5f5ff; }
+.workspace-topbar__actions .workspace-logout { color: #c2415b; border-color: #f4ccd5; background: #fff7f8; }
+
+.dashboard-shell .page,
+.dashboard-shell .dashboard-content {
+  max-width: 1280px;
+  margin: 0 auto 22px;
+  padding: clamp(22px, 3vw, 38px);
+  border: 1px solid #e5e9f2;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 16px 42px rgba(28, 38, 70, .07);
+}
+
+.dashboard-shell .page > h1,
+.dashboard-shell .dashboard-content h1,
+.dashboard-shell .dashboard-content h2,
+.dashboard-shell .page > h2 {
+  margin: 0 0 9px;
+  color: #172033;
+  font-size: clamp(1.65rem, 3vw, 2.55rem);
+  letter-spacing: -.055em;
+}
+.dashboard-shell .dashboard-content > p { margin: 0 0 24px; color: #667085; }
+.dashboard-shell .user-info-card { margin-top: 24px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.dashboard-shell .user-info-card h3 { margin: 0 0 14px; color: #172033; font-size: 1.08rem; }
+.dashboard-shell .user-info-row { gap: 14px; }
+.dashboard-shell .user-info-item {
+  min-height: 92px;
+  padding: 16px 17px;
+  border: 1px solid #e5e9f2;
+  border-radius: 15px;
+  background: #f8f9fd;
+}
+.dashboard-shell .user-info-item strong { display: block; margin-bottom: 8px; color: #53607d; font-size: .73rem; letter-spacing: .05em; text-transform: uppercase; }
+.dashboard-shell .user-info-item span { color: #172033; font-size: 1rem; font-weight: 750; }
+
+.dashboard-shell .article-table,
+.dashboard-shell .articles-table,
+.dashboard-shell .users-table { width: 100%; overflow-x: auto; border: 1px solid #e5e9f2; border-radius: 16px; box-shadow: none; }
+.dashboard-shell table { min-width: 720px; border-collapse: collapse; }
+.dashboard-shell th { color: #667085; background: #f8f9fd; font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; }
+.dashboard-shell td, .dashboard-shell th { padding: 14px 16px; border-bottom: 1px solid #edf0f5; text-align: left; }
+.dashboard-shell tbody tr:hover { background: #fafaff; }
+.dashboard-shell input[type="text"], .dashboard-shell input[type="search"], .dashboard-shell select { min-height: 44px; padding: 9px 12px; border: 1px solid #dfe3ec; border-radius: 10px; color: #172033; background: #fff; }
+.dashboard-shell button, .dashboard-shell .btn { border: 0; border-radius: 10px; font-weight: 750; }
+.dashboard-shell .empty-message, .dashboard-shell #no-users-message { padding: 24px; color: #667085; text-align: center; }
+.dashboard-shell .modal { border: 1px solid #e5e9f2; border-radius: 18px; background: #fff; box-shadow: 0 22px 60px rgba(28, 38, 70, .2); }
+
+@media (max-width: 760px) {
+  body.dashboard-shell > .sidebar,
+  .dashboard-container > .sidebar { width: min(86vw, 290px); transform: translateX(-105%); transition: transform .25s ease; }
+  .dashboard-shell.sidebar-open > .sidebar,
+  .dashboard-container.sidebar-open > .sidebar { transform: translateX(0); }
+  body.dashboard-shell > .content,
+  .dashboard-container > .main-content { margin-left: 0; padding: 72px 14px 30px; }
+  body.dashboard-shell > .workspace-topbar,
+  .dashboard-container > .workspace-topbar { margin-left: 0; padding: 14px; }
+  .workspace-topbar { align-items: flex-start; flex-direction: column; margin-bottom: 16px; }
+  .workspace-topbar__actions { width: 100%; }
+  .workspace-topbar__actions a, .workspace-topbar__actions button { flex: 1; text-align: center; }
+  .dashboard-shell .page, .dashboard-shell .dashboard-content { padding: 22px 17px; border-radius: 17px; }
+}

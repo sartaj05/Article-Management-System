@@ -7,6 +7,7 @@
     <title>Article Management Journalist Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/article_create.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
  
     
@@ -31,7 +32,11 @@
       <li><a href="#" id="logout-link">Logout</a></li>
     </ul>
   </div>
-  
+  <header class="workspace-topbar">
+    <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Journalist workspace</small></span></a>
+    <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#create-article-page" id="top-create-article">New article</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+  </header>
+
   <!-- Main content area -->
   <div class="content">
 

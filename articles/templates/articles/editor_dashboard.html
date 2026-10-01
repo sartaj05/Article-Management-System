@@ -7,6 +7,7 @@
   <title>Editor Dashboard</title>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{% static 'js/editor.js' %}"></script>
   <script src="{% static 'js/dashboard-ui.js' %}"></script>
@@ -26,6 +27,11 @@
         <a href="#" id="logout-btn">Logout</a>
       </nav>
     </aside>
+
+    <header class="workspace-topbar">
+      <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Editor workspace</small></span></a>
+      <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#home-section" id="top-editor-home">Workspace home</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+    </header>
 
     <!-- Main Content -->
     <main class="main-content">

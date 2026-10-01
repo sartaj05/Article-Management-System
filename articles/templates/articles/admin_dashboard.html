@@ -10,6 +10,7 @@
     <script src="{% static 'js/dashboard-ui.js' %}"></script>
     <link rel="stylesheet" href="{% static 'css/admin.css' %}">
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 <body class="dashboard-shell">
     <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
@@ -23,6 +24,11 @@
                 <li><a href="#" id="logout-btn">Logout</a></li>
             </ul>
         </div>
+
+        <header class="workspace-topbar">
+            <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Admin workspace</small></span></a>
+            <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#articles-section">Articles</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+        </header>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -96,10 +102,10 @@
                 $('#success-modal').fadeIn();
     
                 // Remove token and redirect after 1 seconds
-                localStorage.removeItem('access_token');
+                ['access_token', 'refresh_token', 'user', 'lastActivePage'].forEach(function (key) { localStorage.removeItem(key); });
     
                 setTimeout(function () {
-                    window.location.href = '/logout-template/';
+                    window.location.replace('/');
                 }, 1000); // 1-second delay before redirecting to the login page
             });
     

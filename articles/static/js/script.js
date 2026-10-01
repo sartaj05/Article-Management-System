@@ -34,10 +34,8 @@ $(document).ready(function () {
   });
 
   $logoutLink.click(function () {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("lastActivePage");
-    updateSidebar();
-    window.location.href = "/logout-template/";
+    ["access_token", "refresh_token", "user", "lastActivePage"].forEach((key) => localStorage.removeItem(key));
+    window.location.replace("/");
   });
 
   // Helper function to show pages
@@ -81,7 +79,7 @@ $(document).ready(function () {
   function fetchUserDetails() {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      alert("Please log in to view user details.");
+      window.location.replace("/");
       return;
     }
 
@@ -104,7 +102,7 @@ $(document).ready(function () {
     const token = localStorage.getItem("access_token");
     const user = JSON.parse(localStorage.getItem("user"));
     if (!token) {
-      alert("Please log in to view article count.");
+      window.location.replace("/");
       return;
     }
 
@@ -120,8 +118,13 @@ $(document).ready(function () {
         $userrole.text(user.role);
         $userEmail.text(user.email);
       },
-      error: function () {
-        alert("Error fetching article count.");
+      error: function (xhr) {
+        if (xhr.status === 401 || xhr.status === 403) {
+          ["access_token", "refresh_token", "user"].forEach((key) => localStorage.removeItem(key));
+          window.location.replace("/");
+          return;
+        }
+        $articleCount.text("—");
       },
     });
   }
@@ -207,8 +210,7 @@ $(document).ready(function () {
 
     // Check if user is logged in
     if (!token) {
-      alert("Please log in to create an article.");
-      window.location.href = "/logout-template/";
+      window.location.replace("/");
       return;
     }
 
@@ -330,7 +332,7 @@ $(document).on('click', '#close-modal', function () {
   function fetchArticles() {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      alert("Please log in to view articles.");
+      window.location.replace("/");
       return;
     }
 

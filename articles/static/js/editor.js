@@ -18,8 +18,7 @@ $(document).ready(function () {
         // Confirm logout: Show success modal and handle redirection
         $("#confirm-logout").on("click", function () {
             // Perform logout actions
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("lastActivePage");
+            ["access_token", "refresh_token", "user", "lastActivePage"].forEach((key) => localStorage.removeItem(key));
     
             // Hide the logout modal and show the success modal
             $("#logout-modal").css("display", "none");
@@ -28,7 +27,7 @@ $(document).ready(function () {
             // Automatically hide success modal and redirect to login
             setTimeout(function () {
                 $("#success-modal").css("display", "none");
-                window.location.href = "/logout-template/"; // Show the signed-out screen
+                window.location.replace("/");
             }, 1000);
         });
     
@@ -52,7 +51,7 @@ $(document).ready(function () {
     function fetchArticleCount() {
         const user = JSON.parse(localStorage.getItem("user"));
         if (!token) {
-            alert("Please log in to view article count.");
+            window.location.replace("/");
             return;
         }
 

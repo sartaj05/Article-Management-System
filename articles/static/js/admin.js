@@ -2,8 +2,7 @@ $(document).ready(function () {
     const token = localStorage.getItem('access_token');
 
     if (!token) {
-        alert('Authorization token is required');
-        window.location.href = '/logout-template/';
+        window.location.replace('/');
         return;
     }
 
