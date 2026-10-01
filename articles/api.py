@@ -1,5 +1,6 @@
 import csv
 import difflib
+from datetime import timedelta
 
 from django.db import transaction
 from django.db.models import Case, Count, IntegerField, Q, Value, When
@@ -19,7 +20,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from users.models import CustomUser, ReaderInterest
 
 from .api_serializers import (
-    ArticleFactCheckSerializer, ArticleReviewSerializer,
+    ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
     ArticleImageSerializer, ArticleSourceSerializer,
@@ -39,7 +40,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -216,6 +217,47 @@ class ArticleFactCheckView(APIView):
         check = serializer.save(article=article, checked_by=request.user)
         record_audit_event(actor=request.user, action='article_fact_checked', article=article, details={'fact_check_id': check.id, 'verdict': check.verdict})
         return Response(ArticleFactCheckSerializer(check).data, status=201)
+
+
+class ArticleCollaborationView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have collaboration access.'}, status=403)
+        cutoff = timezone.now() - timedelta(minutes=2)
+        sessions = article.presence_sessions.filter(last_seen__gte=cutoff).select_related('user')
+        return Response([{
+            'user_id': session.user_id, 'username': session.user.username, 'status': session.status,
+            'section': session.section, 'cursor_position': session.cursor_position, 'last_seen': session.last_seen,
+        } for session in sessions])
+
+    def post(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have collaboration access.'}, status=403)
+        session, _ = ArticlePresence.objects.update_or_create(
+            article=article, user=request.user,
+            defaults={
+                'status': request.data.get('status', 'editing'),
+                'section': request.data.get('section', '')[:80],
+                'cursor_position': max(0, int(request.data.get('cursor_position', 0))),
+                'last_seen': timezone.now(),
+            },
+        )
+        return Response(ArticlePresenceSerializer(session).data)
+
+    def delete(self, request, article_id):
+        ArticlePresence.objects.filter(article_id=article_id, user=request.user).delete()
+        return Response({'left': True})
 
 
 class ArticleWorkflowActionView(APIView):

@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser
 
-from .models import Article, ArticleFactCheck, ArticleSource, Comment, Like, Notification
+from .models import Article, ArticleFactCheck, ArticlePresence, ArticleSource, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -163,3 +163,12 @@ class ArticleFeatureTests(TestCase):
         self.client.force_authenticate(user=None)
         self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/sources/').status_code, 200)
         self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/fact-checks/').status_code, 200)
+
+    def test_collaboration_presence_heartbeat_and_leave(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/collaboration/', {'section': 'content', 'cursor_position': 24}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(ArticlePresence.objects.filter(article=self.article, user=self.journalist).exists())
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/collaboration/').status_code, 200)
+        response = self.client.delete(f'/articles/api/v2/articles/{self.article.id}/collaboration/')
+        self.assertTrue(response.data['left'])

@@ -287,6 +287,21 @@ class ArticleFactCheck(models.Model):
 
     def __str__(self):
         return f'{self.verdict}: {self.claim[:60]}'
+
+
+class ArticlePresence(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='presence_sessions')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_presence_sessions')
+    status = models.CharField(max_length=20, default='editing')
+    section = models.CharField(max_length=80, blank=True)
+    cursor_position = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['article', 'user'], name='unique_article_presence_user')]
+
+    def __str__(self):
+        return f'{self.user.username} on {self.article.title}'
 from django.db import models
 
 class Category(models.Model):

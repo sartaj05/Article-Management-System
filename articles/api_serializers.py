@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -134,6 +134,15 @@ class ArticleFactCheckSerializer(serializers.ModelSerializer):
         model = ArticleFactCheck
         fields = ['id', 'article', 'claim', 'verdict', 'explanation', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
         read_only_fields = ['id', 'article', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+
+
+class ArticlePresenceSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = ArticlePresence
+        fields = ['id', 'article', 'user', 'username', 'status', 'section', 'cursor_position', 'last_seen']
+        read_only_fields = ['id', 'article', 'user', 'username', 'last_seen']
 
 
 class ArticleReviewSerializer(serializers.Serializer):
