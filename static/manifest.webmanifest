@@ -1,0 +1,12 @@
+{
+  "name": "Article Studio",
+  "short_name": "Article Studio",
+  "description": "A calm workspace for discovering and publishing thoughtful stories.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#292553",
+  "icons": [
+    { "src": "/static/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}

@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="A modern article publishing and editorial management platform.">
+    <meta name="theme-color" content="#292553">
+    <link rel="manifest" href="{% static 'manifest.webmanifest' %}">
     <title>{% block title %}Article Management System{% endblock %}</title>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
     <link rel="stylesheet" href="{% static 'css/styleBase.css' %}">
@@ -25,6 +27,7 @@
                 <a href="{% url 'home' %}"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover</a>
                 <a href="/#articles"><i class="fa-regular fa-newspaper" aria-hidden="true"></i> Articles</a>
                 <button class="theme-toggle" type="button" aria-label="Toggle color theme"><i class="fa-solid fa-moon" aria-hidden="true"></i> Theme</button>
+                <button class="pwa-install" type="button" data-install-app hidden>Install app</button>
                 <a href="{% url 'user-login-template' %}">Log in</a>
                 <a class="nav-cta" href="{% url 'user-register-template' %}">Start writing</a>
             </nav>
@@ -44,5 +47,6 @@
     </footer>
     <script src="{% static 'js/home.js' %}" defer></script>
     <script src="{% static 'js/accessibility.js' %}" defer></script>
+    <script src="{% static 'js/pwa.js' %}" defer></script>
 </body>
 </html>
