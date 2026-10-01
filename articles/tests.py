@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser
 
-from .models import Article, Comment, Like, Notification
+from .models import Article, ArticleFactCheck, ArticleSource, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -148,3 +148,18 @@ class ArticleFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/feed/for-you/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['id'], self.article.id)
+
+    def test_sources_and_fact_checks_are_visible_on_published_articles(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/sources/', {'url': 'https://example.com/source', 'title': 'Primary source', 'source_type': 'primary'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.authenticate(self.editor)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/fact-checks/', {'claim': 'A test claim', 'verdict': 'verified', 'explanation': 'Checked against the source.'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/sources/').status_code, 200)
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/fact-checks/').status_code, 200)

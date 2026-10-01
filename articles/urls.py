@@ -40,7 +40,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAssistantView, PersonalizedFeedView
+from .api import ArticleAssistantView, ArticleFactCheckView, ArticleSourceView, PersonalizedFeedView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -104,6 +104,8 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
     path('api/v2/articles/<int:article_id>/assistant/', ArticleAssistantView.as_view(), name='article-assistant'),
     path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
+    path('api/v2/articles/<int:article_id>/sources/', ArticleSourceView.as_view(), name='article-sources'),
+    path('api/v2/articles/<int:article_id>/fact-checks/', ArticleFactCheckView.as_view(), name='article-fact-checks'),
     path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
     path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),
     path('api/v2/articles/<int:article_id>/revisions/compare/', RevisionCompareView.as_view(), name='article-revision-compare'),

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -116,6 +116,24 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'is_deleted', 'deleted_at',
             'is_featured', 'featured_at',
         ]
+
+
+class ArticleSourceSerializer(serializers.ModelSerializer):
+    added_by_name = serializers.CharField(source='added_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleSource
+        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'added_by', 'added_by_name', 'created_at']
+        read_only_fields = ['id', 'article', 'added_by', 'added_by_name', 'created_at']
+
+
+class ArticleFactCheckSerializer(serializers.ModelSerializer):
+    checked_by_name = serializers.CharField(source='checked_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleFactCheck
+        fields = ['id', 'article', 'claim', 'verdict', 'explanation', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
 
 
 class ArticleReviewSerializer(serializers.Serializer):

@@ -250,6 +250,43 @@ class ArticleView(models.Model):
 
     def __str__(self):
         return f"{self.user.username if self.user else 'Anonymous'} viewed {self.article.title}"
+
+
+class ArticleSource(models.Model):
+    SOURCE_TYPES = [('primary', 'Primary source'), ('secondary', 'Secondary source'), ('reference', 'Reference')]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='sources')
+    url = models.URLField()
+    title = models.CharField(max_length=255)
+    publisher = models.CharField(max_length=150, blank=True)
+    source_type = models.CharField(max_length=20, choices=SOURCE_TYPES, default='reference')
+    notes = models.TextField(blank=True)
+    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_sources_added')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['source_type', 'created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class ArticleFactCheck(models.Model):
+    VERDICT_CHOICES = [('verified', 'Verified'), ('partly_verified', 'Partly verified'), ('unverified', 'Unverified'), ('false', 'False')]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='fact_checks')
+    claim = models.CharField(max_length=500)
+    verdict = models.CharField(max_length=30, choices=VERDICT_CHOICES)
+    explanation = models.TextField()
+    checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='fact_checks_completed')
+    checked_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.verdict}: {self.claim[:60]}'
 from django.db import models
 
 class Category(models.Model):

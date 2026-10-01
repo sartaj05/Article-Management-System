@@ -19,10 +19,10 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from users.models import CustomUser, ReaderInterest
 
 from .api_serializers import (
-    ArticleReviewSerializer,
+    ArticleFactCheckSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
-    ArticleImageSerializer,
+    ArticleImageSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
     ArticleReactionSerializer,
@@ -39,7 +39,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -171,6 +171,51 @@ class PersonalizedFeedView(APIView):
             'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
             'results': ArticleWorkflowSerializer(ranked[:50], many=True, context={'request': request}).data,
         })
+
+
+class ArticleSourceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or (request.user.role not in {'Editor', 'Admin'} and article.author_id != request.user.id)):
+            return Response({'detail': 'Sources are not publicly available for this article.'}, status=403)
+        return Response(ArticleSourceSerializer(article.sources.all(), many=True).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not request.user.is_authenticated or (request.user.role not in {'Editor', 'Admin'} and article.author_id != request.user.id):
+            return Response({'detail': 'Only the author, editors, or admins can add sources.'}, status=403)
+        serializer = ArticleSourceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        source = serializer.save(article=article, added_by=request.user)
+        record_audit_event(actor=request.user, action='article_source_added', article=article, details={'source_id': source.id})
+        return Response(ArticleSourceSerializer(source).data, status=201)
+
+
+class ArticleFactCheckView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}):
+            return Response({'detail': 'Fact checks are not publicly available for this article.'}, status=403)
+        return Response(ArticleFactCheckSerializer(article.fact_checks.all(), many=True).data)
+
+    def post(self, request, article_id):
+        if not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can certify fact checks.'}, status=403)
+        article = get_object_or_404(Article, pk=article_id)
+        serializer = ArticleFactCheckSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        check = serializer.save(article=article, checked_by=request.user)
+        record_audit_event(actor=request.user, action='article_fact_checked', article=article, details={'fact_check_id': check.id, 'verdict': check.verdict})
+        return Response(ArticleFactCheckSerializer(check).data, status=201)
 
 
 class ArticleWorkflowActionView(APIView):
