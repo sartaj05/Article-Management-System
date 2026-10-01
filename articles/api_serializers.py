@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -269,3 +269,22 @@ class ArticleAssetSerializer(serializers.ModelSerializer):
         model = ArticleAsset
         fields = ['id', 'article', 'asset', 'role', 'position', 'created_at']
         read_only_fields = ['id', 'article', 'asset', 'created_at']
+
+
+class ArticleCorrectionSerializer(serializers.ModelSerializer):
+    reporter_name = serializers.CharField(source='reported_by.username', read_only=True, default=None)
+    reviewer_name = serializers.CharField(source='reviewed_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleCorrection
+        fields = ['id', 'article', 'reported_by', 'reporter_name', 'reviewed_by', 'reviewer_name', 'original_text', 'corrected_text', 'reason', 'status', 'published_at', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'reported_by', 'reporter_name', 'reviewed_by', 'reviewer_name', 'published_at', 'created_at', 'updated_at']
+
+
+class ArticleProvenanceSerializer(serializers.ModelSerializer):
+    updated_by_name = serializers.CharField(source='updated_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleProvenance
+        fields = ['id', 'article', 'origin', 'tool_name', 'disclosure', 'sources_reviewed', 'updated_by', 'updated_by_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'updated_by', 'updated_by_name', 'created_at', 'updated_at']

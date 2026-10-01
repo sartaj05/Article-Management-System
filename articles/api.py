@@ -41,9 +41,9 @@ from .api_serializers import (
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
-    ArticleAssetSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
+    ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1432,3 +1432,79 @@ class ArticleAssetView(APIView):
         if not created:
             return Response({'detail': 'This asset is already attached to the article.'}, status=400)
         return Response(ArticleAssetSerializer(link, context={'request': request}).data, status=201)
+
+
+class ArticleCorrectionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        corrections = article.corrections.filter(status='published')
+        return Response(ArticleCorrectionSerializer(corrections, many=True).data)
+
+    def post(self, request, article_id):
+        if not request.user.is_authenticated:
+            return Response({'detail': 'Sign in to report a correction.'}, status=401)
+        article = get_object_or_404(Article, pk=article_id)
+        serializer = ArticleCorrectionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        is_editor = request.user.role in {'Editor', 'Admin'}
+        correction = serializer.save(
+            article=article,
+            reported_by=request.user,
+            status='published' if is_editor else 'draft',
+            reviewed_by=request.user if is_editor else None,
+            published_at=timezone.now() if is_editor else None,
+        )
+        return Response(ArticleCorrectionSerializer(correction).data, status=201)
+
+
+class ArticleCorrectionDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can publish corrections.'}, status=403)
+        correction = get_object_or_404(ArticleCorrection, pk=pk)
+        serializer = ArticleCorrectionSerializer(correction, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        correction = serializer.save(reviewed_by=request.user)
+        if correction.status == 'published' and not correction.published_at:
+            correction.published_at = timezone.now()
+            correction.save(update_fields=['published_at', 'updated_at'])
+        return Response(ArticleCorrectionSerializer(correction).data)
+
+
+class ArticleProvenanceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def can_manage(self, request, article):
+        return request.user.is_authenticated and (article.author_id == request.user.id or request.user.role in {'Editor', 'Admin'})
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        provenance = getattr(article, 'provenance', None)
+        if not provenance:
+            return Response({'article': article.id, 'origin': 'human', 'tool_name': '', 'disclosure': '', 'sources_reviewed': False})
+        return Response(ArticleProvenanceSerializer(provenance).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'Only the author, editors, or admins can update provenance.'}, status=403)
+        serializer = ArticleProvenanceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        provenance, _ = ArticleProvenance.objects.update_or_create(
+            article=article,
+            defaults={**serializer.validated_data, 'updated_by': request.user},
+        )
+        return Response(ArticleProvenanceSerializer(provenance).data, status=201)
+
+    patch = post

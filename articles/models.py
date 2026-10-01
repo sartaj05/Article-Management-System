@@ -586,3 +586,32 @@ class ArticleAsset(models.Model):
             models.UniqueConstraint(fields=['article', 'asset'], name='unique_article_media_asset'),
         ]
 
+
+class ArticleCorrection(models.Model):
+    STATUS_CHOICES = [('draft', 'Draft'), ('published', 'Published')]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='corrections')
+    reported_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='corrections_reported')
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='corrections_reviewed')
+    original_text = models.TextField()
+    corrected_text = models.TextField()
+    reason = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    published_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-published_at', '-created_at']
+
+
+class ArticleProvenance(models.Model):
+    ORIGIN_CHOICES = [('human', 'Human written'), ('assisted', 'AI assisted'), ('generated', 'AI generated')]
+    article = models.OneToOneField(Article, on_delete=models.CASCADE, related_name='provenance')
+    origin = models.CharField(max_length=20, choices=ORIGIN_CHOICES, default='human')
+    tool_name = models.CharField(max_length=100, blank=True)
+    disclosure = models.TextField(blank=True)
+    sources_reviewed = models.BooleanField(default=False)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='provenance_updates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+

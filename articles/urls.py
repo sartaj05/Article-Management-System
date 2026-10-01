@@ -40,7 +40,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAssistantView, ArticleCollaborationView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleSourceView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -109,6 +109,9 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/collaboration/', ArticleCollaborationView.as_view(), name='article-collaboration'),
     path('api/v2/articles/<int:article_id>/media/', ArticleMediaView.as_view(), name='article-media'),
     path('api/v2/articles/<int:article_id>/live/', ArticleLiveUpdateView.as_view(), name='article-live-updates'),
+    path('api/v2/articles/<int:article_id>/corrections/', ArticleCorrectionView.as_view(), name='article-corrections'),
+    path('api/v2/corrections/<int:pk>/', ArticleCorrectionDetailView.as_view(), name='article-correction-detail'),
+    path('api/v2/articles/<int:article_id>/provenance/', ArticleProvenanceView.as_view(), name='article-provenance'),
     path('api/v2/live-updates/<int:pk>/', ArticleLiveUpdateDetailView.as_view(), name='article-live-update-detail'),
     path('api/v2/series/', StorySeriesListView.as_view(), name='story-series-list'),
     path('api/v2/public/articles/', HeadlessArticleFeedView.as_view(), name='headless-article-feed'),
