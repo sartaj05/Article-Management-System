@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -107,6 +107,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'scheduled_publish_at', 'updated_at', 'comments_count', 'likes_count', 'views_count',
             'is_deleted', 'deleted_at',
             'is_featured', 'featured_at',
+            'is_premium',
         ]
         read_only_fields = [
             'id', 'author', 'author_name', 'workflow_status', 'rejection_reason',
@@ -116,6 +117,47 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'is_deleted', 'deleted_at',
             'is_featured', 'featured_at',
         ]
+
+
+class ArticleSourceSerializer(serializers.ModelSerializer):
+    added_by_name = serializers.CharField(source='added_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleSource
+        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'added_by', 'added_by_name', 'created_at']
+        read_only_fields = ['id', 'article', 'added_by', 'added_by_name', 'created_at']
+
+
+class ArticleFactCheckSerializer(serializers.ModelSerializer):
+    checked_by_name = serializers.CharField(source='checked_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleFactCheck
+        fields = ['id', 'article', 'claim', 'verdict', 'explanation', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+
+
+class ArticlePresenceSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = ArticlePresence
+        fields = ['id', 'article', 'user', 'username', 'status', 'section', 'cursor_position', 'last_seen']
+        read_only_fields = ['id', 'article', 'user', 'username', 'last_seen']
+
+
+class ArticleMediaSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleMedia
+        fields = ['id', 'article', 'media_type', 'title', 'file', 'external_url', 'caption', 'transcript', 'duration_seconds', 'sort_order', 'uploaded_by', 'uploaded_by_name', 'created_at']
+        read_only_fields = ['id', 'article', 'uploaded_by', 'uploaded_by_name', 'created_at']
+
+    def validate(self, attrs):
+        if not attrs.get('file') and not attrs.get('external_url'):
+            raise serializers.ValidationError('Provide a media file or external URL.')
+        return attrs
 
 
 class ArticleReviewSerializer(serializers.Serializer):

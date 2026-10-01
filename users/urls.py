@@ -4,11 +4,11 @@ from .views import (
     UserListView, UserDetailView, UserUpdateView,
     ChangePasswordView, PasswordResetRequestView,
     RequestOTPView, PasswordResetWithOTPView,
-    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView
+    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView, SecurityEventListView
 )
 from . import views
 from .views import user_profile
-from .api import NotificationPreferenceView, PublicAuthorView, UserProfileView
+from .api import AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView, MembershipMeView, MembershipPlanView, NewsletterSubscriptionView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderInterestView, UserProfileView
 urlpatterns = [
     
 
@@ -19,12 +19,14 @@ path('', views.home, name='home'),
     path('register-template/', views.register_template, name='user-register-template'),
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('login-template/', views.login_template, name='user-login-template'),
+    path('logout-template/', views.logout_template, name='user-logout-template'),
     path('forgot-password/', views.password_reset_request_template, name='forgot-password-template'),  # For the forgot-password page
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
     path('editor/dashboard/', views.editor_dashboard, name='editor-dashboard'),
     path('adminMain/dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('validate-token/', ValidateTokenView.as_view(), name='validate-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('security/events/', SecurityEventListView.as_view(), name='security-events'),
     
     # User List (Admin Only)
     path('user-list/', UserListView.as_view(), name='user-list'),
@@ -35,6 +37,14 @@ path('', views.home, name='home'),
     path('users/update/', UserUpdateView.as_view(), name='user-update'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
     path('notification-preferences/', NotificationPreferenceView.as_view(), name='notification-preferences'),
+    path('newsletter/subscribe/', NewsletterSubscriptionView.as_view(), name='newsletter-subscribe'),
+    path('push/subscribe/', PushSubscriptionView.as_view(), name='push-subscribe'),
+    path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
+    path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
+    path('membership/plans/', MembershipPlanView.as_view(), name='membership-plans'),
+    path('membership/me/', MembershipMeView.as_view(), name='membership-me'),
+    path('membership/checkout/', MembershipCheckoutView.as_view(), name='membership-checkout'),
+    path('membership/cancel/', MembershipCancelView.as_view(), name='membership-cancel'),
     path('authors/<int:user_id>/', PublicAuthorView.as_view(), name='public-author'),
     # Change Password (Authenticated User)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),

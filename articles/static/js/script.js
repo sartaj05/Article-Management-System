@@ -37,7 +37,7 @@ $(document).ready(function () {
     localStorage.removeItem("access_token");
     localStorage.removeItem("lastActivePage");
     updateSidebar();
-    window.location.href = "/login/";
+    window.location.href = "/logout-template/";
   });
 
   // Helper function to show pages
@@ -208,7 +208,7 @@ $(document).ready(function () {
     // Check if user is logged in
     if (!token) {
       alert("Please log in to create an article.");
-      window.location.href = "/login/";
+      window.location.href = "/logout-template/";
       return;
     }
 

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import CustomUser, Profile
+from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent
 
 
 class UserFeatureTests(TestCase):
@@ -34,3 +34,33 @@ class UserFeatureTests(TestCase):
             'role': 'Admin', 'checkbox': True,
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_failed_login_attempts_are_throttled_and_recorded(self):
+        self.client.force_authenticate(user=None)
+        for _ in range(5):
+            response = self.client.post('/api/login/', {'username': 'profile-test', 'password': 'wrong-password'}, format='json')
+            self.assertEqual(response.status_code, 400)
+        response = self.client.post('/api/login/', {'username': 'profile-test', 'password': 'wrong-password'}, format='json')
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(SecurityEvent.objects.filter(username='profile-test', event_type='login_failed').count(), 5)
+
+    def test_newsletter_subscription_can_be_created_and_disabled(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post('/api/newsletter/subscribe/', {'email': 'reader@example.com', 'frequency': 'weekly'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(NewsletterSubscription.objects.get(email='reader@example.com').is_active)
+        response = self.client.delete('/api/newsletter/subscribe/?email=reader@example.com')
+        self.assertTrue(response.data['unsubscribed'])
+
+    def test_reader_interests_can_be_followed(self):
+        response = self.client.post('/api/reader/interests/', {'interest_type': 'category', 'value': 'news'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(ReaderInterest.objects.filter(user=self.user, value='news').exists())
+        self.assertEqual(self.client.get('/api/reader/interests/').status_code, 200)
+
+    def test_accessibility_preferences_can_be_updated(self):
+        response = self.client.patch('/api/accessibility/preferences/', {'large_text': True, 'reduce_motion': True}, format='json')
+        self.assertEqual(response.status_code, 200)
+        preferences = AccessibilityPreference.objects.get(user=self.user)
+        self.assertTrue(preferences.large_text)
+        self.assertTrue(preferences.reduce_motion)

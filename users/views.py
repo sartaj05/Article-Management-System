@@ -21,11 +21,13 @@ from users.serializers import (
     OTPVerificationSerializer
 )
 from django.utils.crypto import get_random_string
+from django.utils import timezone
+from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
 from rest_framework import status
-from users.models import CustomUser as User
+from users.models import CustomUser as User, SecurityEvent
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 
@@ -92,10 +94,33 @@ class UserLoginView(APIView):
         return render(request, 'users/login.html')
 
     def post(self, request, *args, **kwargs):
+        username = str(request.data.get('username', '')).strip()
+        ip_address = request.META.get('REMOTE_ADDR')
+        recent_failures = SecurityEvent.objects.filter(
+            event_type='login_failed', username=username, ip_address=ip_address,
+            created_at__gte=timezone.now() - timedelta(minutes=15),
+        ).count()
+        if recent_failures >= 5:
+            return Response(
+                {'detail': 'Too many failed login attempts. Try again in 15 minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError:
+            SecurityEvent.objects.create(
+                username=username, event_type='login_failed', success=False,
+                ip_address=ip_address, user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            )
+            raise
         user = serializer.validated_data['user']
         token = get_tokens_for_user(user)
+        SecurityEvent.objects.create(
+            user=user, username=user.username, event_type='login_success',
+            ip_address=ip_address, user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
 
         dashboard_url = {
             'Journalist': '/journalist/dashboard/',
@@ -119,14 +144,43 @@ class UserLoginView(APIView):
 def login_template(request):
     return render(request, 'users/login.html')
 
+def logout_template(request):
+    return render(request, 'users/logout.html')
+
 # Logout View
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # JWT access tokens are stateless; the client must remove its access and
-        # refresh tokens after receiving this response.
+        refresh_token = request.data.get('refresh')
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except Exception:
+                return Response({'detail': 'Invalid refresh token.'}, status=status.HTTP_400_BAD_REQUEST)
+        SecurityEvent.objects.create(
+            user=request.user, username=request.user.username, event_type='logout',
+            ip_address=request.META.get('REMOTE_ADDR'), user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        )
         return Response({"message": "Successfully logged out"}, status=200)
+
+
+class SecurityEventListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SecurityEvent.objects.filter(user=self.request.user).order_by('-created_at')[:100]
+
+    def list(self, request, *args, **kwargs):
+        events = self.get_queryset()
+        return Response([
+            {
+                'id': event.id, 'event_type': event.event_type, 'success': event.success,
+                'ip_address': event.ip_address, 'user_agent': event.user_agent,
+                'created_at': event.created_at,
+            }
+            for event in events
+        ])
 
 
 def journalist_dashboard(request):

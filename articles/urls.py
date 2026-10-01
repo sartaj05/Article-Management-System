@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .distribution import public_article
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from rest_framework.urls import path
 from .views import ArticleCountAPIView
@@ -39,7 +40,9 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
+from .api import ArticleAssistantView, ArticleCollaborationView, ArticleFactCheckView, ArticleMediaDeleteView, ArticleMediaView, ArticleSourceView, PersonalizedFeedView
 urlpatterns = [
+    path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
 
     path('api/articles/list/', ArticleListAPIView.as_view(), name='article-list'),
@@ -99,6 +102,13 @@ urlpatterns = [
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
     path('api/v2/articles/autocomplete/', ArticleAutocompleteView.as_view(), name='article-autocomplete'),
     path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
+    path('api/v2/articles/<int:article_id>/assistant/', ArticleAssistantView.as_view(), name='article-assistant'),
+    path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
+    path('api/v2/articles/<int:article_id>/sources/', ArticleSourceView.as_view(), name='article-sources'),
+    path('api/v2/articles/<int:article_id>/fact-checks/', ArticleFactCheckView.as_view(), name='article-fact-checks'),
+    path('api/v2/articles/<int:article_id>/collaboration/', ArticleCollaborationView.as_view(), name='article-collaboration'),
+    path('api/v2/articles/<int:article_id>/media/', ArticleMediaView.as_view(), name='article-media'),
+    path('api/v2/media/<int:pk>/', ArticleMediaDeleteView.as_view(), name='article-media-delete'),
     path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
     path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),
     path('api/v2/articles/<int:article_id>/revisions/compare/', RevisionCompareView.as_view(), name='article-revision-compare'),

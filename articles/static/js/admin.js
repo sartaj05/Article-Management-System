@@ -3,7 +3,7 @@ $(document).ready(function () {
 
     if (!token) {
         alert('Authorization token is required');
-        window.location.href = '/login/';
+        window.location.href = '/logout-template/';
         return;
     }
 

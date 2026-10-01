@@ -6,10 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editor Dashboard</title>
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{% static 'js/editor.js' %}"></script>
+  <script src="{% static 'js/dashboard-ui.js' %}"></script>
 </head>
-<body>
+<body class="dashboard-shell">
+  <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
   <div class="dashboard-container">
     <!-- Sidebar -->
     <aside class="sidebar">

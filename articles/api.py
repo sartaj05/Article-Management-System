@@ -1,5 +1,6 @@
 import csv
 import difflib
+from datetime import timedelta
 
 from django.db import transaction
 from django.db.models import Case, Count, IntegerField, Q, Value, When
@@ -16,13 +17,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser
+from users.models import CustomUser, ReaderInterest, has_active_membership
 
 from .api_serializers import (
-    ArticleReviewSerializer,
+    ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
-    ArticleImageSerializer,
+    ArticleImageSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
     ArticleReactionSerializer,
@@ -39,10 +40,11 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
+from .assistant import make_suggestions
 
 
 class ArticlePagination(PageNumberPagination):
@@ -67,6 +69,9 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
 
     def get_article(self, request, article_id):
         article = get_object_or_404(Article, pk=article_id)
+        if article.is_premium and not has_active_membership(request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('An active membership is required to read this article.')
         if not request.user.is_authenticated:
             if article.workflow_status != 'published' or not article.is_visible:
                 from rest_framework.exceptions import PermissionDenied
@@ -119,6 +124,185 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
                 details={'fields': sorted(request.data.keys())},
             )
         return Response(serializer.data)
+
+
+class ArticleAssistantView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can use the editorial assistant.'}, status=status.HTTP_403_FORBIDDEN)
+        action = str(request.data.get('action', '')).strip().lower()
+        try:
+            suggestions = make_suggestions(article, action)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        record_audit_event(actor=request.user, action='editorial_assistant_used', article=article, details={'action': action})
+        return Response({
+            'article_id': article.id,
+            'action': action,
+            'provider': 'local-rule-based',
+            'requires_review': True,
+            'suggestions': suggestions,
+        })
+
+
+class PersonalizedFeedView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        interests = list(ReaderInterest.objects.filter(user=request.user).values_list('interest_type', 'value'))
+        category_values = {value.lower() for kind, value in interests if kind == 'category'}
+        tag_values = {value.lower() for kind, value in interests if kind == 'tag'}
+        author_values = {value.lower() for kind, value in interests if kind == 'author'}
+        articles = list(Article.objects.filter(workflow_status='published', is_visible=True).select_related('author').order_by('-published_at', '-created_at')[:100])
+
+        def score(article):
+            article_tags = {tag.strip().lower() for tag in (article.tags or '').split(',') if tag.strip()}
+            points = 0
+            if (article.category or '').lower() in category_values:
+                points += 5
+            points += 3 * len(article_tags & tag_values)
+            if article.author.username.lower() in author_values:
+                points += 6
+            return points
+
+        ranked = sorted(articles, key=lambda article: (score(article), article.published_at or article.created_at), reverse=True)
+        return Response({
+            'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
+            'results': ArticleWorkflowSerializer(ranked[:50], many=True, context={'request': request}).data,
+        })
+
+
+class ArticleSourceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or (request.user.role not in {'Editor', 'Admin'} and article.author_id != request.user.id)):
+            return Response({'detail': 'Sources are not publicly available for this article.'}, status=403)
+        return Response(ArticleSourceSerializer(article.sources.all(), many=True).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not request.user.is_authenticated or (request.user.role not in {'Editor', 'Admin'} and article.author_id != request.user.id):
+            return Response({'detail': 'Only the author, editors, or admins can add sources.'}, status=403)
+        serializer = ArticleSourceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        source = serializer.save(article=article, added_by=request.user)
+        record_audit_event(actor=request.user, action='article_source_added', article=article, details={'source_id': source.id})
+        return Response(ArticleSourceSerializer(source).data, status=201)
+
+
+class ArticleFactCheckView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}):
+            return Response({'detail': 'Fact checks are not publicly available for this article.'}, status=403)
+        return Response(ArticleFactCheckSerializer(article.fact_checks.all(), many=True).data)
+
+    def post(self, request, article_id):
+        if not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can certify fact checks.'}, status=403)
+        article = get_object_or_404(Article, pk=article_id)
+        serializer = ArticleFactCheckSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        check = serializer.save(article=article, checked_by=request.user)
+        record_audit_event(actor=request.user, action='article_fact_checked', article=article, details={'fact_check_id': check.id, 'verdict': check.verdict})
+        return Response(ArticleFactCheckSerializer(check).data, status=201)
+
+
+class ArticleCollaborationView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have collaboration access.'}, status=403)
+        cutoff = timezone.now() - timedelta(minutes=2)
+        sessions = article.presence_sessions.filter(last_seen__gte=cutoff).select_related('user')
+        return Response([{
+            'user_id': session.user_id, 'username': session.user.username, 'status': session.status,
+            'section': session.section, 'cursor_position': session.cursor_position, 'last_seen': session.last_seen,
+        } for session in sessions])
+
+    def post(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have collaboration access.'}, status=403)
+        session, _ = ArticlePresence.objects.update_or_create(
+            article=article, user=request.user,
+            defaults={
+                'status': request.data.get('status', 'editing'),
+                'section': request.data.get('section', '')[:80],
+                'cursor_position': max(0, int(request.data.get('cursor_position', 0))),
+                'last_seen': timezone.now(),
+            },
+        )
+        return Response(ArticlePresenceSerializer(session).data)
+
+    def delete(self, request, article_id):
+        ArticlePresence.objects.filter(article_id=article_id, user=request.user).delete()
+        return Response({'left': True})
+
+
+class ArticleMediaView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def can_manage(self, request, article):
+        return request.user.is_authenticated and (article.author_id == request.user.id or request.user.role in {'Editor', 'Admin'})
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if article.workflow_status != 'published' and not self.can_manage(request, article):
+            return Response({'detail': 'Media is not publicly available for this article.'}, status=403)
+        return Response(ArticleMediaSerializer(article.media_items.all(), many=True, context={'request': request}).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'Only the author, editors, or admins can add media.'}, status=403)
+        serializer = ArticleMediaSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        media = serializer.save(article=article, uploaded_by=request.user)
+        record_audit_event(actor=request.user, action='article_media_added', article=article, details={'media_id': media.id, 'media_type': media.media_type})
+        return Response(ArticleMediaSerializer(media, context={'request': request}).data, status=201)
+
+
+class ArticleMediaDeleteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        media = get_object_or_404(ArticleMedia, pk=pk)
+        if media.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot delete this media.'}, status=403)
+        article = media.article
+        media.delete()
+        record_audit_event(actor=request.user, action='article_media_deleted', article=article, details={'media_id': pk})
+        return Response(status=204)
 
 
 class ArticleWorkflowActionView(APIView):
@@ -264,6 +448,8 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
 
     def get_queryset(self):
         queryset = self.article_queryset().select_related('author').order_by('-created_at')
+        if not has_active_membership(self.request.user):
+            queryset = queryset.filter(is_premium=False)
         query = self.request.query_params.get('q', '').strip()
         if query:
             queryset = queryset.filter(Q(title__icontains=query) | Q(content__icontains=query) | Q(summary__icontains=query) | Q(tags__icontains=query))
@@ -814,6 +1000,8 @@ class ArticleDiscoveryView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
+        if not has_active_membership(self.request.user):
+            queryset = queryset.filter(is_premium=False)
         mode = self.request.query_params.get('mode', 'featured')
         if mode == 'trending':
             return queryset.annotate(

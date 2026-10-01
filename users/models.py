@@ -4,6 +4,9 @@ from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+from django.utils import timezone
+from uuid import uuid4
+from decimal import Decimal
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
@@ -53,6 +56,135 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"Notification preferences for {self.user.username}"
+
+
+class SecurityEvent(models.Model):
+    EVENT_CHOICES = [
+        ('login_success', 'Login success'),
+        ('login_failed', 'Login failed'),
+        ('logout', 'Logout'),
+        ('token_revoked', 'Token revoked'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='security_events')
+    username = models.CharField(max_length=150, blank=True)
+    event_type = models.CharField(max_length=30, choices=EVENT_CHOICES)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    success = models.BooleanField(default=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.event_type} for {self.username or 'anonymous'}"
+
+
+class NewsletterSubscription(models.Model):
+    FREQUENCY_CHOICES = [('daily', 'Daily'), ('weekly', 'Weekly')]
+
+    email = models.EmailField(unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='newsletter_subscriptions')
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='weekly')
+    categories = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    unsubscribe_token = models.UUIDField(default=uuid4, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.email
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint = models.URLField(unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Push subscription for {self.user.username}"
+
+
+class ReaderInterest(models.Model):
+    INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reader_interests')
+    interest_type = models.CharField(max_length=20, choices=INTEREST_TYPES)
+    value = models.CharField(max_length=150)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['interest_type', 'value']
+        constraints = [models.UniqueConstraint(fields=['user', 'interest_type', 'value'], name='unique_reader_interest')]
+
+    def __str__(self):
+        return f'{self.user.username}: {self.interest_type}={self.value}'
+
+
+class AccessibilityPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='accessibility_preferences')
+    high_contrast = models.BooleanField(default=False)
+    reduce_motion = models.BooleanField(default=False)
+    large_text = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Accessibility preferences for {self.user.username}'
+
+
+class MembershipPlan(models.Model):
+    INTERVAL_CHOICES = [('month', 'Monthly'), ('year', 'Yearly')]
+
+    name = models.CharField(max_length=80)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    currency = models.CharField(max_length=3, default='INR')
+    interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES, default='month')
+    features = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['price', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class MembershipSubscription(models.Model):
+    STATUS_CHOICES = [('pending', 'Pending'), ('active', 'Active'), ('canceled', 'Canceled'), ('past_due', 'Past due')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='membership_subscriptions')
+    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name='subscriptions')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    provider = models.CharField(max_length=30, default='manual')
+    provider_reference = models.CharField(max_length=160, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    auto_renew = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.username}: {self.plan.name} ({self.status})'
+
+
+def has_active_membership(user):
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    return MembershipSubscription.objects.filter(
+        user=user, status='active',
+    ).filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now())).exists()
 
 # Signal to send email when a superuser is created
 @receiver(post_save, sender=CustomUser)

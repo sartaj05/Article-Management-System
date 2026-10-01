@@ -1,11 +1,14 @@
 from rest_framework import serializers, status
+from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
-from .models import CustomUser, NotificationPreference, Profile
+from .models import AccessibilityPreference, CustomUser, has_active_membership, MembershipPlan, MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
 from articles.models import Article
 
 
@@ -86,6 +89,176 @@ class NotificationPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class NewsletterSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterSubscription
+        fields = ['email', 'frequency', 'categories', 'is_active', 'unsubscribe_token', 'created_at', 'updated_at']
+        read_only_fields = ['unsubscribe_token', 'created_at', 'updated_at']
+
+
+class NewsletterSubscriptionView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = NewsletterSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        subscription, _ = NewsletterSubscription.objects.update_or_create(
+            email=values['email'], defaults={**values, 'user': request.user if request.user.is_authenticated else None, 'is_active': True},
+        )
+        return Response(NewsletterSubscriptionSerializer(subscription).data, status=201)
+
+    def delete(self, request):
+        email = request.data.get('email') or request.query_params.get('email')
+        token = request.data.get('token') or request.query_params.get('token')
+        queryset = NewsletterSubscription.objects.filter(email=email) if email else NewsletterSubscription.objects.filter(unsubscribe_token=token)
+        updated = queryset.update(is_active=False)
+        return Response({'unsubscribed': bool(updated)})
+
+
+class PushSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PushSubscription
+        fields = ['endpoint', 'p256dh', 'auth', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class PushSubscriptionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, request):
+        return PushSubscription.objects.filter(user=request.user)
+
+    def post(self, request):
+        serializer = PushSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        subscription, _ = PushSubscription.objects.update_or_create(
+            endpoint=serializer.validated_data['endpoint'], defaults={**serializer.validated_data, 'user': request.user, 'is_active': True},
+        )
+        return Response(PushSubscriptionSerializer(subscription).data, status=201)
+
+    def delete(self, request):
+        endpoint = request.data.get('endpoint') or request.query_params.get('endpoint')
+        deleted, _ = self.get_queryset(request).filter(endpoint=endpoint).delete()
+        return Response({'removed': bool(deleted)})
+
+
+class ReaderInterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReaderInterest
+        fields = ['id', 'interest_type', 'value', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ReaderInterestView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(ReaderInterestSerializer(ReaderInterest.objects.filter(user=request.user), many=True).data)
+
+    def post(self, request):
+        serializer = ReaderInterestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        interest, _ = ReaderInterest.objects.get_or_create(user=request.user, **serializer.validated_data)
+        return Response(ReaderInterestSerializer(interest).data, status=201)
+
+    def delete(self, request):
+        deleted, _ = ReaderInterest.objects.filter(
+            user=request.user,
+            interest_type=request.data.get('interest_type') or request.query_params.get('interest_type'),
+            value=request.data.get('value') or request.query_params.get('value'),
+        ).delete()
+        return Response({'removed': bool(deleted)})
+
+
+class AccessibilityPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccessibilityPreference
+        fields = ['high_contrast', 'reduce_motion', 'large_text', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
+class AccessibilityPreferenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_preferences(self, user):
+        preferences, _ = AccessibilityPreference.objects.get_or_create(user=user)
+        return preferences
+
+    def get(self, request):
+        return Response(AccessibilityPreferenceSerializer(self.get_preferences(request.user)).data)
+
+    def patch(self, request):
+        preferences = self.get_preferences(request.user)
+        serializer = AccessibilityPreferenceSerializer(preferences, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class MembershipPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipPlan
+        fields = ['id', 'name', 'slug', 'description', 'price', 'currency', 'interval', 'features']
+        read_only_fields = fields
+
+
+class MembershipPlanView(generics.ListAPIView):
+    serializer_class = MembershipPlanSerializer
+    permission_classes = []
+    queryset = MembershipPlan.objects.filter(is_active=True)
+
+
+class MembershipSubscriptionSerializer(serializers.ModelSerializer):
+    plan = MembershipPlanSerializer(read_only=True)
+
+    class Meta:
+        model = MembershipSubscription
+        fields = ['id', 'plan', 'status', 'provider', 'provider_reference', 'started_at', 'expires_at', 'auto_renew', 'created_at', 'updated_at']
+        read_only_fields = fields
+
+
+class MembershipMeView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        subscriptions = MembershipSubscription.objects.filter(user=request.user).select_related('plan')
+        return Response({'active': has_active_membership(request.user), 'subscriptions': MembershipSubscriptionSerializer(subscriptions, many=True).data})
+
+
+class MembershipCheckoutView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        plan = get_object_or_404(MembershipPlan, pk=request.data.get('plan_id'), is_active=True)
+        subscription, _ = MembershipSubscription.objects.update_or_create(
+            user=request.user, plan=plan, status__in=['pending', 'canceled'],
+            defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': 'manual', 'started_at': timezone.now() if plan.price == 0 else None},
+        )
+        if plan.price > 0:
+            return Response({'detail': 'Payment provider is not configured yet.', 'checkout_required': True, 'plan': MembershipPlanSerializer(plan).data}, status=402)
+        return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
+
+
+class MembershipCancelView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        subscription = MembershipSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
+        if not subscription:
+            return Response({'detail': 'No active membership found.'}, status=404)
+        subscription.status = 'canceled'
+        subscription.auto_renew = False
+        subscription.save(update_fields=['status', 'auto_renew', 'updated_at'])
+        return Response(MembershipSubscriptionSerializer(subscription).data)
 
 
 class PublicAuthorView(APIView):

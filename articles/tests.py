@@ -1,9 +1,10 @@
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
-from users.models import CustomUser
+from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
-from .models import Article, Comment, Like, Notification
+from .models import Article, ArticleFactCheck, ArticleMedia, ArticlePresence, ArticleSource, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -112,3 +113,91 @@ class ArticleFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/analytics/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['published'], 1)
+
+    def test_public_distribution_endpoints(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.published_at = timezone.now()
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible', 'published_at'])
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(f'/articles/read/{self.article.slug}/').status_code, 200)
+        self.assertEqual(self.client.get('/sitemap.xml').status_code, 200)
+        self.assertEqual(self.client.get('/rss.xml').status_code, 200)
+        self.assertEqual(self.client.get('/robots.txt').status_code, 200)
+
+    def test_editorial_assistant_returns_reviewable_suggestions(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/assistant/',
+            {'action': 'seo'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['requires_review'])
+        self.assertEqual(response.data['provider'], 'local-rule-based')
+        self.assertIn('meta_description', response.data['suggestions'])
+
+    def test_personalized_feed_prioritizes_followed_category(self):
+        from users.models import ReaderInterest
+        ReaderInterest.objects.create(user=self.journalist, interest_type='category', value='news')
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.authenticate(self.journalist)
+        response = self.client.get('/articles/api/v2/feed/for-you/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['id'], self.article.id)
+
+    def test_sources_and_fact_checks_are_visible_on_published_articles(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/sources/', {'url': 'https://example.com/source', 'title': 'Primary source', 'source_type': 'primary'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.authenticate(self.editor)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/fact-checks/', {'claim': 'A test claim', 'verdict': 'verified', 'explanation': 'Checked against the source.'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/sources/').status_code, 200)
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/fact-checks/').status_code, 200)
+
+    def test_collaboration_presence_heartbeat_and_leave(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/collaboration/', {'section': 'content', 'cursor_position': 24}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(ArticlePresence.objects.filter(article=self.article, user=self.journalist).exists())
+        self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/collaboration/').status_code, 200)
+        response = self.client.delete(f'/articles/api/v2/articles/{self.article.id}/collaboration/')
+        self.assertTrue(response.data['left'])
+
+    def test_article_media_can_be_added_and_read_publicly(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/media/', {'media_type': 'audio', 'title': 'Article audio', 'external_url': 'https://cdn.example.com/article.mp3'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/media/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['media_type'], 'audio')
+
+    def test_free_membership_unlocks_premium_content(self):
+        self.article.is_premium = True
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['is_premium', 'workflow_status', 'status', 'is_visible'])
+        free_plan = MembershipPlan.objects.create(name='Community', slug='community', features=['Premium articles'])
+        self.client.force_authenticate(user=self.journalist)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/')
+        self.assertEqual(response.status_code, 403)
+        response = self.client.post('/api/membership/checkout/', {'plan_id': free_plan.id}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(MembershipSubscription.objects.filter(user=self.journalist, status='active').exists())
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/')
+        self.assertEqual(response.status_code, 200)
