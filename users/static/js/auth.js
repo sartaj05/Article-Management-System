@@ -3,9 +3,32 @@
   const form = document.querySelector("[data-auth-form]");
   const message = document.querySelector("[data-auth-message]");
   const submit = form?.querySelector("button[type='submit']");
-  const setMessage = (text, type) => { if (!message) return; message.textContent = text || ""; message.className = `auth-message${type ? ` is-${type}` : ""}`; };
+  const normalizeError = (value) => {
+    if (!value) return "Request failed.";
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return value.map(normalizeError).join(" ");
+    if (typeof value === "object") {
+      return Object.entries(value).map(([field, errors]) => {
+        const label = field === "non_field_errors" ? "" : `${field}: `;
+        return `${label}${normalizeError(errors)}`;
+      }).join(" ");
+    }
+    return String(value);
+  };
+  const setMessage = (text, type) => { if (!message) return; message.textContent = normalizeError(text || ""); message.className = `auth-message${type ? ` is-${type}` : ""}`; };
   const setBusy = (busy, label) => { if (!submit) return; submit.disabled = busy; submit.textContent = busy ? "Please wait..." : label; };
-  const jsonRequest = async (url, options) => { const response = await fetch(url, options); let data = {}; try { data = await response.json(); } catch (_) {} if (!response.ok) throw new Error(data.detail || data.message || data.error || "Request failed."); return data; };
+  const jsonRequest = async (url, options) => {
+    const response = await fetch(url, options);
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    if (!response.ok) {
+      const details = data.errors || data.message || data.detail || data.error;
+      const error = new Error(normalizeError(details || "Request failed."));
+      error.payload = data;
+      throw error;
+    }
+    return data;
+  };
   const fieldError = (name, text) => { const field = document.getElementById(name); const error = document.getElementById(`${name}_error`) || document.getElementById(`${name}-error`); field?.classList.toggle("error", Boolean(text)); if (error) error.textContent = text || ""; };
 
   if (!form) return;
@@ -27,15 +50,49 @@
   }
 
   if (kind === "register") {
+    const registrationFields = ["first_name", "last_name", "username", "email", "password", "confirm_password", "role", "checkbox"];
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
     form.addEventListener("submit", async (event) => {
-      event.preventDefault(); setMessage("");
+      event.preventDefault();
+      setMessage("");
+      registrationFields.forEach((name) => fieldError(name, ""));
+
       const data = Object.fromEntries(new FormData(form).entries());
+      const firstName = form.first_name.value.trim();
+      const lastName = form.last_name.value.trim();
+      const username = form.username.value.trim();
+      const email = form.email.value.trim();
       const password = form.password.value; const confirmation = form.confirm_password.value;
-      if (password !== confirmation) { fieldError("confirm_password", "Passwords do not match."); setMessage("Please correct the highlighted fields.", "error"); return; }
-      if (!form.checkbox.checked) { fieldError("checkbox", "Accept the terms to continue."); setMessage("Please accept the terms and conditions.", "error"); return; }
+      const role = form.role.value;
+      let firstInvalid = null;
+      const markInvalid = (name, text) => { fieldError(name, text); if (!firstInvalid) firstInvalid = document.getElementById(name); };
+
+      if (firstName.length < 2) markInvalid("first_name", "Enter your first name.");
+      if (lastName && lastName.length < 2) markInvalid("last_name", "Enter a valid last name.");
+      if (username.length < 4) markInvalid("username", "Username must be at least 4 characters.");
+      if (!emailPattern.test(email)) markInvalid("email", "Enter a valid email like name@example.com.");
+      if (password.length < 8) markInvalid("password", "Password must be at least 8 characters.");
+      if (password !== confirmation) markInvalid("confirm_password", "Passwords do not match.");
+      if (!role) markInvalid("role", "Select a role to continue.");
+      if (!form.checkbox.checked) markInvalid("checkbox", "Accept the terms to continue.");
+
+      if (firstInvalid) {
+        setMessage("Please correct the highlighted fields.", "error");
+        firstInvalid.focus();
+        return;
+      }
+
       setBusy(true, "Create account");
       try { await jsonRequest("/api/register/", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) }); setMessage("Account created. Redirecting to login...", "success"); window.setTimeout(() => { window.location.href = "/login-template/"; }, 900); }
-      catch (error) { setMessage(error.message || "Registration failed. Please review your details.", "error"); setBusy(false, "Create account"); }
+      catch (error) {
+        const serverErrors = error.payload?.errors || error.payload?.message;
+        if (serverErrors && typeof serverErrors === "object" && !Array.isArray(serverErrors)) {
+          Object.entries(serverErrors).forEach(([name, errors]) => fieldError(name, normalizeError(errors)));
+        }
+        setMessage(serverErrors || error.message || "Registration failed. Please review your details.", "error");
+        setBusy(false, "Create account");
+      }
     });
   }
 
