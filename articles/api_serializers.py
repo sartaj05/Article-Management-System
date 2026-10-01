@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -246,3 +246,26 @@ class StorySeriesSerializer(serializers.ModelSerializer):
         model = StorySeries
         fields = ['id', 'title', 'slug', 'description', 'cover_image', 'is_published', 'created_by', 'created_by_name', 'articles', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_by', 'created_by_name', 'articles', 'created_at', 'updated_at']
+
+
+class MediaAssetSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = MediaAsset
+        fields = ['id', 'uploaded_by', 'uploaded_by_name', 'media_type', 'title', 'file', 'external_url', 'alt_text', 'caption', 'credit', 'license', 'license_expires_at', 'metadata', 'is_archived', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'uploaded_by', 'uploaded_by_name', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        if not attrs.get('file') and not attrs.get('external_url'):
+            raise serializers.ValidationError('Provide a file or external URL for this asset.')
+        return attrs
+
+
+class ArticleAssetSerializer(serializers.ModelSerializer):
+    asset = MediaAssetSerializer(read_only=True)
+
+    class Meta:
+        model = ArticleAsset
+        fields = ['id', 'article', 'asset', 'role', 'position', 'created_at']
+        read_only_fields = ['id', 'article', 'asset', 'created_at']

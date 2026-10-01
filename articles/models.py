@@ -537,3 +537,52 @@ class SeriesArticle(models.Model):
             models.UniqueConstraint(fields=['series', 'article'], name='unique_story_series_article'),
         ]
 
+
+class MediaAsset(models.Model):
+    MEDIA_TYPES = [('image', 'Image'), ('audio', 'Audio'), ('video', 'Video'), ('document', 'Document')]
+    LICENSE_CHOICES = [
+        ('owned', 'Owned'),
+        ('licensed', 'Licensed'),
+        ('cc', 'Creative Commons'),
+        ('public_domain', 'Public domain'),
+    ]
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='media_assets')
+    media_type = models.CharField(max_length=15, choices=MEDIA_TYPES, default='image')
+    title = models.CharField(max_length=160)
+    file = models.FileField(upload_to='media-library/', blank=True, null=True)
+    external_url = models.URLField(blank=True)
+    alt_text = models.CharField(max_length=255, blank=True)
+    caption = models.CharField(max_length=500, blank=True)
+    credit = models.CharField(max_length=255, blank=True)
+    license = models.CharField(max_length=20, choices=LICENSE_CHOICES, default='owned')
+    license_expires_at = models.DateField(blank=True, null=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    is_archived = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def clean(self):
+        if not self.file and not self.external_url:
+            raise ValidationError('Provide a file or external URL for this asset.')
+
+    def __str__(self):
+        return self.title
+
+
+class ArticleAsset(models.Model):
+    ROLE_CHOICES = [('hero', 'Hero image'), ('inline', 'Inline media'), ('attachment', 'Attachment')]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='asset_links')
+    asset = models.ForeignKey(MediaAsset, on_delete=models.CASCADE, related_name='article_links')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='inline')
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position', 'created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'asset'], name='unique_article_media_asset'),
+        ]
+

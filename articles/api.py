@@ -40,9 +40,9 @@ from .api_serializers import (
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
-    SeriesArticleSerializer, StorySeriesSerializer,
+    ArticleAssetSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1311,3 +1311,81 @@ class StorySeriesArticleDeleteView(APIView):
         item = get_object_or_404(SeriesArticle, series__slug=slug, article_id=article_id)
         item.delete()
         return Response(status=204)
+
+
+class MediaAssetLibraryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self, request):
+        queryset = MediaAsset.objects.filter(is_archived=False)
+        if request.user.role not in {'Editor', 'Admin'}:
+            queryset = queryset.filter(uploaded_by=request.user)
+        return queryset
+
+    def get(self, request):
+        return Response(MediaAssetSerializer(self.get_queryset(request), many=True, context={'request': request}).data)
+
+    def post(self, request):
+        serializer = MediaAssetSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        asset = serializer.save(uploaded_by=request.user)
+        return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
+
+
+class MediaAssetDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def can_manage(self, request, asset):
+        return asset.uploaded_by_id == request.user.id or request.user.role in {'Editor', 'Admin'}
+
+    def patch(self, request, pk):
+        asset = get_object_or_404(MediaAsset, pk=pk)
+        if not self.can_manage(request, asset):
+            return Response({'detail': 'You cannot edit this asset.'}, status=403)
+        serializer = MediaAssetSerializer(asset, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        asset = get_object_or_404(MediaAsset, pk=pk)
+        if not self.can_manage(request, asset):
+            return Response({'detail': 'You cannot archive this asset.'}, status=403)
+        asset.is_archived = True
+        asset.save(update_fields=['is_archived', 'updated_at'])
+        return Response({'archived': True})
+
+
+class ArticleAssetView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def can_manage(self, request, article):
+        return article.author_id == request.user.id or request.user.role in {'Editor', 'Admin'}
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'You cannot view this asset list.'}, status=403)
+        return Response(ArticleAssetSerializer(article.asset_links.select_related('asset'), many=True, context={'request': request}).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'You cannot attach assets to this article.'}, status=403)
+        asset = get_object_or_404(MediaAsset, pk=request.data.get('asset_id'), is_archived=False)
+        link, created = ArticleAsset.objects.get_or_create(
+            article=article,
+            asset=asset,
+            defaults={'role': request.data.get('role', 'inline'), 'position': int(request.data.get('position', 0))},
+        )
+        if not created:
+            return Response({'detail': 'This asset is already attached to the article.'}, status=400)
+        return Response(ArticleAssetSerializer(link, context={'request': request}).data, status=201)
