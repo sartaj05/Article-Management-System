@@ -16,7 +16,7 @@
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? "Recently published" : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   };
-  const articleLink = (article) => `/articles/articles/${encodeURIComponent(article.id)}/`;
+  const articleLink = (article) => article.slug ? `/articles/read/${encodeURIComponent(article.slug)}/` : `/articles/articles/${encodeURIComponent(article.id)}/`;
 
   function renderCard(article) {
     const title = escapeHTML(article.title || "Untitled article");

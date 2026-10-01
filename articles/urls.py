@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .distribution import public_article
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from rest_framework.urls import path
 from .views import ArticleCountAPIView
@@ -40,6 +41,7 @@ from .api import (
     TagListCreateView,
 )
 urlpatterns = [
+    path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
 
     path('api/articles/list/', ArticleListAPIView.as_view(), name='article-list'),

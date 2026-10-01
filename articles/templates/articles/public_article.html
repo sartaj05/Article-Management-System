@@ -1,0 +1,36 @@
+{% extends 'base_generic.html' %}
+
+{% block title %}{{ article.meta_title|default:article.title }} | Article Studio{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="{{ article.meta_description|default:article.summary|default:article.content|truncatechars:160 }}">
+{% if article.canonical_url %}<link rel="canonical" href="{{ article.canonical_url }}">{% endif %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ article.meta_title|default:article.title }}">
+<meta property="og:description" content="{{ article.meta_description|default:article.summary|default:article.content|truncatechars:160 }}">
+{% if article.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ article.image.url }}">{% endif %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ article.title|escapejs }}",
+  "description": "{{ article.summary|default:article.content|truncatechars:160|escapejs }}",
+  "datePublished": "{{ article.published_at|date:'c' }}",
+  "dateModified": "{{ article.updated_at|date:'c' }}",
+  "author": {"@type": "Person", "name": "{{ article.author.get_full_name|default:article.author.username|escapejs }}"}
+  {% if article.image %},"image": ["{{ request.scheme }}://{{ request.get_host }}{{ article.image.url }}"]{% endif %}
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<article class="article-detail-container">
+    <div class="article-meta"><span class="meta-pill">{{ article.category|default:'General' }}</span><span>{{ article.published_at|date:'M d, Y' }}</span></div>
+    <h1 class="article-title">{{ article.title }}</h1>
+    {% if article.subtitle %}<p class="article-subtitle">{{ article.subtitle }}</p>{% endif %}
+    <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>
+    {% if article.image %}<img class="article-detail-image" src="{{ article.image.url }}" alt="{{ article.title }}">{% endif %}
+    <div class="article-content">{{ article.content|linebreaks }}</div>
+    <div class="article-meta"><span><i class="fa-regular fa-eye" aria-hidden="true"></i> {{ article.views.count }} views</span><span><i class="fa-regular fa-heart" aria-hidden="true"></i> {{ article.likes.count }} likes</span></div>
+</article>
+{% endblock %}

@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
@@ -112,3 +113,15 @@ class ArticleFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/analytics/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['published'], 1)
+
+    def test_public_distribution_endpoints(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.published_at = timezone.now()
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible', 'published_at'])
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(f'/articles/read/{self.article.slug}/').status_code, 200)
+        self.assertEqual(self.client.get('/sitemap.xml').status_code, 200)
+        self.assertEqual(self.client.get('/rss.xml').status_code, 200)
+        self.assertEqual(self.client.get('/robots.txt').status_code, 200)

@@ -21,6 +21,8 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from users import views 
 from articles.api import HealthCheckView
+from articles.distribution import ArticleSitemap, ArticleFeed, robots_txt
+from django.contrib.sitemaps.views import sitemap
 # Redirect root URL to login page
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,6 +30,9 @@ urlpatterns = [
     path('', include('users.urls')), 
     path('articles/', include('articles.urls')),
     path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('sitemap.xml', sitemap, {'sitemaps': {'articles': ArticleSitemap}}, name='sitemap'),
+    path('rss.xml', ArticleFeed(), name='article-feed'),
+    path('robots.txt', robots_txt, name='robots-txt'),
     #   path('users/', include('users.urls')), 
     
 ]
