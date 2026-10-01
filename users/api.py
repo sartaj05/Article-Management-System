@@ -18,7 +18,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile,
-    PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -445,6 +445,107 @@ def resolve_public_api_key(raw_key):
         key.save(update_fields=['last_used_at'])
         return key.owner
     return None
+
+
+class PrivacyPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrivacyPreference
+        fields = ['analytics_enabled', 'marketing_enabled', 'functional_enabled', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
+class PrivacyPreferenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_preference(self, user):
+        preference, _ = PrivacyPreference.objects.get_or_create(user=user)
+        return preference
+
+    def get(self, request):
+        return Response(PrivacyPreferenceSerializer(self.get_preference(request.user)).data)
+
+    def patch(self, request):
+        preference = self.get_preference(request.user)
+        serializer = PrivacyPreferenceSerializer(preference, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        preference = serializer.save()
+        for purpose, enabled in (
+            ('analytics', preference.analytics_enabled),
+            ('marketing', preference.marketing_enabled),
+            ('functional', preference.functional_enabled),
+        ):
+            PrivacyConsent.objects.create(
+                user=request.user, purpose=purpose, granted=enabled,
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+        return Response(serializer.data)
+
+
+class PrivacyConsentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrivacyConsent
+        fields = ['id', 'purpose', 'granted', 'policy_version', 'ip_address', 'created_at']
+        read_only_fields = ['id', 'ip_address', 'created_at']
+
+
+class PrivacyConsentView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        consents = PrivacyConsent.objects.filter(user=request.user)
+        return Response(PrivacyConsentSerializer(consents, many=True).data)
+
+    def post(self, request):
+        serializer = PrivacyConsentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        consent = serializer.save(user=request.user, ip_address=request.META.get('REMOTE_ADDR'))
+        return Response(PrivacyConsentSerializer(consent).data, status=201)
+
+
+class PrivacyRequestView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        requests = PrivacyRequest.objects.filter(user=request.user)
+        return Response([
+            {'id': item.id, 'request_type': item.request_type, 'status': item.status, 'created_at': item.created_at, 'completed_at': item.completed_at}
+            for item in requests
+        ])
+
+
+class PrivacyExportView(PrivacyRequestView):
+    def post(self, request):
+        privacy_request = PrivacyRequest.objects.create(
+            user=request.user, request_type='export', status='completed', completed_at=timezone.now(),
+        )
+        articles = Article.objects.filter(author=request.user).values(
+            'id', 'title', 'slug', 'summary', 'workflow_status', 'created_at', 'updated_at',
+        )
+        export_data = {
+            'profile': {
+                'username': request.user.username,
+                'email': request.user.email,
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'role': request.user.role,
+            },
+            'articles': list(articles),
+            'interests': list(ReaderInterest.objects.filter(user=request.user).values('interest_type', 'value', 'created_at')),
+            'newsletter_subscriptions': list(NewsletterSubscription.objects.filter(user=request.user).values('email', 'frequency', 'categories', 'is_active')),
+            'consents': PrivacyConsentSerializer(PrivacyConsent.objects.filter(user=request.user), many=True).data,
+        }
+        return Response({'request_id': privacy_request.id, 'status': privacy_request.status, 'data': export_data})
+
+
+class PrivacyDeletionRequestView(PrivacyRequestView):
+    def post(self, request):
+        if request.data.get('confirmation') != 'DELETE':
+            return Response({'detail': 'Type DELETE to request account deletion.'}, status=400)
+        deletion_request = PrivacyRequest.objects.create(user=request.user, request_type='deletion')
+        return Response({'request_id': deletion_request.id, 'status': deletion_request.status, 'detail': 'Your account deletion request was recorded for review.'}, status=202)
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):

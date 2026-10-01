@@ -290,6 +290,47 @@ class WebhookEndpoint(models.Model):
         return self.url
 
 
+class PrivacyPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='privacy_preferences')
+    analytics_enabled = models.BooleanField(default=False)
+    marketing_enabled = models.BooleanField(default=False)
+    functional_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Privacy preferences for {self.user.username}'
+
+
+class PrivacyConsent(models.Model):
+    PURPOSE_CHOICES = [
+        ('analytics', 'Analytics'),
+        ('marketing', 'Marketing'),
+        ('functional', 'Functional'),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='privacy_consents')
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES)
+    granted = models.BooleanField(default=False)
+    policy_version = models.CharField(max_length=20, default='1.0')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class PrivacyRequest(models.Model):
+    REQUEST_CHOICES = [('export', 'Data export'), ('deletion', 'Account deletion')]
+    STATUS_CHOICES = [('pending', 'Pending'), ('completed', 'Completed'), ('canceled', 'Canceled')]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='privacy_requests')
+    request_type = models.CharField(max_length=20, choices=REQUEST_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 def has_active_membership(user):
     if not getattr(user, 'is_authenticated', False):
         return False
