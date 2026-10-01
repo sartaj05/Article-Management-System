@@ -31,6 +31,65 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
+
+class Workspace(models.Model):
+    """A newsroom organization that owns editorial work and memberships."""
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140, unique=True)
+    description = models.TextField(blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='owned_workspaces')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class WorkspaceMembership(models.Model):
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),
+        ('admin', 'Workspace admin'),
+        ('editor', 'Editor'),
+        ('writer', 'Writer'),
+        ('viewer', 'Viewer'),
+    ]
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='memberships')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='workspace_memberships')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='writer')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['role', 'user__username']
+        constraints = [
+            models.UniqueConstraint(fields=['workspace', 'user'], name='unique_workspace_membership'),
+        ]
+
+    def __str__(self):
+        return f'{self.user.username} in {self.workspace.slug}'
+
+
+class WorkspaceInvitation(models.Model):
+    STATUS_CHOICES = [('pending', 'Pending'), ('accepted', 'Accepted'), ('revoked', 'Revoked')]
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='invitations')
+    email = models.EmailField()
+    role = models.CharField(max_length=20, choices=WorkspaceMembership.ROLE_CHOICES, default='writer')
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='workspace_invitations_sent')
+    token = models.UUIDField(default=uuid4, unique=True, editable=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
 # Profile model linked to the CustomUser model
 class Profile(models.Model):
     user = models.OneToOneField(

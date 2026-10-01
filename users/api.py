@@ -6,9 +6,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
+from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
+from datetime import timedelta
 
-from .models import AccessibilityPreference, CustomUser, has_active_membership, MembershipPlan, MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
+from .models import (
+    AccessibilityPreference, CustomUser, has_active_membership, MembershipPlan,
+    MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile,
+    PushSubscription, ReaderInterest, Workspace, WorkspaceInvitation,
+    WorkspaceMembership,
+)
 from articles.models import Article
 
 
@@ -296,4 +304,134 @@ class PublicAuthorView(APIView):
                 }
                 for article in articles
             ],
+        })
+
+
+class WorkspaceSerializer(serializers.ModelSerializer):
+    slug = serializers.CharField(required=False, allow_blank=True)
+    member_count = serializers.IntegerField(source='memberships.count', read_only=True)
+    owner_username = serializers.CharField(source='owner.username', read_only=True)
+
+    class Meta:
+        model = Workspace
+        fields = ['id', 'name', 'slug', 'description', 'owner', 'owner_username', 'member_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'owner', 'owner_username', 'member_count', 'created_at', 'updated_at']
+
+
+class WorkspaceMembershipSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = WorkspaceMembership
+        fields = ['id', 'user', 'username', 'email', 'role', 'joined_at']
+        read_only_fields = fields
+
+
+def _workspace_for_member(request, slug):
+    workspace = get_object_or_404(Workspace, slug=slug, is_active=True)
+    if not WorkspaceMembership.objects.filter(workspace=workspace, user=request.user).exists():
+        from rest_framework.exceptions import PermissionDenied
+        raise PermissionDenied('You are not a member of this workspace.')
+    return workspace
+
+
+def _workspace_admin(request, slug):
+    workspace = _workspace_for_member(request, slug)
+    membership = WorkspaceMembership.objects.get(workspace=workspace, user=request.user)
+    if membership.role not in {'owner', 'admin'}:
+        from rest_framework.exceptions import PermissionDenied
+        raise PermissionDenied('Workspace admin access is required.')
+    return workspace
+
+
+class WorkspaceListCreateView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspaces = Workspace.objects.filter(
+            models.Q(owner=request.user) | models.Q(memberships__user=request.user),
+            is_active=True,
+        ).distinct()
+        return Response(WorkspaceSerializer(workspaces, many=True).data)
+
+    def post(self, request):
+        serializer = WorkspaceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        name = serializer.validated_data['name']
+        slug = slugify(serializer.validated_data.get('slug') or name)
+        if Workspace.objects.filter(slug=slug).exists():
+            return Response({'detail': 'A workspace with this name already exists.'}, status=400)
+        workspace = Workspace.objects.create(
+            name=name,
+            slug=slug,
+            description=serializer.validated_data.get('description', ''),
+            owner=request.user,
+        )
+        WorkspaceMembership.objects.create(workspace=workspace, user=request.user, role='owner')
+        return Response(WorkspaceSerializer(workspace).data, status=201)
+
+
+class WorkspaceMembersView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        members = WorkspaceMembership.objects.filter(workspace=workspace).select_related('user')
+        return Response(WorkspaceMembershipSerializer(members, many=True).data)
+
+
+class WorkspaceInviteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        email = str(request.data.get('email', '')).strip().lower()
+        role = str(request.data.get('role', 'writer')).strip().lower()
+        allowed_roles = {choice[0] for choice in WorkspaceMembership.ROLE_CHOICES if choice[0] != 'owner'}
+        if not email or '@' not in email:
+            return Response({'detail': 'Enter a valid email address.'}, status=400)
+        if role not in allowed_roles:
+            return Response({'detail': 'Choose a valid workspace role.'}, status=400)
+        invitation = WorkspaceInvitation.objects.create(
+            workspace=workspace,
+            email=email,
+            role=role,
+            invited_by=request.user,
+            expires_at=timezone.now() + timedelta(days=7),
+        )
+        return Response({
+            'id': invitation.id,
+            'workspace': workspace.slug,
+            'email': invitation.email,
+            'role': invitation.role,
+            'token': str(invitation.token),
+            'expires_at': invitation.expires_at,
+            'status': invitation.status,
+        }, status=201)
+
+
+class WorkspaceInvitationAcceptView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, token):
+        invitation = get_object_or_404(WorkspaceInvitation.objects.select_related('workspace'), token=token)
+        if invitation.status != 'pending' or invitation.is_expired:
+            return Response({'detail': 'This invitation is no longer active.'}, status=400)
+        if invitation.email.lower() != request.user.email.lower():
+            return Response({'detail': 'Sign in with the invited email address to accept this invitation.'}, status=403)
+        membership, _ = WorkspaceMembership.objects.get_or_create(
+            workspace=invitation.workspace,
+            user=request.user,
+            defaults={'role': invitation.role},
+        )
+        invitation.status = 'accepted'
+        invitation.save(update_fields=['status'])
+        return Response({
+            'workspace': WorkspaceSerializer(invitation.workspace).data,
+            'membership': WorkspaceMembershipSerializer(membership).data,
         })

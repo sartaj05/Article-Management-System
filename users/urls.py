@@ -8,7 +8,13 @@ from .views import (
 )
 from . import views
 from .views import user_profile
-from .api import AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView, MembershipMeView, MembershipPlanView, NewsletterSubscriptionView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderInterestView, UserProfileView
+from .api import (
+    AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView,
+    MembershipMeView, MembershipPlanView, NewsletterSubscriptionView,
+    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView,
+    ReaderInterestView, UserProfileView, WorkspaceInviteView, WorkspaceListCreateView,
+    WorkspaceMembersView, WorkspaceInvitationAcceptView,
+)
 urlpatterns = [
     
 
@@ -46,6 +52,10 @@ path('', views.home, name='home'),
     path('membership/checkout/', MembershipCheckoutView.as_view(), name='membership-checkout'),
     path('membership/cancel/', MembershipCancelView.as_view(), name='membership-cancel'),
     path('authors/<int:user_id>/', PublicAuthorView.as_view(), name='public-author'),
+    path('workspaces/', WorkspaceListCreateView.as_view(), name='workspace-list-create'),
+    path('workspaces/<slug:slug>/members/', WorkspaceMembersView.as_view(), name='workspace-members'),
+    path('workspaces/<slug:slug>/invite/', WorkspaceInviteView.as_view(), name='workspace-invite'),
+    path('workspaces/invitations/<uuid:token>/accept/', WorkspaceInvitationAcceptView.as_view(), name='workspace-invitation-accept'),
     # Change Password (Authenticated User)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     
