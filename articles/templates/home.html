@@ -1,0 +1,51 @@
+{% comment %} <!-- home.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="home-container">
+        <h1>Welcome to MyBlog</h1>
+        <p>Your go-to place for the latest articles and blogs.</p>
+        <a href="{% url 'articles' %}" class="btn btn-primary">View Articles</a>
+        <a href="{% url 'login' %}">Login</a>
+
+    </div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .home-container {
+        text-align: center;
+        padding: 3rem;
+        background-color: #f4f8fc;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-top: 2rem;
+    }
+
+    .home-container h1 {
+        font-size: 3rem;
+        color: #007bff;
+    }
+
+    .home-container p {
+        font-size: 1.2rem;
+        color: #555;
+        margin: 1.5rem 0;
+    }
+
+    .btn-primary {
+        padding: 0.8rem 1.5rem;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+</style>
+{% endblock %} {% endcomment %}

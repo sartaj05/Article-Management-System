@@ -1,0 +1,469 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Article Management Journalist Dashboard</title>
+    <link rel="stylesheet" href="{% static 'css/article_create.css' %}" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+ 
+    
+
+<!-- jQuery (required for Materialize) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Materialize JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+
+  </head>
+  <body>
+   <!-- Sidebar navigation -->
+   <div class="sidebar">
+    <h2>Dashboard</h2>
+    <ul>
+      <li><a href="#" id="home-link">Home</a></li>
+      <li><a href="#" id="create-article-link">Create Article</a></li>
+      <li><a href="#" id="article-list-link">Article List</a></li>
+      <li><a href="#" id="logout-link">Logout</a></li>
+    </ul>
+  </div>
+  
+  <!-- Main content area -->
+  <div class="content">
+
+
+    <!-- Home Page -->
+    <div id="home-page" class="page active">
+      <h1>Welcome to the Journalist Dashboard</h1>
+      <p>Select an option from the sidebar to manage articles.</p>
+      
+      <!-- User Information Card -->
+      <div class="user-info-card">
+        <h3>User Information</h3>
+        <div class="user-info-row">
+          <div class="user-info-item">
+            <strong>Full Name:</strong>
+            <span id="userfullname">Loading...</span>
+          </div>
+          <div class="user-info-item">
+            <strong>Username:</strong>
+            <span id="username">Loading...</span>
+          </div>
+          <div class="user-info-item">
+            <strong>Role:</strong>
+            <span id="role">Loading...</span>
+          </div>
+          <div class="user-info-item">
+            <strong>Email:</strong>
+            <span id="email">Loading...</span>
+          </div>
+          <div class="user-info-item">
+            <strong>Total Articles Created:</strong>
+            <span id="article-count">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Create Article Page -->
+    <div id="create-article-page" class="page">
+      <h1>Create a New Article</h1>
+      <form id="article-form" enctype="multipart/form-data">
+          {% csrf_token %}
+  
+          <!-- Page 1: Article Details -->
+          <div id="page1" class="form-page active">
+              <h2>Page 1: Article Details</h2>
+  
+              <!-- Title with min and max length -->
+              <label for="title">Title:</label>
+              <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  required
+                  minlength="10"
+                  maxlength="51"
+              />
+              <span id="title-error" class="error-message"></span>
+  
+              <!-- Subtitle with max length -->
+              <label for="subtitle">Subtitle:</label>
+              <input type="text" id="subtitle" name="subtitle" minlength="10" maxlength="51" />
+              <span id="subtitle-error" class="error-message"></span>
+  
+              <!-- Content with min length -->
+              <label for="content">Content:</label>
+              <textarea
+                  id="content"
+                  name="content"
+                  required
+                  minlength="10"
+              ></textarea>
+              <span id="content-error" class="error-message"></span>
+  
+              <!-- Email with pattern validation -->
+              <label for="email">Email Address:</label>
+              <input type="email" id="emailid" name="email">
+              <span id="email-error" class="error-message"></span>
+          </div>
+  
+          <!-- Page 2: Additional Details -->
+          <div id="page2" class="form-page">
+              <h2>Page 2: Additional Details</h2>
+  
+              <!-- Tags with max length -->
+              <label for="tags">Tags:</label>
+              <input type="text" id="tags" name="tags" required minlength="5" maxlength="30" />
+              <span id="tags-error" class="error-message"></span>
+  
+              <!-- Category with required attribute -->
+              <label for="category">Category:</label>
+              <select id="category" name="category" required>
+                  <option value="" disabled selected>Select a category</option>
+                  <option value="news">News</option>
+                  <option value="opinion">Opinion</option>
+                  <option value="feature">Feature</option>
+              </select>
+              <span id="category-error" class="error-message" style="display:none;"></span>
+  
+              <!-- Publish Date with required attribute -->
+              <label for="publish_date">Publish Date:</label>
+              <input type="date" id="publish_date" name="publish_date" required />
+              <span id="publish_date-error" class="error-message"></span>
+  
+              <!-- Image with file accept type -->
+              <label for="image">Image:</label>
+              <input type="file" id="image" name="image" accept="image/*" />
+              <span id="image-error" class="error-message"></span>
+  
+              <!-- Location -->
+              <label for="location">Location:</label>
+              <div id="map" style="height: 300px; width: 50%;"></div>
+  
+              <input type="text" id="latitude" name="latitude" readonly>
+              <input type="text" id="longitude" name="longitude" readonly>
+  
+              <!-- Input field for the location name -->
+              <label for="location_name">Location Name:</label>
+              <input type="text" id="location_name" name="location_name" readonly>
+  
+              <button type="submit">Submit</button>
+              <button type="button" id="prev-to-page1">Previous</button>
+          </div>
+      </form>
+    </div>
+    <!-- Success Popup -->
+<!-- Success Message Modal -->
+<div id="success-modal" class="modal">
+  <div class="modal-content">
+    <h4>Article Created Successfully!</h4>
+    <p>Your article has been created and submitted successfully.</p>
+  </div>
+</div>
+
+
+    <!-- Article List Page -->
+    <div id="article-list-page" class="page">
+      <h1>Manage Articles</h1>
+      
+      <!-- Search bar -->
+      <input type="text" id="search-bar" placeholder="Search by title or category" />
+  
+      <table id="article-table" class="article-table">
+        <thead>
+          <tr>
+            <th>Sr. No.</th>  
+            <th>Title</th>
+            <th>Category</th>
+            <th>Publish Date</th>
+            <th>Status</th>
+            <th>Image</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="article-list">
+          <!-- Data will be filled dynamically via JavaScript -->
+        </tbody>
+      </table>
+      <div id="no-articles-message" style="display: none">
+        No articles available.
+      </div>
+    </div>
+<!-- Article Details Modal -->
+<div id="article-modal" class="modal">
+  <div class="modal-content">
+    <button id="close-modal" class="modal-close btn">X</button> <!-- Close button on the top-right -->
+    <h4>Article Details</h4>
+    <p id="modal-id"></p>
+    <p id="modal-title"></p>
+    <p id="modal-subtitle"></p>
+    <p id="modal-category"></p>
+    <!-- <p id="modal-tags"></p> -->
+    <p id="modal-content"></p>
+    <p id="modal-email"></p>
+    <p id="modal-publish-date"></p>
+    <p id="modal-status"></p>
+    <img id="modal-image" src="" alt="Article Image" />
+  </div>
+  <div class="modal-footer">
+    <button id="close-modal" class="btn">Close</button>
+  </div>
+</div>
+
+<!-- Confirmation Deletion Modal -->
+<div id="confirmation-modal" class="modal">
+  <div class="modal-content">
+    <h4>Confirm Deletion</h4>
+    <p>Are you sure you want to delete this article?</p>
+    <div class="modal-footer">
+      <button id="confirm-delete" class="btn">Yes</button>
+      <button id="cancel-delete" class="btn">No</button>
+    </div>
+  </div>
+</div>
+<!-- Edit Article Modal -->
+<div id="editArticleModal" class="modal">
+
+  <div class="modal-content">
+    {% comment %} <button id="close-edit-modal" class="modal-close btn">X</button> {% endcomment %}
+    <h4>Edit Article</h4>
+    <form id="edit-article-form">
+      <input type="hidden" id="editArticleId" />
+      <div class="input-field">
+        <label for="editTitle">Title</label>
+        <input type="text" id="editTitle" name="title" required />
+      </div>
+      <div class="input-field">
+        <label for="editSubtitle">Subtitle</label>
+        <input type="text" id="editSubtitle" name="subtitle" required />
+      </div>
+      <div class="input-field">
+        <label for="editContent">Content</label>
+        <textarea id="editContent" name="content" required></textarea>
+      </div>
+      <div class="input-field">
+        <label for="editCategory">Category</label>
+        <select id="category" name="category" required>
+          <option value="" disabled selected>Select a category</option>
+          <option value="news">News</option>
+          <option value="opinion">Opinion</option>
+          <option value="feature">Feature</option>
+      </select>
+        
+      </div>
+      
+     <div class="input-field">
+        <label for="editTags">Tags</label>
+        <input type="text" id="editTags" name="tags" required />
+      </div> 
+      <div class="modal-footer">
+        <button type="submit" class="btn">Save Changes</button>
+        <button type="button" id="close-edit-modal" class="btn modal-close">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="modal">
+  <div class="modal-content">
+    <h4>Article Updated</h4>
+    <p>Your article was successfully updated!</p>
+    <button class="close-modal btn">Close</button>
+  </div>
+</div>
+
+
+
+  </div>
+  
+     
+
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{% static 'js/script.js' %}"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+  
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('publish_date').setAttribute('min', today);
+  
+    // Initialize the map using Leaflet.js
+    var latitude = {{ article.latitude|default:0 }};
+    var longitude = {{ article.longitude|default:0 }};
+    
+    // Set the map view to the article's latitude and longitude (if available)
+    var map = L.map('map').setView([latitude, longitude], 13);
+  
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+  
+    // Add a marker at the article's location (if available)
+    var marker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
+  
+    // Reverse geocoding function to get the place name based on lat/lng
+    function getLocationName(lat, lng) {
+      var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+      $.get(url, function(data) {
+        // Update the location name input with the place name
+        if (data && data.display_name) {
+          document.getElementById('location_name').value = data.display_name;
+        } else {
+          document.getElementById('location_name').value = 'Location not found';
+        }
+      }).fail(function() {
+        console.error('Geocoding request failed');
+        document.getElementById('location_name').value = 'Location not found';
+      });
+    }
+  
+    // Update latitude and longitude inputs when the marker is dragged
+    marker.on('dragend', function(e) {
+      var lat = e.target.getLatLng().lat;
+      var lng = e.target.getLatLng().lng;
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+      getLocationName(lat, lng); // Update the location name
+    });
+  
+    // Add click event to add a marker and update latitude/longitude
+    map.on('click', function(e) {
+      var lat = e.latlng.lat;
+      var lng = e.latlng.lng;
+      marker.setLatLng([lat, lng]);
+      document.getElementById('latitude').value = lat;
+      document.getElementById('longitude').value = lng;
+      getLocationName(lat, lng); // Update the location name
+    });
+  
+    // Get the initial location name for the article's coordinates (if available)
+    getLocationName(latitude, longitude);
+  
+    // Live validation for form fields
+    const titleInput = document.getElementById('title');
+    const subtitleInput = document.getElementById('subtitle');
+    const contentInput = document.getElementById('content');
+    const tagsInput = document.getElementById('tags');
+    const emailInput = document.getElementById('emailid');
+    const publishDateInput = document.getElementById('publish_date');
+  
+    // Validation for Title
+    titleInput.addEventListener('input', function() {
+      const titleError = document.getElementById('title-error');
+      if (titleInput.value.length < 10 || titleInput.value.length > 50) {
+        titleError.textContent = 'Title must be between 10 and 50 characters';
+      } else {
+        titleError.textContent = '';
+      }
+    });
+  
+    // Validation for Subtitle
+    subtitleInput.addEventListener('input', function() {
+      const subtitleError = document.getElementById('subtitle-error');
+      if ( subtitleInput.value.length < 10 || subtitleInput.value.length > 50) {
+        subtitleError.textContent = 'Subtitle must be between 10 and 50 characters';
+      } else {
+        subtitleError.textContent = '';
+      }
+    });
+  
+    // Validation for Content
+    contentInput.addEventListener('input', function() {
+      const contentError = document.getElementById('content-error');
+      if (contentInput.value.length < 10) {
+        contentError.textContent = 'Content must be at least 10 characters';
+      } else {
+        contentError.textContent = '';
+      }
+    });
+  
+    // Validation for Tags
+    tagsInput.addEventListener('input', function() {
+      const tagsError = document.getElementById('tags-error');
+      if (tagsInput.value.length < 5 || tagsInput.value.length > 30) {
+        tagsError.textContent = 'Tags must be between 5 and 30 characters';
+      } else {
+        tagsError.textContent = '';
+      }
+    });
+  
+    // Validation for Email
+emailInput.addEventListener('input', function() {
+  const emailError = document.getElementById('email-error');
+
+  // Regex pattern to strictly validate emails ending with .com
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/;
+
+  if (!emailPattern.test(emailInput.value)) {
+      emailError.textContent = 'Please enter a valid email address ending with .com';
+      emailInput.classList.add('error-input');
+  } else {
+      emailError.textContent = '';
+      emailInput.classList.remove('error-input');
+  }
+});
+
+  
+    // Validation for Publish Date
+    publishDateInput.addEventListener('change', function() {
+      const publishDateError = document.getElementById('publish_date-error');
+      const todayDate = new Date().toISOString().split('T')[0];
+      if (publishDateInput.value < todayDate) {
+        publishDateError.textContent = 'Publish date cannot be in the past';
+      } else {
+        publishDateError.textContent = '';
+      }
+    });
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    // Elements
+    const page1 = document.getElementById("page1");
+    const page2 = document.getElementById("page2");
+    const nextButton = document.getElementById("next-to-page2");
+    const prevButton = document.getElementById("prev-to-page1");
+
+    // Show page1 initially, page2 is hidden
+    page1.classList.add("active");
+    page2.classList.remove("active");
+
+    // Function to validate Page 1 fields
+    function validatePage1() {
+        let isValid = true;
+        
+        // Title validation
+        const title = document.getElementById("title");
+        const titleError = document.getElementById("title-error");
+        if (title.value.length < 10 || title.value.length > 51) {
+            titleError.textContent = "Title must be between 10 and 51 characters.";
+            isValid = false;
+        } else {
+            titleError.textContent = "";
+        }
+
+        // Content validation
+        const content = document.getElementById("content");
+        const contentError = document.getElementById("content-error");
+        if (content.value.length < 10) {
+            contentError.textContent = "Content must be at least 10 characters long.";
+            isValid = false;
+        } else {
+            contentError.textContent = "";
+        }
+
+        return isValid;
+    }
+
+    
+});
+
+</script>
+</html>

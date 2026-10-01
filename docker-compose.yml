@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: article_management
+      POSTGRES_USER: article_management
+      POSTGRES_PASSWORD: change-this-password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: change-this-secret-key
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DATABASE_ENGINE: postgresql
+      POSTGRES_DB: article_management
+      POSTGRES_USER: article_management
+      POSTGRES_PASSWORD: change-this-password
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
