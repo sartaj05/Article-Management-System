@@ -44,6 +44,7 @@ body.auth-shell { display: block; min-height: 100vh; padding: 0; background: #f4
 .auth-modal__card h3 { margin: 0 0 18px; color: var(--ink); }
 .auth-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 .logout-state { text-align: center; }
+.logout-state.auth-card { width: min(560px, 100%); }
 .logout-state .auth-intro__icon { margin-inline: auto; color: #fff; background: linear-gradient(135deg, var(--brand), #8f72ee); }
 .logout-state h1 { margin: 0 0 12px; color: var(--ink); font-size: clamp(1.8rem, 4vw, 2.7rem); letter-spacing: -.05em; }
 .logout-state p { max-width: 470px; margin: 0 auto 25px; color: var(--muted); }

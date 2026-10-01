@@ -161,7 +161,8 @@ button { cursor: pointer; }
 
 /* Authentication pages and common legacy controls */
 .auth-shell { display: grid; place-items: center; padding: 32px 16px; background: radial-gradient(circle at 10% 0%, #e9eaff, transparent 35%), #f4f6fb; }
-.auth-shell .auth-card, .auth-shell form, .auth-shell .container { width: min(460px, 100%); }
+.auth-shell .auth-card { width: auto; }
+.auth-shell form { width: 100%; }
 .auth-shell input, .auth-shell select, .auth-shell textarea { border: 1px solid var(--line); border-radius: 10px; }
 .btn, .btn-primary, .btn-secondary, .btn-danger { border: 0; border-radius: 10px; padding: 10px 15px; font-weight: 750; }
 .btn-primary { color: #fff; background: var(--brand); }
