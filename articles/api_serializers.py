@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -158,6 +158,15 @@ class ArticleMediaSerializer(serializers.ModelSerializer):
         if not attrs.get('file') and not attrs.get('external_url'):
             raise serializers.ValidationError('Provide a media file or external URL.')
         return attrs
+
+
+class ArticleLiveUpdateSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleLiveUpdate
+        fields = ['id', 'article', 'author', 'author_name', 'body', 'is_pinned', 'is_published', 'published_at', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'author', 'author_name', 'created_at', 'updated_at']
 
 
 class ArticleReviewSerializer(serializers.Serializer):

@@ -23,7 +23,7 @@ from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
-    ArticleImageSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
+    ArticleImageSerializer, ArticleLiveUpdateSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
     ArticleReactionSerializer,
@@ -40,7 +40,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -302,6 +302,90 @@ class ArticleMediaDeleteView(APIView):
         article = media.article
         media.delete()
         record_audit_event(actor=request.user, action='article_media_deleted', article=article, details={'media_id': pk})
+        return Response(status=204)
+
+
+class ArticleLiveUpdateView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def can_manage(self, request, article):
+        return request.user.is_authenticated and (
+            article.author_id == request.user.id or request.user.role in {'Editor', 'Admin'}
+        )
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if not article.is_live and article.workflow_status != 'published' and not self.can_manage(request, article):
+            return Response({'detail': 'This live coverage is not publicly available.'}, status=403)
+        updates = article.live_updates.filter(is_published=True)
+        return Response({
+            'article_id': article.id,
+            'is_live': article.is_live,
+            'live_started_at': article.live_started_at,
+            'live_ended_at': article.live_ended_at,
+            'updates': ArticleLiveUpdateSerializer(updates, many=True).data,
+        })
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'Only the author, editors, or admins can manage live coverage.'}, status=403)
+
+        action = str(request.data.get('action', '')).strip().lower()
+        if action in {'start', 'end'}:
+            if action == 'start':
+                article.is_live = True
+                article.live_started_at = timezone.now()
+                article.live_ended_at = None
+            else:
+                article.is_live = False
+                article.live_ended_at = timezone.now()
+            article.save(update_fields=['is_live', 'live_started_at', 'live_ended_at', 'updated_at'])
+            record_audit_event(actor=request.user, action=f'live_coverage_{action}ed', article=article)
+            return Response({'is_live': article.is_live, 'live_started_at': article.live_started_at, 'live_ended_at': article.live_ended_at})
+
+        body = str(request.data.get('body', '')).strip()
+        if not body:
+            return Response({'detail': 'Live update text is required.'}, status=400)
+        is_pinned = bool(request.data.get('is_pinned', False)) and request.user.role in {'Editor', 'Admin'}
+        update = ArticleLiveUpdate.objects.create(
+            article=article,
+            author=request.user,
+            body=body,
+            is_pinned=is_pinned,
+            is_published=bool(request.data.get('is_published', True)),
+        )
+        record_audit_event(actor=request.user, action='live_update_created', article=article, details={'update_id': update.id})
+        return Response(ArticleLiveUpdateSerializer(update).data, status=201)
+
+
+class ArticleLiveUpdateDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def can_manage(self, request, update):
+        return update.author_id == request.user.id or request.user.role in {'Editor', 'Admin'}
+
+    def patch(self, request, pk):
+        update = get_object_or_404(ArticleLiveUpdate, pk=pk)
+        if not self.can_manage(request, update):
+            return Response({'detail': 'You cannot edit this live update.'}, status=403)
+        serializer = ArticleLiveUpdateSerializer(update, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        if 'is_pinned' in serializer.validated_data and request.user.role not in {'Editor', 'Admin'}:
+            serializer.validated_data['is_pinned'] = False
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        update = get_object_or_404(ArticleLiveUpdate, pk=pk)
+        if not self.can_manage(request, update):
+            return Response({'detail': 'You cannot delete this live update.'}, status=403)
+        update.delete()
         return Response(status=204)
 
 

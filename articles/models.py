@@ -93,6 +93,9 @@ class Article(models.Model):
     deleted_at = models.DateTimeField(blank=True, null=True)
     is_featured = models.BooleanField(default=False)
     is_premium = models.BooleanField(default=False)
+    is_live = models.BooleanField(default=False)
+    live_started_at = models.DateTimeField(blank=True, null=True)
+    live_ended_at = models.DateTimeField(blank=True, null=True)
     featured_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -251,6 +254,23 @@ class ArticleView(models.Model):
 
     def __str__(self):
         return f"{self.user.username if self.user else 'Anonymous'} viewed {self.article.title}"
+
+
+class ArticleLiveUpdate(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='live_updates')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='live_updates_created')
+    body = models.TextField()
+    is_pinned = models.BooleanField(default=False)
+    is_published = models.BooleanField(default=True)
+    published_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_pinned', '-published_at', '-created_at']
+
+    def __str__(self):
+        return f'Live update for {self.article.title}'
 
 
 class ArticleSource(models.Model):
