@@ -258,6 +258,38 @@ class AuthorTip(models.Model):
         return f'{self.amount} {self.currency} tip for {self.author.username}'
 
 
+class PublicAPIKey(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='public_api_keys')
+    name = models.CharField(max_length=100)
+    prefix = models.CharField(max_length=12, db_index=True)
+    key_hash = models.CharField(max_length=64, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.name} ({self.prefix}...)'
+
+
+class WebhookEndpoint(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='webhook_endpoints')
+    url = models.URLField()
+    secret = models.CharField(max_length=128)
+    events = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.url
+
+
 def has_active_membership(user):
     if not getattr(user, 'is_authenticated', False):
         return False

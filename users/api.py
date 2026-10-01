@@ -1,3 +1,6 @@
+import hashlib
+import secrets
+
 from rest_framework import serializers, status
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
@@ -15,7 +18,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile,
-    PushSubscription, ReaderInterest, Workspace, WorkspaceInvitation,
+    PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -349,6 +352,99 @@ class AuthorTipHistoryView(APIView):
             'received': AuthorTipSerializer(received, many=True).data,
             'received_total': sum((tip.amount for tip in received if tip.status == 'succeeded'), Decimal('0.00')),
         })
+
+
+class PublicAPIKeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PublicAPIKey
+        fields = ['id', 'name', 'prefix', 'is_active', 'created_at', 'last_used_at']
+        read_only_fields = ['id', 'prefix', 'is_active', 'created_at', 'last_used_at']
+
+
+class PublicAPIKeyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        keys = PublicAPIKey.objects.filter(owner=request.user)
+        return Response(PublicAPIKeySerializer(keys, many=True).data)
+
+    def post(self, request):
+        serializer = PublicAPIKeySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        raw_key = f'as_{secrets.token_urlsafe(32)}'
+        key = PublicAPIKey.objects.create(
+            owner=request.user,
+            name=serializer.validated_data['name'],
+            prefix=raw_key[:10],
+            key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
+        )
+        return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data}, status=201)
+
+
+class PublicAPIKeyDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        key = get_object_or_404(PublicAPIKey, pk=pk, owner=request.user)
+        key.is_active = False
+        key.save(update_fields=['is_active'])
+        return Response({'revoked': True})
+
+
+class WebhookEndpointSerializer(serializers.ModelSerializer):
+    secret = serializers.CharField(required=False, write_only=True)
+
+    class Meta:
+        model = WebhookEndpoint
+        fields = ['id', 'url', 'secret', 'events', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'is_active', 'created_at', 'updated_at']
+
+
+class WebhookEndpointView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(WebhookEndpointSerializer(WebhookEndpoint.objects.filter(owner=request.user), many=True).data)
+
+    def post(self, request):
+        serializer = WebhookEndpointSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        endpoint = serializer.save(owner=request.user, secret=serializer.validated_data.get('secret') or secrets.token_urlsafe(32))
+        return Response(WebhookEndpointSerializer(endpoint).data, status=201)
+
+
+class DeveloperAPIDocumentationView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        return Response({
+            'name': 'Article Studio Headless API',
+            'authentication': 'Send a generated key in the X-API-Key header.',
+            'endpoints': {
+                'articles': '/api/v2/public/articles/',
+                'rss': '/rss.xml',
+                'sitemap': '/sitemap.xml',
+                'webhooks': '/api/developer/webhooks/',
+            },
+            'events': ['article.published', 'article.updated', 'article.deleted'],
+        })
+
+
+def resolve_public_api_key(raw_key):
+    if not raw_key:
+        return None
+    key = PublicAPIKey.objects.filter(
+        prefix=raw_key[:10], is_active=True,
+        key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
+    ).select_related('owner').first()
+    if key:
+        key.last_used_at = timezone.now()
+        key.save(update_fields=['last_used_at'])
+        return key.owner
+    return None
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):

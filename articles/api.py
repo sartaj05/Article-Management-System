@@ -19,6 +19,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.models import CustomUser, ReaderInterest, has_active_membership
+from users.api import resolve_public_api_key
 
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
@@ -1242,6 +1243,48 @@ class ArticleAnalyticsView(APIView):
             'top_authors': [
                 {'username': item['author__username'], 'article_count': item['article_count']}
                 for item in top_authors
+            ],
+        })
+
+
+class HeadlessArticleFeedView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        raw_key = request.headers.get('X-API-Key', '')
+        owner = resolve_public_api_key(raw_key) if raw_key else None
+        if raw_key and not owner:
+            return Response({'detail': 'Invalid or revoked API key.'}, status=401)
+
+        queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
+        category = request.query_params.get('category')
+        search = request.query_params.get('q')
+        if category:
+            queryset = queryset.filter(Q(category=category) | Q(category_ref__slug=category))
+        if search:
+            queryset = queryset.filter(Q(title__icontains=search) | Q(summary__icontains=search) | Q(content__icontains=search))
+        try:
+            limit = min(max(int(request.query_params.get('limit', 20)), 1), 100)
+        except ValueError:
+            limit = 20
+        articles = queryset.order_by('-published_at', '-created_at')[:limit]
+        return Response({
+            'count': queryset.count(),
+            'results': [
+                {
+                    'id': article.id,
+                    'slug': article.slug,
+                    'title': article.title,
+                    'subtitle': article.subtitle,
+                    'summary': article.summary,
+                    'content': article.content,
+                    'author': article.author.get_full_name() or article.author.username,
+                    'category': article.category_ref.slug if article.category_ref else article.category,
+                    'published_at': article.published_at,
+                    'updated_at': article.updated_at,
+                    'url': request.build_absolute_uri(f'/articles/read/{article.slug}/'),
+                }
+                for article in articles
             ],
         })
 
