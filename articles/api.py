@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, ReaderInterest
+from users.models import CustomUser, ReaderInterest, has_active_membership
 
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
@@ -69,6 +69,9 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
 
     def get_article(self, request, article_id):
         article = get_object_or_404(Article, pk=article_id)
+        if article.is_premium and not has_active_membership(request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('An active membership is required to read this article.')
         if not request.user.is_authenticated:
             if article.workflow_status != 'published' or not article.is_visible:
                 from rest_framework.exceptions import PermissionDenied
@@ -445,6 +448,8 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
 
     def get_queryset(self):
         queryset = self.article_queryset().select_related('author').order_by('-created_at')
+        if not has_active_membership(self.request.user):
+            queryset = queryset.filter(is_premium=False)
         query = self.request.query_params.get('q', '').strip()
         if query:
             queryset = queryset.filter(Q(title__icontains=query) | Q(content__icontains=query) | Q(summary__icontains=query) | Q(tags__icontains=query))
@@ -995,6 +1000,8 @@ class ArticleDiscoveryView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
+        if not has_active_membership(self.request.user):
+            queryset = queryset.filter(is_premium=False)
         mode = self.request.query_params.get('mode', 'featured')
         if mode == 'trending':
             return queryset.annotate(

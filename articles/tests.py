@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from users.models import CustomUser
+from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
 from .models import Article, ArticleFactCheck, ArticleMedia, ArticlePresence, ArticleSource, Comment, Like, Notification
 
@@ -185,3 +185,19 @@ class ArticleFeatureTests(TestCase):
         response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/media/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['media_type'], 'audio')
+
+    def test_free_membership_unlocks_premium_content(self):
+        self.article.is_premium = True
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['is_premium', 'workflow_status', 'status', 'is_visible'])
+        free_plan = MembershipPlan.objects.create(name='Community', slug='community', features=['Premium articles'])
+        self.client.force_authenticate(user=self.journalist)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/')
+        self.assertEqual(response.status_code, 403)
+        response = self.client.post('/api/membership/checkout/', {'plan_id': free_plan.id}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(MembershipSubscription.objects.filter(user=self.journalist, status='active').exists())
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/')
+        self.assertEqual(response.status_code, 200)

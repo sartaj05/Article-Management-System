@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.utils import timezone
 from uuid import uuid4
+from decimal import Decimal
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
@@ -135,6 +136,55 @@ class AccessibilityPreference(models.Model):
 
     def __str__(self):
         return f'Accessibility preferences for {self.user.username}'
+
+
+class MembershipPlan(models.Model):
+    INTERVAL_CHOICES = [('month', 'Monthly'), ('year', 'Yearly')]
+
+    name = models.CharField(max_length=80)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    currency = models.CharField(max_length=3, default='INR')
+    interval = models.CharField(max_length=10, choices=INTERVAL_CHOICES, default='month')
+    features = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['price', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class MembershipSubscription(models.Model):
+    STATUS_CHOICES = [('pending', 'Pending'), ('active', 'Active'), ('canceled', 'Canceled'), ('past_due', 'Past due')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='membership_subscriptions')
+    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name='subscriptions')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    provider = models.CharField(max_length=30, default='manual')
+    provider_reference = models.CharField(max_length=160, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    auto_renew = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.username}: {self.plan.name} ({self.status})'
+
+
+def has_active_membership(user):
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    return MembershipSubscription.objects.filter(
+        user=user, status='active',
+    ).filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now())).exists()
 
 # Signal to send email when a superuser is created
 @receiver(post_save, sender=CustomUser)

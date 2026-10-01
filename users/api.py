@@ -1,11 +1,14 @@
 from rest_framework import serializers, status
+from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
-from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
+from .models import AccessibilityPreference, CustomUser, has_active_membership, MembershipPlan, MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
 from articles.models import Article
 
 
@@ -196,6 +199,66 @@ class AccessibilityPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class MembershipPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MembershipPlan
+        fields = ['id', 'name', 'slug', 'description', 'price', 'currency', 'interval', 'features']
+        read_only_fields = fields
+
+
+class MembershipPlanView(generics.ListAPIView):
+    serializer_class = MembershipPlanSerializer
+    permission_classes = []
+    queryset = MembershipPlan.objects.filter(is_active=True)
+
+
+class MembershipSubscriptionSerializer(serializers.ModelSerializer):
+    plan = MembershipPlanSerializer(read_only=True)
+
+    class Meta:
+        model = MembershipSubscription
+        fields = ['id', 'plan', 'status', 'provider', 'provider_reference', 'started_at', 'expires_at', 'auto_renew', 'created_at', 'updated_at']
+        read_only_fields = fields
+
+
+class MembershipMeView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        subscriptions = MembershipSubscription.objects.filter(user=request.user).select_related('plan')
+        return Response({'active': has_active_membership(request.user), 'subscriptions': MembershipSubscriptionSerializer(subscriptions, many=True).data})
+
+
+class MembershipCheckoutView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        plan = get_object_or_404(MembershipPlan, pk=request.data.get('plan_id'), is_active=True)
+        subscription, _ = MembershipSubscription.objects.update_or_create(
+            user=request.user, plan=plan, status__in=['pending', 'canceled'],
+            defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': 'manual', 'started_at': timezone.now() if plan.price == 0 else None},
+        )
+        if plan.price > 0:
+            return Response({'detail': 'Payment provider is not configured yet.', 'checkout_required': True, 'plan': MembershipPlanSerializer(plan).data}, status=402)
+        return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
+
+
+class MembershipCancelView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        subscription = MembershipSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
+        if not subscription:
+            return Response({'detail': 'No active membership found.'}, status=404)
+        subscription.status = 'canceled'
+        subscription.auto_renew = False
+        subscription.save(update_fields=['status', 'auto_renew', 'updated_at'])
+        return Response(MembershipSubscriptionSerializer(subscription).data)
 
 
 class PublicAuthorView(APIView):
