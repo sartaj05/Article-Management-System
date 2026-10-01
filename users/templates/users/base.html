@@ -31,7 +31,15 @@
     </header>
     <main id="main-content" class="site-main">{% block content %}{% endblock %}</main>
     <footer class="site-footer">
-        <div class="container site-footer__inner"><span>&copy; 2026 Article Studio. Built for better publishing.</span><span>Write clearly. Review thoughtfully. Publish confidently.</span></div>
+        <div class="container">
+            <div class="site-footer__top">
+                <div class="footer-brand"><a class="brand" href="{% url 'home' %}"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a><p>One calm workspace for writing, reviewing, and publishing meaningful stories.</p></div>
+                <div class="footer-links"><span class="footer-label">Explore</span><a href="{% url 'home' %}">Discover stories</a><a href="/#articles">Featured articles</a><a href="/#articles">Trending now</a></div>
+                <div class="footer-links"><span class="footer-label">Workspace</span><a href="{% url 'user-login-template' %}">Log in</a><a href="{% url 'user-register-template' %}">Create account</a><a href="{% url 'forgot-password-template' %}">Reset password</a></div>
+                <div class="footer-social"><span class="footer-label">Stay connected</span><p>Keep your next idea moving forward.</p><div><a href="{% url 'user-register-template' %}" aria-label="Start writing"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a><a href="mailto:hello@articlestudio.local" aria-label="Email Article Studio"><i class="fa-regular fa-envelope" aria-hidden="true"></i></a></div></div>
+            </div>
+            <div class="site-footer__bottom"><span>&copy; 2026 Article Studio. All rights reserved.</span><span>Write clearly. Review thoughtfully. Publish confidently.</span></div>
+        </div>
     </footer>
     <script src="{% static 'js/home.js' %}" defer></script>
 </body>
