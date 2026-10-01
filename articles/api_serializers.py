@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -288,3 +288,19 @@ class ArticleProvenanceSerializer(serializers.ModelSerializer):
         model = ArticleProvenance
         fields = ['id', 'article', 'origin', 'tool_name', 'disclosure', 'sources_reviewed', 'updated_by', 'updated_by_name', 'created_at', 'updated_at']
         read_only_fields = ['id', 'article', 'updated_by', 'updated_by_name', 'created_at', 'updated_at']
+
+
+class ExperimentVariantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExperimentVariant
+        fields = ['id', 'experiment', 'label', 'headline', 'image_url', 'created_at']
+        read_only_fields = ['id', 'experiment', 'created_at']
+
+
+class ContentExperimentSerializer(serializers.ModelSerializer):
+    variants = ExperimentVariantSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ContentExperiment
+        fields = ['id', 'article', 'created_by', 'name', 'experiment_type', 'status', 'winning_variant', 'started_at', 'ended_at', 'variants', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'status', 'winning_variant', 'started_at', 'ended_at', 'variants', 'created_at', 'updated_at']

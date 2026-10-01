@@ -1,5 +1,6 @@
 import csv
 import difflib
+import hashlib
 from datetime import timedelta
 
 from django.db import transaction
@@ -41,9 +42,9 @@ from .api_serializers import (
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
-    ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
+    ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1508,3 +1509,134 @@ class ArticleProvenanceView(APIView):
         return Response(ArticleProvenanceSerializer(provenance).data, status=201)
 
     patch = post
+
+
+class ContentExperimentListView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, request):
+        queryset = ContentExperiment.objects.prefetch_related('variants')
+        if request.user.role not in {'Editor', 'Admin'}:
+            queryset = queryset.filter(created_by=request.user)
+        return queryset
+
+    def get(self, request):
+        return Response(ContentExperimentSerializer(self.get_queryset(request), many=True).data)
+
+    def post(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can create experiments.'}, status=403)
+        serializer = ContentExperimentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        article = serializer.validated_data['article']
+        if article.workflow_status != 'published' or not article.is_visible:
+            return Response({'detail': 'Experiments require a visible published article.'}, status=400)
+        experiment = serializer.save(created_by=request.user)
+        return Response(ContentExperimentSerializer(experiment).data, status=201)
+
+
+class ContentExperimentDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_experiment(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment.objects.prefetch_related('variants'), pk=pk)
+        if experiment.created_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You cannot manage this experiment.')
+        return experiment
+
+    def get(self, request, pk):
+        return Response(ContentExperimentSerializer(self.get_experiment(request, pk)).data)
+
+    def delete(self, request, pk):
+        self.get_experiment(request, pk).delete()
+        return Response(status=204)
+
+
+class ExperimentVariantView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment, pk=pk)
+        if experiment.created_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot manage this experiment.'}, status=403)
+        if experiment.status != 'draft':
+            return Response({'detail': 'Variants can only be added to draft experiments.'}, status=400)
+        serializer = ExperimentVariantSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        variant = serializer.save(experiment=experiment)
+        return Response(ExperimentVariantSerializer(variant).data, status=201)
+
+
+class ExperimentStartView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment, pk=pk)
+        if experiment.created_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot start this experiment.'}, status=403)
+        if experiment.variants.count() < 2:
+            return Response({'detail': 'Add at least two variants before starting.'}, status=400)
+        experiment.status = 'running'
+        experiment.started_at = timezone.now()
+        experiment.save(update_fields=['status', 'started_at', 'updated_at'])
+        return Response(ContentExperimentSerializer(experiment).data)
+
+
+class ExperimentAssignmentView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment.objects.prefetch_related('variants'), pk=pk, status='running')
+        visitor_key = str(request.data.get('visitor_key', '')).strip()
+        if not visitor_key:
+            return Response({'detail': 'visitor_key is required.'}, status=400)
+        assignment = ExperimentAssignment.objects.filter(experiment=experiment, visitor_key=visitor_key).select_related('variant').first()
+        if not assignment:
+            variants = list(experiment.variants.all())
+            digest = hashlib.sha256(f'{experiment.id}:{visitor_key}'.encode()).hexdigest()
+            variant = variants[int(digest[:8], 16) % len(variants)]
+            assignment = ExperimentAssignment.objects.create(experiment=experiment, variant=variant, visitor_key=visitor_key)
+        return Response({'assignment_id': assignment.id, 'variant': ExperimentVariantSerializer(assignment.variant).data})
+
+
+class ExperimentEventView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment, pk=pk)
+        visitor_key = str(request.data.get('visitor_key', '')).strip()
+        event_type = str(request.data.get('event_type', '')).strip().lower()
+        if event_type not in {'view', 'click', 'read'} or not visitor_key:
+            return Response({'detail': 'Provide a visitor_key and a valid event_type.'}, status=400)
+        assignment = get_object_or_404(ExperimentAssignment, experiment=experiment, visitor_key=visitor_key)
+        event = ExperimentEvent.objects.create(assignment=assignment, event_type=event_type)
+        return Response({'id': event.id, 'recorded': True}, status=201)
+
+
+class ExperimentResultsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment.objects.prefetch_related('variants'), pk=pk)
+        if experiment.created_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot view these experiment results.'}, status=403)
+        results = []
+        for variant in experiment.variants.all():
+            assignments = ExperimentAssignment.objects.filter(variant=variant)
+            events = ExperimentEvent.objects.filter(assignment__in=assignments)
+            views = events.filter(event_type='view').count()
+            clicks = events.filter(event_type='click').count()
+            reads = events.filter(event_type='read').count()
+            results.append({
+                'variant': ExperimentVariantSerializer(variant).data,
+                'assignments': assignments.count(), 'views': views, 'clicks': clicks, 'reads': reads,
+                'click_rate': round(clicks / views, 4) if views else 0,
+                'read_rate': round(reads / views, 4) if views else 0,
+            })
+        return Response({'experiment': ContentExperimentSerializer(experiment).data, 'results': results})

@@ -615,3 +615,53 @@ class ArticleProvenance(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+class ContentExperiment(models.Model):
+    TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
+    STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='experiments')
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='content_experiments')
+    name = models.CharField(max_length=160)
+    experiment_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='headline')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    winning_variant = models.ForeignKey('ExperimentVariant', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class ExperimentVariant(models.Model):
+    experiment = models.ForeignKey(ContentExperiment, on_delete=models.CASCADE, related_name='variants')
+    label = models.CharField(max_length=20)
+    headline = models.CharField(max_length=160, blank=True)
+    image_url = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['experiment', 'label'], name='unique_experiment_variant_label'),
+        ]
+
+
+class ExperimentAssignment(models.Model):
+    experiment = models.ForeignKey(ContentExperiment, on_delete=models.CASCADE, related_name='assignments')
+    variant = models.ForeignKey(ExperimentVariant, on_delete=models.CASCADE, related_name='assignments')
+    visitor_key = models.CharField(max_length=128)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['experiment', 'visitor_key'], name='unique_experiment_visitor'),
+        ]
+
+
+class ExperimentEvent(models.Model):
+    EVENT_CHOICES = [('view', 'View'), ('click', 'Click'), ('read', 'Read')]
+    assignment = models.ForeignKey(ExperimentAssignment, on_delete=models.CASCADE, related_name='events')
+    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
