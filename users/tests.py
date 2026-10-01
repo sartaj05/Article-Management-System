@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import CustomUser, Profile, SecurityEvent
+from .models import CustomUser, NewsletterSubscription, Profile, SecurityEvent
 
 
 class UserFeatureTests(TestCase):
@@ -43,3 +43,11 @@ class UserFeatureTests(TestCase):
         response = self.client.post('/api/login/', {'username': 'profile-test', 'password': 'wrong-password'}, format='json')
         self.assertEqual(response.status_code, 429)
         self.assertEqual(SecurityEvent.objects.filter(username='profile-test', event_type='login_failed').count(), 5)
+
+    def test_newsletter_subscription_can_be_created_and_disabled(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post('/api/newsletter/subscribe/', {'email': 'reader@example.com', 'frequency': 'weekly'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(NewsletterSubscription.objects.get(email='reader@example.com').is_active)
+        response = self.client.delete('/api/newsletter/subscribe/?email=reader@example.com')
+        self.assertTrue(response.data['unsubscribed'])

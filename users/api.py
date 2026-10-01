@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import CustomUser, NotificationPreference, Profile
+from .models import CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription
 from articles.models import Article
 
 
@@ -86,6 +86,61 @@ class NotificationPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class NewsletterSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterSubscription
+        fields = ['email', 'frequency', 'categories', 'is_active', 'unsubscribe_token', 'created_at', 'updated_at']
+        read_only_fields = ['unsubscribe_token', 'created_at', 'updated_at']
+
+
+class NewsletterSubscriptionView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = NewsletterSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        subscription, _ = NewsletterSubscription.objects.update_or_create(
+            email=values['email'], defaults={**values, 'user': request.user if request.user.is_authenticated else None, 'is_active': True},
+        )
+        return Response(NewsletterSubscriptionSerializer(subscription).data, status=201)
+
+    def delete(self, request):
+        email = request.data.get('email') or request.query_params.get('email')
+        token = request.data.get('token') or request.query_params.get('token')
+        queryset = NewsletterSubscription.objects.filter(email=email) if email else NewsletterSubscription.objects.filter(unsubscribe_token=token)
+        updated = queryset.update(is_active=False)
+        return Response({'unsubscribed': bool(updated)})
+
+
+class PushSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PushSubscription
+        fields = ['endpoint', 'p256dh', 'auth', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class PushSubscriptionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, request):
+        return PushSubscription.objects.filter(user=request.user)
+
+    def post(self, request):
+        serializer = PushSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        subscription, _ = PushSubscription.objects.update_or_create(
+            endpoint=serializer.validated_data['endpoint'], defaults={**serializer.validated_data, 'user': request.user, 'is_active': True},
+        )
+        return Response(PushSubscriptionSerializer(subscription).data, status=201)
+
+    def delete(self, request):
+        endpoint = request.data.get('endpoint') or request.query_params.get('endpoint')
+        deleted, _ = self.get_queryset(request).filter(endpoint=endpoint).delete()
+        return Response({'removed': bool(deleted)})
 
 
 class PublicAuthorView(APIView):
