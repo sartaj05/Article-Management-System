@@ -8,6 +8,7 @@ from django.db import connection
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.text import slugify
 from rest_framework import generics, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -39,8 +40,9 @@ from .api_serializers import (
     LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
+    SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1242,3 +1244,70 @@ class ArticleAnalyticsView(APIView):
                 for item in top_authors
             ],
         })
+
+
+class StorySeriesListView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        series = StorySeries.objects.filter(is_published=True).prefetch_related('series_articles__article')
+        return Response(StorySeriesSerializer(series, many=True, context={'request': request}).data)
+
+    def post(self, request):
+        if not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can create story series.'}, status=403)
+        serializer = StorySeriesSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        title = serializer.validated_data['title']
+        slug = slugify(serializer.validated_data.get('slug') or title)
+        if StorySeries.objects.filter(slug=slug).exists():
+            return Response({'detail': 'A series with this slug already exists.'}, status=400)
+        series = StorySeries.objects.create(
+            title=title,
+            slug=slug,
+            description=serializer.validated_data.get('description', ''),
+            is_published=serializer.validated_data.get('is_published', False),
+            created_by=request.user,
+        )
+        return Response(StorySeriesSerializer(series, context={'request': request}).data, status=201)
+
+
+class StorySeriesDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get_series(self, slug):
+        return get_object_or_404(StorySeries.objects.prefetch_related('series_articles__article'), slug=slug)
+
+    def get(self, request, slug):
+        series = self.get_series(slug)
+        if not series.is_published and (not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}):
+            return Response({'detail': 'This story series is not published.'}, status=404)
+        return Response(StorySeriesSerializer(series, context={'request': request}).data)
+
+    def post(self, request, slug):
+        series = self.get_series(slug)
+        if not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can manage story series.'}, status=403)
+        article = get_object_or_404(Article, pk=request.data.get('article_id'))
+        item, created = SeriesArticle.objects.get_or_create(
+            series=series,
+            article=article,
+            defaults={'position': int(request.data.get('position', 0))},
+        )
+        if not created:
+            return Response({'detail': 'This article is already in the series.'}, status=400)
+        return Response(SeriesArticleSerializer(item).data, status=201)
+
+
+class StorySeriesArticleDeleteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, slug, article_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can manage story series.'}, status=403)
+        item = get_object_or_404(SeriesArticle, series__slug=slug, article_id=article_id)
+        item.delete()
+        return Response(status=204)

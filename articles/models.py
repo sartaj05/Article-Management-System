@@ -507,3 +507,33 @@ def create_notification(*, recipient, notification_type, message, article=None):
         article=article,
     )
 
+
+class StorySeries(models.Model):
+    title = models.CharField(max_length=160)
+    slug = models.SlugField(max_length=180, unique=True)
+    description = models.TextField(blank=True)
+    cover_image = models.ImageField(upload_to='series/covers/', blank=True, null=True)
+    is_published = models.BooleanField(default=False)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='story_series_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+
+class SeriesArticle(models.Model):
+    series = models.ForeignKey(StorySeries, on_delete=models.CASCADE, related_name='series_articles')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='story_series_items')
+    position = models.PositiveIntegerField(default=0)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position', '-added_at']
+        constraints = [
+            models.UniqueConstraint(fields=['series', 'article'], name='unique_story_series_article'),
+        ]
+

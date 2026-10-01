@@ -40,7 +40,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAssistantView, ArticleCollaborationView, ArticleFactCheckView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleSourceView, PersonalizedFeedView
+from .api import ArticleAssistantView, ArticleCollaborationView, ArticleFactCheckView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleSourceView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -110,6 +110,9 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/media/', ArticleMediaView.as_view(), name='article-media'),
     path('api/v2/articles/<int:article_id>/live/', ArticleLiveUpdateView.as_view(), name='article-live-updates'),
     path('api/v2/live-updates/<int:pk>/', ArticleLiveUpdateDetailView.as_view(), name='article-live-update-detail'),
+    path('api/v2/series/', StorySeriesListView.as_view(), name='story-series-list'),
+    path('api/v2/series/<slug:slug>/', StorySeriesDetailView.as_view(), name='story-series-detail'),
+    path('api/v2/series/<slug:slug>/articles/<int:article_id>/', StorySeriesArticleDeleteView.as_view(), name='story-series-article-delete'),
     path('api/v2/media/<int:pk>/', ArticleMediaDeleteView.as_view(), name='article-media-delete'),
     path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
     path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),

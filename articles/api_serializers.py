@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -224,3 +224,25 @@ class ModerationFlagSerializer(serializers.ModelSerializer):
         model = ModerationFlag
         fields = ['id', 'article', 'checked_by', 'checked_by_name', 'flag_type', 'severity', 'message', 'matched_text', 'is_resolved', 'created_at']
         read_only_fields = fields
+
+
+class SeriesArticleSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(source='article.title', read_only=True)
+    slug = serializers.SlugField(source='article.slug', read_only=True)
+    summary = serializers.CharField(source='article.summary', read_only=True)
+
+    class Meta:
+        model = SeriesArticle
+        fields = ['id', 'article', 'title', 'slug', 'summary', 'position', 'added_at']
+        read_only_fields = ['id', 'title', 'slug', 'summary', 'added_at']
+
+
+class StorySeriesSerializer(serializers.ModelSerializer):
+    slug = serializers.SlugField(required=False, allow_blank=True)
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True, default=None)
+    articles = SeriesArticleSerializer(source='series_articles', many=True, read_only=True)
+
+    class Meta:
+        model = StorySeries
+        fields = ['id', 'title', 'slug', 'description', 'cover_image', 'is_published', 'created_by', 'created_by_name', 'articles', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_by', 'created_by_name', 'articles', 'created_at', 'updated_at']
