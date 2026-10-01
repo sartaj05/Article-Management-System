@@ -1,12 +1,34 @@
 {% extends 'users/base.html' %}
-{% load static %}
 
-
-{% block title %}Welcome{% endblock %}
+{% block title %}Discover stories | Article Studio{% endblock %}
 
 {% block content %}
-    <div class="home-container">
-        <h1>Welcome to the Application</h1>
-       
+<section class="hero">
+    <div class="container hero__content">
+        <span class="eyebrow"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> The modern newsroom</span>
+        <h1>Ideas worth reading, stories worth sharing.</h1>
+        <p>Discover thoughtful articles from your publishing community, follow the latest conversations, and turn your best ideas into work people remember.</p>
+        <div class="hero__actions">
+            <a class="button button--light" href="#articles"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Explore articles</a>
+            <a class="button button--ghost" href="{% url 'user-register-template' %}">Create your account</a>
+        </div>
     </div>
+</section>
+<section id="articles" class="feed-section container" aria-labelledby="feed-title">
+    <div class="section-heading">
+        <div><span class="eyebrow">Curated for you</span><h2 id="feed-title">Latest from the newsroom</h2></div>
+        <div class="feed-switcher" role="group" aria-label="Article feed type">
+            <button type="button" data-feed-mode="featured" aria-pressed="true">Featured</button>
+            <button type="button" data-feed-mode="trending" aria-pressed="false">Trending</button>
+        </div>
+    </div>
+    <div class="feed-toolbar">
+        <label class="search-field" for="article-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="article-search" type="search" placeholder="Search articles, topics, or ideas..." autocomplete="off"></label>
+        <label class="sr-only" for="article-sort">Sort articles</label>
+        <select id="article-sort" class="select-field" aria-label="Sort articles"><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="relevance">Most relevant</option></select>
+    </div>
+    <p id="feed-status" class="feed-status" role="status" aria-live="polite"></p>
+    <div id="articles-container" class="article-grid" aria-live="polite"></div>
+    <div class="feed-actions"><button id="load-more" class="button button--secondary" type="button">Load more articles</button></div>
+</section>
 {% endblock %}

@@ -6,9 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Edit Article</title>
     <link rel="stylesheet" href="{% static 'css/article_create.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
-<body>
+<body class="dashboard-shell">
+    <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
     <!-- Sidebar navigation -->
     <div class="sidebar">
         <h2>Dashboard</h2>
@@ -116,6 +118,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{% static 'js/script.js' %}"></script>
+    <script src="{% static 'js/dashboard-ui.js' %}"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

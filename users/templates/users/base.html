@@ -4,100 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dashboard | Article Management System{% endblock %}</title>
+    <meta name="description" content="A modern article publishing and editorial management platform.">
+    <title>{% block title %}Article Management System{% endblock %}</title>
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <!-- Link to external CSS -->
     <link rel="stylesheet" href="{% static 'css/styleBase.css' %}">
-    <!-- External JS -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <style> </style>
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
-
-    <!-- Navbar -->
-<nav class="navbar">
-    <a class="navbar-brand" href="{% url 'home' %}">Article Management Websites</a>
-    <div class="right-buttons">
-        <a href="{% url 'user-login-template' %}" class="btn-interactive">Login</a>
-        <a href="{% url 'user-register-template' %}" class="btn-interactive">Register</a>
-    </div>
-</nav>
-
-
-<!-- Main Content -->
-<div id="articles-container" class="content-wrapper">
-    <!-- Articles will be dynamically inserted here -->
-</div>
-
-<!-- "Load More" Button -->
-<button id="load-more">Load More</button>
-<!-- Footer -->
-<footer>
-    <p>&copy; 2024 Article Management System. All rights reserved.</p>
-</footer>
-
-<script>
-    let nextUrl = '/articles/publishedlist/'; // Initial URL to fetch articles
-
-// Load articles when the page loads
-loadArticles(nextUrl);
-
-// Function to load articles
-function loadArticles(url) {
-    $.ajax({
-        url: url, // Fetch from the current URL (or next URL)
-        type: 'GET',
-        success: function (response) {
-            const articles = response.results; // Use results from paginated response
-            const container = $('#articles-container');
-            if (articles.length === 0) {
-                container.append('<p>No published articles available.</p>');
-            } else {
-                // Loop through each article and create an article card
-                articles.forEach(article => {
-                    const articleCard = `
-                        <div class="article-card">
-                            <img src="${article.image || '/static/images/default.jpg'}" alt="Article Image" class="article-image">
-                            <div class="article-info">
-                                <h3>${article.title}</h3>
-                                <p>Published on: ${new Date(article.publish_date).toLocaleDateString()}</p>
-                                <p>Category: ${article.category}</p>
-                                <a href="{% url 'user-login-template' %}" class="view-btn" data-article-id="${article.id}">View Article</a>
-                            </div>
-                        </div>
-                    `;
-                    container.append(articleCard); // Append the article card to the container
-                });
-
-                // Update the "Load More" button based on the next page URL
-                if (response.next) {
-                    nextUrl = response.next; // Set the next URL for future requests
-                } else {
-                    $('#load-more').hide(); // Hide the "Load More" button if no more articles
-                }
-            }
-        },
-        
-
-        error: function (xhr, status, error) {
-            console.error('Error fetching articles:', status, error);
-            alert('Error fetching articles. Please try again later.');
-        }
-    });
-}
-
-// "Load More" button click event
-$('#load-more').on('click', function () {
-    loadArticles(nextUrl); // Load the next set of articles when clicked
-});
-
-</script>
-
-
-        
-     
+<body class="site-shell">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="brand" href="{% url 'home' %}" aria-label="Article Management System home">
+                <span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span>
+                <span class="brand-copy">Article Studio<small>Editorial workspace</small></span>
+            </a>
+            <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Open navigation"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+            <nav id="site-nav" class="site-nav" aria-label="Main navigation">
+                <a href="{% url 'home' %}"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover</a>
+                <a href="/#articles"><i class="fa-regular fa-newspaper" aria-hidden="true"></i> Articles</a>
+                <button class="theme-toggle" type="button" aria-label="Toggle color theme"><i class="fa-solid fa-moon" aria-hidden="true"></i> Theme</button>
+                <a href="{% url 'user-login-template' %}">Log in</a>
+                <a class="nav-cta" href="{% url 'user-register-template' %}">Start writing</a>
+            </nav>
+        </div>
+    </header>
+    <main id="main-content" class="site-main">{% block content %}{% endblock %}</main>
+    <footer class="site-footer">
+        <div class="container site-footer__inner"><span>&copy; 2026 Article Studio. Built for better publishing.</span><span>Write clearly. Review thoughtfully. Publish confidently.</span></div>
+    </footer>
+    <script src="{% static 'js/home.js' %}" defer></script>
 </body>
 </html>
