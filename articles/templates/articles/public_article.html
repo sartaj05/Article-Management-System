@@ -31,6 +31,7 @@
     <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>
     {% if article.image %}<img class="article-detail-image" src="{{ article.image.url }}" alt="{{ article.title }}">{% endif %}
     <div class="article-content">{{ article.content|linebreaks }}</div>
+    {% if article.media_items.all %}<section class="article-media-list" aria-label="Article media"><h2>Listen and watch</h2>{% for media in article.media_items.all %}<figure class="article-media"><figcaption><strong>{{ media.title }}</strong>{% if media.caption %}<span>{{ media.caption }}</span>{% endif %}</figcaption>{% if media.media_type == 'video' %}<video controls preload="metadata"{% if media.file %} src="{{ media.file.url }}"{% else %} src="{{ media.external_url }}"{% endif %}></video>{% else %}<audio controls preload="metadata"{% if media.file %} src="{{ media.file.url }}"{% else %} src="{{ media.external_url }}"{% endif %}></audio>{% endif %}{% if media.transcript %}<details><summary>Read transcript</summary><p>{{ media.transcript }}</p></details>{% endif %}</figure>{% endfor %}</section>{% endif %}
     <div class="article-meta"><span><i class="fa-regular fa-eye" aria-hidden="true"></i> {{ article.views.count }} views</span><span><i class="fa-regular fa-heart" aria-hidden="true"></i> {{ article.likes.count }} likes</span></div>
 </article>
 {% endblock %}

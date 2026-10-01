@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -143,6 +143,20 @@ class ArticlePresenceSerializer(serializers.ModelSerializer):
         model = ArticlePresence
         fields = ['id', 'article', 'user', 'username', 'status', 'section', 'cursor_position', 'last_seen']
         read_only_fields = ['id', 'article', 'user', 'username', 'last_seen']
+
+
+class ArticleMediaSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = ArticleMedia
+        fields = ['id', 'article', 'media_type', 'title', 'file', 'external_url', 'caption', 'transcript', 'duration_seconds', 'sort_order', 'uploaded_by', 'uploaded_by_name', 'created_at']
+        read_only_fields = ['id', 'article', 'uploaded_by', 'uploaded_by_name', 'created_at']
+
+    def validate(self, attrs):
+        if not attrs.get('file') and not attrs.get('external_url'):
+            raise serializers.ValidationError('Provide a media file or external URL.')
+        return attrs
 
 
 class ArticleReviewSerializer(serializers.Serializer):

@@ -302,6 +302,32 @@ class ArticlePresence(models.Model):
 
     def __str__(self):
         return f'{self.user.username} on {self.article.title}'
+
+
+class ArticleMedia(models.Model):
+    MEDIA_TYPES = [('video', 'Video'), ('audio', 'Audio')]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='media_items')
+    media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
+    title = models.CharField(max_length=160)
+    file = models.FileField(upload_to='articles/media/', blank=True, null=True)
+    external_url = models.URLField(blank=True)
+    caption = models.CharField(max_length=255, blank=True)
+    transcript = models.TextField(blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_media_uploaded')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort_order', 'created_at']
+
+    def clean(self):
+        if not self.file and not self.external_url:
+            raise ValidationError('Provide a media file or external URL.')
+
+    def __str__(self):
+        return self.title
 from django.db import models
 
 class Category(models.Model):

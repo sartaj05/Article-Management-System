@@ -23,7 +23,7 @@ from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
     ArticleAssignmentSerializer,
-    ArticleImageSerializer, ArticleSourceSerializer,
+    ArticleImageSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
     ArticleReactionSerializer,
@@ -40,7 +40,7 @@ from .api_serializers import (
     NotificationSerializer,
     RevisionSerializer,
 )
-from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
+from .models import Article, ArticleAssignment, ArticleAutosave, ArticleFactCheck, ArticleImage, ArticleMedia, ArticlePresence, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, Like, ModerationFlag, Notification, PlagiarismCheck, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -258,6 +258,48 @@ class ArticleCollaborationView(APIView):
     def delete(self, request, article_id):
         ArticlePresence.objects.filter(article_id=article_id, user=request.user).delete()
         return Response({'left': True})
+
+
+class ArticleMediaView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_article(self, article_id):
+        return get_object_or_404(Article, pk=article_id)
+
+    def can_manage(self, request, article):
+        return request.user.is_authenticated and (article.author_id == request.user.id or request.user.role in {'Editor', 'Admin'})
+
+    def get(self, request, article_id):
+        article = self.get_article(article_id)
+        if article.workflow_status != 'published' and not self.can_manage(request, article):
+            return Response({'detail': 'Media is not publicly available for this article.'}, status=403)
+        return Response(ArticleMediaSerializer(article.media_items.all(), many=True, context={'request': request}).data)
+
+    def post(self, request, article_id):
+        article = self.get_article(article_id)
+        if not self.can_manage(request, article):
+            return Response({'detail': 'Only the author, editors, or admins can add media.'}, status=403)
+        serializer = ArticleMediaSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        media = serializer.save(article=article, uploaded_by=request.user)
+        record_audit_event(actor=request.user, action='article_media_added', article=article, details={'media_id': media.id, 'media_type': media.media_type})
+        return Response(ArticleMediaSerializer(media, context={'request': request}).data, status=201)
+
+
+class ArticleMediaDeleteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        media = get_object_or_404(ArticleMedia, pk=pk)
+        if media.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot delete this media.'}, status=403)
+        article = media.article
+        media.delete()
+        record_audit_event(actor=request.user, action='article_media_deleted', article=article, details={'media_id': pk})
+        return Response(status=204)
 
 
 class ArticleWorkflowActionView(APIView):

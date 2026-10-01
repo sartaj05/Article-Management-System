@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser
 
-from .models import Article, ArticleFactCheck, ArticlePresence, ArticleSource, Comment, Like, Notification
+from .models import Article, ArticleFactCheck, ArticleMedia, ArticlePresence, ArticleSource, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -172,3 +172,16 @@ class ArticleFeatureTests(TestCase):
         self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/collaboration/').status_code, 200)
         response = self.client.delete(f'/articles/api/v2/articles/{self.article.id}/collaboration/')
         self.assertTrue(response.data['left'])
+
+    def test_article_media_can_be_added_and_read_publicly(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/media/', {'media_type': 'audio', 'title': 'Article audio', 'external_url': 'https://cdn.example.com/article.mp3'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.client.force_authenticate(user=None)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/media/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['media_type'], 'audio')
