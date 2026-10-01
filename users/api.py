@@ -10,9 +10,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 from datetime import timedelta
+from decimal import Decimal
 
 from .models import (
-    AccessibilityPreference, CustomUser, has_active_membership, MembershipPlan,
+    AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile,
     PushSubscription, ReaderInterest, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
@@ -304,6 +305,49 @@ class PublicAuthorView(APIView):
                 }
                 for article in articles
             ],
+        })
+
+
+class AuthorTipSerializer(serializers.ModelSerializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('1.00'))
+    author_name = serializers.CharField(source='author.username', read_only=True)
+    sender_name = serializers.CharField(source='sender.username', read_only=True, default=None)
+
+    class Meta:
+        model = AuthorTip
+        fields = ['id', 'sender', 'sender_name', 'author', 'author_name', 'amount', 'currency', 'message', 'status', 'provider', 'provider_reference', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'sender', 'author', 'sender_name', 'author_name', 'status', 'provider', 'provider_reference', 'created_at', 'updated_at']
+
+
+class AuthorTipIntentView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, author_id):
+        author = get_object_or_404(CustomUser, pk=author_id, is_active=True)
+        if author.id == request.user.id:
+            return Response({'detail': 'You cannot send a tip to yourself.'}, status=400)
+        serializer = AuthorTipSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tip = serializer.save(sender=request.user, author=author, status='pending', provider='manual')
+        return Response({
+            'tip': AuthorTipSerializer(tip).data,
+            'payment_required': True,
+            'detail': 'Tip intent created. Connect a payment provider to complete the donation.',
+        }, status=202)
+
+
+class AuthorTipHistoryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        sent = AuthorTip.objects.filter(sender=request.user).select_related('author')
+        received = AuthorTip.objects.filter(author=request.user).select_related('sender')
+        return Response({
+            'sent': AuthorTipSerializer(sent, many=True).data,
+            'received': AuthorTipSerializer(received, many=True).data,
+            'received_total': sum((tip.amount for tip in received if tip.status == 'succeeded'), Decimal('0.00')),
         })
 
 
