@@ -4,6 +4,7 @@ from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+from django.utils import timezone
 
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
@@ -53,6 +54,30 @@ class NotificationPreference(models.Model):
 
     def __str__(self):
         return f"Notification preferences for {self.user.username}"
+
+
+class SecurityEvent(models.Model):
+    EVENT_CHOICES = [
+        ('login_success', 'Login success'),
+        ('login_failed', 'Login failed'),
+        ('logout', 'Logout'),
+        ('token_revoked', 'Token revoked'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='security_events')
+    username = models.CharField(max_length=150, blank=True)
+    event_type = models.CharField(max_length=30, choices=EVENT_CHOICES)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    success = models.BooleanField(default=True)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.event_type} for {self.username or 'anonymous'}"
 
 # Signal to send email when a superuser is created
 @receiver(post_save, sender=CustomUser)

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import CustomUser, Profile
+from .models import CustomUser, Profile, SecurityEvent
 
 
 class UserFeatureTests(TestCase):
@@ -34,3 +34,12 @@ class UserFeatureTests(TestCase):
             'role': 'Admin', 'checkbox': True,
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_failed_login_attempts_are_throttled_and_recorded(self):
+        self.client.force_authenticate(user=None)
+        for _ in range(5):
+            response = self.client.post('/api/login/', {'username': 'profile-test', 'password': 'wrong-password'}, format='json')
+            self.assertEqual(response.status_code, 400)
+        response = self.client.post('/api/login/', {'username': 'profile-test', 'password': 'wrong-password'}, format='json')
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(SecurityEvent.objects.filter(username='profile-test', event_type='login_failed').count(), 5)

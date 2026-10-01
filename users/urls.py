@@ -4,7 +4,7 @@ from .views import (
     UserListView, UserDetailView, UserUpdateView,
     ChangePasswordView, PasswordResetRequestView,
     RequestOTPView, PasswordResetWithOTPView,
-    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView
+    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView, SecurityEventListView
 )
 from . import views
 from .views import user_profile
@@ -26,6 +26,7 @@ path('', views.home, name='home'),
     path('adminMain/dashboard/', views.admin_dashboard, name='admin-dashboard'),
     path('validate-token/', ValidateTokenView.as_view(), name='validate-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('security/events/', SecurityEventListView.as_view(), name='security-events'),
     
     # User List (Admin Only)
     path('user-list/', UserListView.as_view(), name='user-list'),
