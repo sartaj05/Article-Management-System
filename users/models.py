@@ -109,6 +109,22 @@ class PushSubscription(models.Model):
     def __str__(self):
         return f"Push subscription for {self.user.username}"
 
+
+class ReaderInterest(models.Model):
+    INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reader_interests')
+    interest_type = models.CharField(max_length=20, choices=INTEREST_TYPES)
+    value = models.CharField(max_length=150)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['interest_type', 'value']
+        constraints = [models.UniqueConstraint(fields=['user', 'interest_type', 'value'], name='unique_reader_interest')]
+
+    def __str__(self):
+        return f'{self.user.username}: {self.interest_type}={self.value}'
+
 # Signal to send email when a superuser is created
 @receiver(post_save, sender=CustomUser)
 def send_superuser_creation_email(sender, instance, created, **kwargs):

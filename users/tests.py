@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import CustomUser, NewsletterSubscription, Profile, SecurityEvent
+from .models import CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent
 
 
 class UserFeatureTests(TestCase):
@@ -51,3 +51,9 @@ class UserFeatureTests(TestCase):
         self.assertTrue(NewsletterSubscription.objects.get(email='reader@example.com').is_active)
         response = self.client.delete('/api/newsletter/subscribe/?email=reader@example.com')
         self.assertTrue(response.data['unsubscribed'])
+
+    def test_reader_interests_can_be_followed(self):
+        response = self.client.post('/api/reader/interests/', {'interest_type': 'category', 'value': 'news'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(ReaderInterest.objects.filter(user=self.user, value='news').exists())
+        self.assertEqual(self.client.get('/api/reader/interests/').status_code, 200)

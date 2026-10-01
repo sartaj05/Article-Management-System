@@ -136,3 +136,15 @@ class ArticleFeatureTests(TestCase):
         self.assertTrue(response.data['requires_review'])
         self.assertEqual(response.data['provider'], 'local-rule-based')
         self.assertIn('meta_description', response.data['suggestions'])
+
+    def test_personalized_feed_prioritizes_followed_category(self):
+        from users.models import ReaderInterest
+        ReaderInterest.objects.create(user=self.journalist, interest_type='category', value='news')
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        self.authenticate(self.journalist)
+        response = self.client.get('/articles/api/v2/feed/for-you/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['id'], self.article.id)

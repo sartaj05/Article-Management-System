@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription
+from .models import CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
 from articles.models import Article
 
 
@@ -140,6 +140,35 @@ class PushSubscriptionView(APIView):
     def delete(self, request):
         endpoint = request.data.get('endpoint') or request.query_params.get('endpoint')
         deleted, _ = self.get_queryset(request).filter(endpoint=endpoint).delete()
+        return Response({'removed': bool(deleted)})
+
+
+class ReaderInterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReaderInterest
+        fields = ['id', 'interest_type', 'value', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ReaderInterestView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(ReaderInterestSerializer(ReaderInterest.objects.filter(user=request.user), many=True).data)
+
+    def post(self, request):
+        serializer = ReaderInterestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        interest, _ = ReaderInterest.objects.get_or_create(user=request.user, **serializer.validated_data)
+        return Response(ReaderInterestSerializer(interest).data, status=201)
+
+    def delete(self, request):
+        deleted, _ = ReaderInterest.objects.filter(
+            user=request.user,
+            interest_type=request.data.get('interest_type') or request.query_params.get('interest_type'),
+            value=request.data.get('value') or request.query_params.get('value'),
+        ).delete()
         return Response({'removed': bool(deleted)})
 
 

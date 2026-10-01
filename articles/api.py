@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser
+from users.models import CustomUser, ReaderInterest
 
 from .api_serializers import (
     ArticleReviewSerializer,
@@ -142,6 +142,34 @@ class ArticleAssistantView(APIView):
             'provider': 'local-rule-based',
             'requires_review': True,
             'suggestions': suggestions,
+        })
+
+
+class PersonalizedFeedView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        interests = list(ReaderInterest.objects.filter(user=request.user).values_list('interest_type', 'value'))
+        category_values = {value.lower() for kind, value in interests if kind == 'category'}
+        tag_values = {value.lower() for kind, value in interests if kind == 'tag'}
+        author_values = {value.lower() for kind, value in interests if kind == 'author'}
+        articles = list(Article.objects.filter(workflow_status='published', is_visible=True).select_related('author').order_by('-published_at', '-created_at')[:100])
+
+        def score(article):
+            article_tags = {tag.strip().lower() for tag in (article.tags or '').split(',') if tag.strip()}
+            points = 0
+            if (article.category or '').lower() in category_values:
+                points += 5
+            points += 3 * len(article_tags & tag_values)
+            if article.author.username.lower() in author_values:
+                points += 6
+            return points
+
+        ranked = sorted(articles, key=lambda article: (score(article), article.published_at or article.created_at), reverse=True)
+        return Response({
+            'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
+            'results': ArticleWorkflowSerializer(ranked[:50], many=True, context={'request': request}).data,
         })
 
 
