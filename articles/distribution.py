@@ -3,6 +3,7 @@ from django.contrib.syndication.views import Feed
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.views.decorators.cache import cache_page
 
 from .models import Article
 
@@ -48,11 +49,13 @@ class ArticleFeed(Feed):
         return article.published_at or article.updated_at
 
 
+@cache_page(300)
 def robots_txt(request):
     sitemap_url = request.build_absolute_uri('/sitemap.xml')
     return HttpResponse(f'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nSitemap: {sitemap_url}\n', content_type='text/plain')
 
 
+@cache_page(300)
 def public_article(request, slug):
     article = get_object_or_404(published_articles(), slug=slug)
     return render(request, 'articles/public_article.html', {'article': article})

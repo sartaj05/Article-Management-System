@@ -1,0 +1,6 @@
+/* User-controlled accessibility preferences. System preferences remain respected by default. */
+html[data-high-contrast="true"] body { filter: contrast(1.12); }
+html[data-high-contrast="true"] :focus-visible { outline-color: #ffb000; outline-width: 4px; }
+html[data-large-text="true"] body { font-size: 109%; }
+html[data-large-text="true"] .article-summary, html[data-large-text="true"] .article-content { line-height: 1.9; }
+html[data-reduce-motion="true"] *, html[data-reduce-motion="true"] *::before, html[data-reduce-motion="true"] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }

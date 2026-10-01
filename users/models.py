@@ -125,6 +125,17 @@ class ReaderInterest(models.Model):
     def __str__(self):
         return f'{self.user.username}: {self.interest_type}={self.value}'
 
+
+class AccessibilityPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='accessibility_preferences')
+    high_contrast = models.BooleanField(default=False)
+    reduce_motion = models.BooleanField(default=False)
+    large_text = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Accessibility preferences for {self.user.username}'
+
 # Signal to send email when a superuser is created
 @receiver(post_save, sender=CustomUser)
 def send_superuser_creation_email(sender, instance, created, **kwargs):

@@ -8,7 +8,7 @@ from .views import (
 )
 from . import views
 from .views import user_profile
-from .api import NewsletterSubscriptionView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderInterestView, UserProfileView
+from .api import AccessibilityPreferenceView, NewsletterSubscriptionView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderInterestView, UserProfileView
 urlpatterns = [
     
 
@@ -40,6 +40,7 @@ path('', views.home, name='home'),
     path('newsletter/subscribe/', NewsletterSubscriptionView.as_view(), name='newsletter-subscribe'),
     path('push/subscribe/', PushSubscriptionView.as_view(), name='push-subscribe'),
     path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
+    path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
     path('authors/<int:user_id>/', PublicAuthorView.as_view(), name='public-author'),
     # Change Password (Authenticated User)
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),

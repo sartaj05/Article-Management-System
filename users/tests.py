@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent
+from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent
 
 
 class UserFeatureTests(TestCase):
@@ -57,3 +57,10 @@ class UserFeatureTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(ReaderInterest.objects.filter(user=self.user, value='news').exists())
         self.assertEqual(self.client.get('/api/reader/interests/').status_code, 200)
+
+    def test_accessibility_preferences_can_be_updated(self):
+        response = self.client.patch('/api/accessibility/preferences/', {'large_text': True, 'reduce_motion': True}, format='json')
+        self.assertEqual(response.status_code, 200)
+        preferences = AccessibilityPreference.objects.get(user=self.user)
+        self.assertTrue(preferences.large_text)
+        self.assertTrue(preferences.reduce_motion)

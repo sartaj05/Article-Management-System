@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
+from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, NotificationPreference, Profile, PushSubscription, ReaderInterest
 from articles.models import Article
 
 
@@ -170,6 +170,32 @@ class ReaderInterestView(APIView):
             value=request.data.get('value') or request.query_params.get('value'),
         ).delete()
         return Response({'removed': bool(deleted)})
+
+
+class AccessibilityPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccessibilityPreference
+        fields = ['high_contrast', 'reduce_motion', 'large_text', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
+class AccessibilityPreferenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_preferences(self, user):
+        preferences, _ = AccessibilityPreference.objects.get_or_create(user=user)
+        return preferences
+
+    def get(self, request):
+        return Response(AccessibilityPreferenceSerializer(self.get_preferences(request.user)).data)
+
+    def patch(self, request):
+        preferences = self.get_preferences(request.user)
+        serializer = AccessibilityPreferenceSerializer(preferences, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class PublicAuthorView(APIView):
