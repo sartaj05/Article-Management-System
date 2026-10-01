@@ -125,3 +125,14 @@ class ArticleFeatureTests(TestCase):
         self.assertEqual(self.client.get('/sitemap.xml').status_code, 200)
         self.assertEqual(self.client.get('/rss.xml').status_code, 200)
         self.assertEqual(self.client.get('/robots.txt').status_code, 200)
+
+    def test_editorial_assistant_returns_reviewable_suggestions(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/assistant/',
+            {'action': 'seo'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['requires_review'])
+        self.assertEqual(response.data['provider'], 'local-rule-based')
+        self.assertIn('meta_description', response.data['suggestions'])

@@ -215,6 +215,7 @@ SIMPLE_JWT = {
 
 
 CORS_ALLOW_ALL_ORIGINS = False
+AI_ASSISTANT_PROVIDER = os.getenv('AI_ASSISTANT_PROVIDER', 'local-rule-based')
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')

@@ -43,6 +43,7 @@ from .models import Article, ArticleAssignment, ArticleAutosave, ArticleImage, A
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
+from .assistant import make_suggestions
 
 
 class ArticlePagination(PageNumberPagination):
@@ -119,6 +120,29 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
                 details={'fields': sorted(request.data.keys())},
             )
         return Response(serializer.data)
+
+
+class ArticleAssistantView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can use the editorial assistant.'}, status=status.HTTP_403_FORBIDDEN)
+        action = str(request.data.get('action', '')).strip().lower()
+        try:
+            suggestions = make_suggestions(article, action)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        record_audit_event(actor=request.user, action='editorial_assistant_used', article=article, details={'action': action})
+        return Response({
+            'article_id': article.id,
+            'action': action,
+            'provider': 'local-rule-based',
+            'requires_review': True,
+            'suggestions': suggestions,
+        })
 
 
 class ArticleWorkflowActionView(APIView):
