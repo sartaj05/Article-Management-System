@@ -28,7 +28,7 @@ $(document).ready(function () {
             // Automatically hide success modal and redirect to login
             setTimeout(function () {
                 $("#success-modal").css("display", "none");
-                window.location.href = "/login/"; // Redirect to login page
+                window.location.href = "/logout-template/"; // Show the signed-out screen
             }, 1000);
         });
     

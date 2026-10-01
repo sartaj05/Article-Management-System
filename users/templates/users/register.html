@@ -1,339 +1,39 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>User Registration / Login</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
-    <style>
-      /* Overall Form Styling */
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #1e1e2f;
-        color: #d1d1d1;
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-      }
-
-      /* Navbar */
-      .navbar {
-        background-color: #232946;
-        padding: 15px;
-        text-align: center;
-        position: fixed;
-        width: 100%;
-        top: 0;
-        z-index: 1000;
-      }
-
-      .navbar a {
-        color: #eebbc3;
-        text-decoration: none;
-        font-size: 16px;
-        margin: 0 15px;
-      }
-
-      .navbar a:hover {
-        text-decoration: underline;
-      }
-
-      /* Registration Form Card */
-      .register-container {
-        display: flex;
-        flex-direction: column;
-        {% comment %} align-items: center; {% endcomment %}
-        {% comment %} justify-content: center; {% endcomment %}
-        background-color: #232946;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        max-width: 450px;
-        width: 100%;
-        {% comment %} text-align: center; {% endcomment %}
-        margin-top: 70px; /* Adjusted to avoid overlap with navbar */
-      }
-
-      /* Form Title */
-      .register-container h2 {
-        color: #eebbc3;
-        margin-bottom: 10px;
-        font-size: 24px;
-        text-align: center;
-      }
-
-      /* Form Fields */
-      .register-container form {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-      }
-
-      .register-container input,
-      .register-container select {
-        margin-bottom: 8px;
-        padding: 6px; /* Increased padding for larger input fields */
-        font-size: 14px;
-        border-radius: 5px;
-        border: 1px solid #d1d1d1;
-        background-color: #121629;
-        color: #d1d1d1;
-        width: 100%; /* Make input fields take full width */
-        box-sizing: border-box;
-      }
-
-      /* Submit Button */
-      .register-container button {
-        padding: 10px; /* Slightly larger padding */
-        font-size: 16px;
-        background-color: #eebbc3;
-        border: none;
-        border-radius: 5px;
-        color: #232946;
-        cursor: pointer;
-        font-weight: bold;
-        transition: background 0.3s ease;
-        width: 100%; /* Make button take full width */
-        box-sizing: border-box;
-      }
-
-      .register-container button:hover {
-        background-color: #d18bbf;
-      }
-
-      /* Links for Login / Forgot Password */
-      .register-container .links {
-        margin-top: 20px;
-        display: flex;
-        justify-content: center;
-        {% comment %} align-items: center; {% endcomment %}
-      }
-
-      .register-container .links a {
-        color: #eebbc3;
-        text-decoration: none;
-        font-size: 14px;
-        margin: 0 10px;
-      }
-
-      .register-container .links a:hover {
-        text-decoration: underline;
-      }
-
-      /* Error Messages */
-      .error-message {
-        color: #e57373;
-        font-size: 12px;
-        margin-bottom: 10px;
-      }
-
-      /* Footer */
-      footer {
-        background-color: #232946;
-        color: #d1d1d1;
-        padding: 15px;
-        text-align: center;
-        position: fixed;
-        width: 100%;
-        bottom: 0;
-        border-radius: 10px 10px 0 0;
-      }
-      /* Checkbox and Terms */
-      .checkbox-group {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        margin-bottom: 15px;
-      }
-
-      .checkbox-group input {
-        margin-right: 10px; /* Space between checkbox and label */
-        accent-color: #eebbc3; /* Change the color of the checkbox (optional) */
-      }
-
-      /* Error Messages */
-      .error-message {
-        color: #e57373;
-        font-size: 12px;
-        margin-top: 5px; /* Adjust the error message position */
-      }
-
-      .modal {
-        display: none; /* Hidden by default */
-        position: fixed;
-        z-index: 1; /* Sit on top */
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4); /* Black with opacity */
-        padding-top: 60px; /* Position the modal at the top */
-      }
-
-      .modal-content {
-        background-color: #232946;
-        margin: 5% auto;
-        padding: 20px;
-        border-radius: 10px;
-        width: 80%;
-        max-width: 400px;
-        color: #eebbc3;
-        text-align: center;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-
-      .close {
-        color: #eebbc3;
-        font-size: 30px;
-        font-weight: bold;
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        cursor: pointer;
-      }
-
-      .close:hover,
-      .close:focus {
-        color: #d18bbf;
-        text-decoration: none;
-        cursor: pointer;
-      }
-
-      .modal p {
-        font-size: 18px;
-        margin-top: 20px;
-      }
-    </style>
-    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
-  </head>
-  <body class="auth-shell">
-    <!-- Navbar -->
-    <div class="navbar">
-      <a href="{% url 'home' %}">Home</a>
-    </div>
-
-    <!-- Main Content (Registration Form) -->
-    <div class="register-container">
-      <h2>User Registration Form</h2>
-      <form id="registration-form" method="POST">
-        {% csrf_token %}
-        <div class="form-group">
-          <label for="first_name">First Name</label>
-          <input
-            type="text"
-            id="first_name"
-            name="first_name"
-            required
-            minlength="2"
-            maxlength="31"
-          />
-          <div id="first_name_error" class="error-message"></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Create an Article Studio account.">
+    <title>Create account | Article Studio</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="auth-shell">
+    <header class="auth-header"><div class="container auth-header__inner"><a class="brand" href="{% url 'home' %}"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a><a class="auth-header__back" href="{% url 'home' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to discover</a></div></header>
+    <main class="auth-main">
+        <div class="auth-layout">
+            <section class="auth-intro"><div class="auth-intro__icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></div><span class="eyebrow">Join the newsroom</span><h1>Turn good ideas into great stories.</h1><p>Create your workspace and start writing, reviewing, or publishing with a clear editorial flow.</p><ul class="auth-intro__points"><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Choose your editorial role</li><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Save and manage your drafts</li><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Collaborate with your team</li></ul></section>
+            <section class="auth-card" aria-labelledby="register-title">
+                <div class="auth-card__heading"><span class="eyebrow">Get started</span><h2 id="register-title">Create your account</h2><p>Set up your profile to join the publishing workflow.</p></div>
+                <form id="registration-form" class="auth-form" data-auth-form="register" novalidate>
+                    {% csrf_token %}
+                    <div class="auth-form__grid"><div class="auth-field"><label for="first_name">First name</label><input type="text" id="first_name" name="first_name" autocomplete="given-name" placeholder="First name" required minlength="2"><div id="first_name_error" class="auth-error"></div></div><div class="auth-field"><label for="last_name">Last name <span class="muted">(optional)</span></label><input type="text" id="last_name" name="last_name" autocomplete="family-name" placeholder="Last name"><div id="last_name_error" class="auth-error"></div></div></div>
+                    <div class="auth-field"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" placeholder="Choose a username" required minlength="4"><div id="username_error" class="auth-error"></div></div>
+                    <div class="auth-field"><label for="email">Email address</label><input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" required><div id="email_error" class="auth-error"></div></div>
+                    <div class="auth-form__grid"><div class="auth-field"><label for="password">Password</label><input type="password" id="password" name="password" autocomplete="new-password" placeholder="8+ characters" required minlength="8"><div id="password_error" class="auth-error"></div></div><div class="auth-field"><label for="confirm_password">Confirm password</label><input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" placeholder="Repeat password" required minlength="8"><div id="confirm_password_error" class="auth-error"></div></div></div>
+                    <div class="auth-field"><label for="role">I am joining as</label><select id="role" name="role" required><option value="">Select your role</option><option value="Journalist">Journalist / Writer</option><option value="Editor">Editor</option></select><div id="role_error" class="auth-error"></div></div>
+                    <label class="auth-check"><input type="checkbox" id="checkbox" name="checkbox" required><span>I agree to the editorial workspace terms.</span></label><div id="checkbox_error" class="auth-error"></div>
+                    <div id="message" class="auth-message" data-auth-message role="status" aria-live="polite"></div>
+                    <button class="button auth-submit" type="submit">Create account</button>
+                </form>
+                <div class="auth-links"><span>Already have an account?</span><a href="{% url 'user-login-template' %}">Log in</a></div>
+            </section>
         </div>
-
-        <div class="form-group">
-          <label for="last_name">Last Name</label>
-          <input
-            type="text"
-            id="last_name"
-            name="last_name"
-            minlength="2"
-            maxlength="31"
-          />
-          <div id="last_name_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            required
-            minlength="4"
-            maxlength="21"
-          />
-          <div id="username_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            required
-            minlength="4"
-            maxlength="35"
-          />
-          <div id="email_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            required
-            minlength="8"
-            maxlength="20"
-          />
-          <div id="password_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group confirm-password">
-          <label for="confirm_password">Confirm Password</label>
-          <input
-            type="password"
-            id="confirm_password"
-            name="confirm_password"
-            required
-            minlength="8"
-            maxlength="20"
-          />
-          <div id="confirm_password_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="role">Role</label>
-          <select id="role" name="role" required>
-            <option value="">Select Role</option>
-            <option value="Journalist">Journalist</option>
-            <option value="Editor">Editor</option>
-          </select>
-          <div id="role_error" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-          <input type="checkbox" id="checkbox" name="checkbox" required />
-          <label for="checkbox">Accept Terms & Conditions</label>
-          <div id="checkbox_error" class="error-message"></div>
-        </div>
-
-        <button type="submit">Register</button>
-      </form>
-
-      <div id="message"></div>
-      <div class="links">
-        <p>
-          Already registered?
-          <a href="{% url 'user-login-template' %}">Login here</a>
-        </p>
-      </div>
-      <!-- Success Modal -->
-      <div id="success-modal" style="display: none" class="modal">
-        <div class="modal-content">
-          <span class="close" id="close-modal">&times;</span>
-          <p>Registration successful!</p>
-        </div>
-      </div>
-    </div>
-
-    <script src="{% static 'js/register.js' %}"></script>
-  </body>
+    </main>
+    <footer class="auth-footer">&copy; 2026 Article Studio. Your next story starts here.</footer>
+    <script src="{% static 'js/auth.js' %}" defer></script>
+</body>
 </html>

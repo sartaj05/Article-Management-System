@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signed out | Article Studio</title>
+    <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="auth-shell">
+    <header class="auth-header"><div class="container auth-header__inner"><a class="brand" href="{% url 'home' %}"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a><a class="auth-header__back" href="{% url 'home' %}">Discover articles <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></header>
+    <main class="auth-main"><section class="auth-card logout-state" aria-labelledby="logout-title"><div class="auth-intro__icon"><i class="fa-solid fa-check" aria-hidden="true"></i></div><span class="eyebrow">Session complete</span><h1 id="logout-title">You’re safely signed out.</h1><p>Your workspace is closed and your local session tokens have been cleared. Come back whenever you’re ready for the next story.</p><a class="button" href="{% url 'user-login-template' %}"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Log in again</a><div class="auth-links"><a href="{% url 'home' %}">Return to discover</a></div></section></main>
+    <footer class="auth-footer">&copy; 2026 Article Studio. Write clearly. Publish confidently.</footer>
+    <script>localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); localStorage.removeItem('user');</script>
+</body>
+</html>

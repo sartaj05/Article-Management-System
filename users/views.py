@@ -119,6 +119,9 @@ class UserLoginView(APIView):
 def login_template(request):
     return render(request, 'users/login.html')
 
+def logout_template(request):
+    return render(request, 'users/logout.html')
+
 # Logout View
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

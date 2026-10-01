@@ -19,6 +19,7 @@ path('', views.home, name='home'),
     path('register-template/', views.register_template, name='user-register-template'),
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('login-template/', views.login_template, name='user-login-template'),
+    path('logout-template/', views.logout_template, name='user-logout-template'),
     path('forgot-password/', views.password_reset_request_template, name='forgot-password-template'),  # For the forgot-password page
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
     path('editor/dashboard/', views.editor_dashboard, name='editor-dashboard'),

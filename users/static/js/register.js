@@ -158,13 +158,13 @@ function showSuccessPopup() {
     document.getElementById('close-modal').addEventListener('click', () => {
         modal.style.display = 'none';
         // Redirect to the login page after closing the modal
-        window.location.href = '/login'; // Replace '/login' with your actual login page URL
+        window.location.href = '/login-template/';
     });
 
     // Optionally, you can set a timer to redirect after a few seconds automatically
     setTimeout(() => {
         modal.style.display = 'none';
-        window.location.href = '/login'; // Redirect to the login page after 1 seconds
+        window.location.href = '/login-template/';
     }, 1000); // 1000ms = 1 seconds
 }
 function validateField(field, form) {
