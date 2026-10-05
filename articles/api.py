@@ -206,7 +206,14 @@ class PersonalizedFeedView(APIView):
         category_values = {value.lower() for kind, value in interests if kind == 'category'}
         tag_values = {value.lower() for kind, value in interests if kind == 'tag'}
         author_values = {value.lower() for kind, value in interests if kind == 'author'}
-        articles = list(Article.objects.filter(workflow_status='published', is_visible=True).select_related('author').order_by('-published_at', '-created_at')[:100])
+        mode = request.query_params.get('mode', 'for_you').strip().lower()
+        try:
+            limit = min(max(int(request.query_params.get('limit', 20)), 1), 50)
+        except (TypeError, ValueError):
+            limit = 20
+        articles = list(Article.objects.filter(workflow_status='published', is_visible=True).select_related('author'))
+        if not has_active_membership(request.user):
+            articles = [article for article in articles if not article.is_premium]
 
         def score(article):
             article_tags = {tag.strip().lower() for tag in (article.tags or '').split(',') if tag.strip()}
@@ -218,10 +225,27 @@ class PersonalizedFeedView(APIView):
                 points += 6
             return points
 
-        ranked = sorted(articles, key=lambda article: (score(article), article.published_at or article.created_at), reverse=True)
+        if mode == 'latest':
+            ranked = sorted(articles, key=lambda article: article.published_at or article.created_at, reverse=True)
+        elif mode == 'trending':
+            ranked = sorted(articles, key=lambda article: (article.views.count(), article.likes.count(), article.published_at or article.created_at), reverse=True)
+        else:
+            ranked = sorted(articles, key=lambda article: (score(article), article.published_at or article.created_at), reverse=True)
+        serialized = ArticleWorkflowSerializer(ranked[:limit], many=True, context={'request': request}).data
+        for item, article in zip(serialized, ranked[:limit]):
+            article_score = score(article)
+            item['recommendation_score'] = article_score
+            item['recommendation_reason'] = (
+                'Matches your saved interests.' if article_score else
+                'Popular with readers.' if mode == 'trending' else
+                'Recently published.' if mode == 'latest' or not interests else
+                'Recommended to get you started.'
+            )
         return Response({
+            'mode': mode if mode in {'for_you', 'latest', 'trending'} else 'for_you',
+            'cold_start': not bool(interests),
             'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
-            'results': ArticleWorkflowSerializer(ranked[:50], many=True, context={'request': request}).data,
+            'results': serialized,
         })
 
 
