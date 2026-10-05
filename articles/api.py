@@ -29,7 +29,6 @@ from .api_serializers import (
     ArticleImageSerializer, ArticleLiveUpdateSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer,
-    ArticleReactionSerializer,
     PlagiarismCheckSerializer,
     ArticleTranslationSerializer,
     ModerationFlagSerializer,
@@ -39,12 +38,11 @@ from .api_serializers import (
     TagSerializer,
     ArticleWorkflowSerializer,
     CommentSerializer,
-    LikeSerializer,
     NotificationSerializer,
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1450,7 +1448,6 @@ class ArticleCorrectionView(APIView):
         article = get_object_or_404(Article, pk=article_id)
         serializer = ArticleCorrectionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        values = serializer.validated_data
         is_editor = request.user.role in {'Editor', 'Admin'}
         correction = serializer.save(
             article=article,

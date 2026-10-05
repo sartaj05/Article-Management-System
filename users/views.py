@@ -26,7 +26,6 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from rest_framework import status
 from users.models import CustomUser as User, SecurityEvent
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
@@ -236,7 +235,6 @@ class ChangePasswordView(APIView):
         user.save()
         return Response({'message': 'Password updated successfully.'}, status=status.HTTP_200_OK)
     
-from django.core.mail import send_mail
 # Password Reset Request View
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
@@ -253,7 +251,7 @@ class PasswordResetRequestView(APIView):
         
         try:
             # Retrieve the user based on email
-            user = User.objects.get(email=email)
+            User.objects.get(email=email)
             # Save OTP and expiry time to the user's model (you may customize your model for this)
             request.session['otp'] = otp
             request.session['otp_created_at'] = otp_created_at

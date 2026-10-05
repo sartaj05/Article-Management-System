@@ -13,13 +13,12 @@ def admin_dashboard(request):
 # def journalist_dashboard(request):
 #     return render(request, 'journalist_dashboard.html')
 from datetime import datetime
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseRedirect
-from django.test import tag
 from django.urls import reverse
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import Article, Comment, Like, ArticleView,Category
+from .models import Article, ArticleView, Category, Tag
 from rest_framework.views import APIView
 from django.utils import timezone
 from rest_framework.response import Response
@@ -36,12 +35,9 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.pagination import PageNumberPagination
 from django.core.mail import send_mail
 from django.conf import settings
-from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from articles.models import Article
 from users.models import CustomUser
 
 class ArticleListAPIView(generics.ListAPIView):
@@ -82,7 +78,7 @@ class ArticleDetailView(View):
 
         try:
             # Extract the token from the header
-            token = auth_header.split(' ')[1]  # Format should be "Bearer <token>"
+            auth_header.split(' ')[1]  # Validate the expected "Bearer <token>" shape.
             authentication = JWTAuthentication()
 
             # Use the JWTAuthentication's authenticate method to authenticate the user
@@ -129,7 +125,7 @@ class ArticleSearchView(View):
 
         try:
             # Extract the token from the header
-            token = auth_header.split(' ')[1]  # Format should be "Bearer <token>"
+            auth_header.split(' ')[1]  # Validate the expected "Bearer <token>" shape.
             authentication = JWTAuthentication()  # Use JWTAuthentication
 
             # Authenticate the user based on the token
@@ -491,7 +487,7 @@ class SubmitArticleAPIView(APIView):
             
             # Add tags if provided
             if 'tags' in data:
-                tags = tag.objects.filter(id__in=data['tags'])
+                tags = Tag.objects.filter(id__in=data['tags'])
                 if tags.exists():
                     article.tags.set(tags)
             
@@ -539,10 +535,9 @@ class ArticleStatusUpdateView(LoginRequiredMixin, UserPassesTestMixin, View):
         return HttpResponseRedirect(reverse('articles:article-detail', args=[article.slug]))
 
     def test_func(self):
-        article = get_object_or_404(Article, id=self.kwargs['article_id'])
+        get_object_or_404(Article, id=self.kwargs['article_id'])
         return self.request.user.role in ['Editor', 'Admin']
 
-from django.shortcuts import render,redirect
 class ArticleSubmitView(View):
     def get(self, request):
         form = ArticleForm()
@@ -595,21 +590,6 @@ def reject_article(request, article_id):
     article.save()
 
     return JsonResponse({"message": "Article rejected successfully."}, status=200)
-# views.py
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Article
-from .serializers import ArticleSerializer
-from rest_framework import status
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Article
-from .serializers import ArticleSerializer
-from rest_framework import status
-
 class PublishedArticleListView(APIView):
     # Remove authentication and permission classes to make it public
     permission_classes = []  # No authentication required
@@ -619,7 +599,7 @@ class PublishedArticleListView(APIView):
         published_articles = Article.objects.filter(status='published').order_by('-publish_date')
         
         # Paginate the results using the custom ArticlePagination class
-        paginator = ArticlePagination()
+        paginator = PublishedArticlePagination()
         result_page = paginator.paginate_queryset(published_articles, request)
         
         # Serialize the paginated articles
@@ -630,7 +610,7 @@ class PublishedArticleListView(APIView):
 
 from rest_framework.pagination import PageNumberPagination
 
-class ArticlePagination(PageNumberPagination):
+class PublishedArticlePagination(PageNumberPagination):
     page_size = 3  # Limit to 3 articles per page
     page_size_query_param = 'page_size'  # Allow clients to set page size (optional)
     max_page_size = 3  # Optional: Max page size limit (optional)

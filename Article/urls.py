@@ -18,8 +18,6 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.shortcuts import redirect
-from users import views 
 from articles.api import HealthCheckView
 from articles.distribution import ArticleSitemap, ArticleFeed, robots_txt
 from django.contrib.sitemaps.views import sitemap

@@ -5,4 +5,4 @@ class UsersConfig(AppConfig):
     name = 'users'
 
     def ready(self):
-        import users.signals  # Ensure that signals are loaded correctly
+        from users import signals  # noqa: F401  # Ensure that signals are loaded correctly

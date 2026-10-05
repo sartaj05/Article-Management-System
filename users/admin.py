@@ -4,7 +4,6 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Permission
 from django.utils.safestring import mark_safe
 from .models import CustomUser, Profile
-from django.conf import settings
 
 # Customizing the admin panel for CustomUser
 @admin.register(CustomUser)

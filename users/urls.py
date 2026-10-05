@@ -7,7 +7,6 @@ from .views import (
     UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView, SecurityEventListView
 )
 from . import views
-from .views import user_profile
 from .api import (
     AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView,
     MembershipMeView, MembershipPlanView, NewsletterSubscriptionView,

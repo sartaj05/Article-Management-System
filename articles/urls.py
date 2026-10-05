@@ -2,7 +2,6 @@ from django.urls import path
 from . import views
 from .distribution import public_article
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
-from rest_framework.urls import path
 from .views import ArticleCountAPIView
 from .api import (
     ArticleAnalyticsView,

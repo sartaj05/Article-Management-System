@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -7,7 +6,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.urls import reverse
-from users.models import CustomUser as User, Profile
+from users.models import CustomUser, Profile
 import re
 from datetime import datetime
 User = get_user_model()
@@ -24,11 +23,6 @@ class ProfileSerializer(serializers.ModelSerializer):
             'profile_picture': instance.profile_picture.url if instance.profile_picture else None,
             'contact_info': instance.contact_info or '',
         }
-from rest_framework import serializers
-from users.models import CustomUser  # Make sure this import is present
-from rest_framework import serializers
-from .models import CustomUser, Profile
-
 class RegistrationSerializer(serializers.ModelSerializer):
     # Include profile as a nested serializer
     profile = serializers.JSONField(required=False)
@@ -174,11 +168,6 @@ class OTPVerificationSerializer(serializers.Serializer):
     
 
     
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
 class PasswordResetWithOTPSerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True, min_length=8, max_length=128)

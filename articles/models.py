@@ -126,7 +126,7 @@ class Article(models.Model):
                     raise ValidationError(f"Invalid tag: {tag}. Available tags are: 'Tech', 'Political', 'Entertainment'.")
         
         if self.category and self.category not in dict(self.CATEGORY_CHOICES):
-            raise ValidationError(f"Invalid category. Available categories are: 'News', 'Opinion', 'Features'.")
+            raise ValidationError("Invalid category. Available categories are: 'News', 'Opinion', 'Features'.")
 
     def save(self, *args, **kwargs):
         if not self.slug:

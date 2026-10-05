@@ -12,11 +12,6 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['id', 'article', 'user', 'content', 'created_at']
         read_only_fields = ['id', 'article', 'user', 'created_at']
 
-from rest_framework import serializers
-from .models import Article, Comment
-from rest_framework.exceptions import ValidationError
-from django.utils.text import slugify
-import random
 class ArticleSerializer(serializers.ModelSerializer):
     tags = serializers.CharField(read_only=True)  # If tags is a string field; adjust if it's ManyToMany
     category = serializers.CharField(read_only=True)  # Adjust if category is a ForeignKey
@@ -39,7 +34,6 @@ class ArticleSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'author', 'slug', 'is_visible', 'created_at', 'updated_at']
 
     def create(self, validated_data):
-        tags_data = self.context['request'].data.get('tags', [])
         category_data = self.context['request'].data.get('category')
         latitude = self.context['request'].data.get('latitude', None)  # Get latitude from request data
         longitude = self.context['request'].data.get('longitude', None)  # Get longitude from request data
@@ -79,7 +73,6 @@ class ArticleSerializer(serializers.ModelSerializer):
         if request.user.role == 'Journalist' and instance.author != request.user:
             raise ValidationError("Journalists can only update their own articles.")
 
-        tags_data = self.context['request'].data.get('tags', [])
         category_data = self.context['request'].data.get('category')
         latitude = self.context['request'].data.get('latitude', None)  # Get latitude from request data
         longitude = self.context['request'].data.get('longitude', None)  # Get longitude from request data
@@ -104,13 +97,6 @@ class ArticleSerializer(serializers.ModelSerializer):
         # Add any custom validation logic if needed
         return data
 
-# Helper function for slug generation
-def generate_unique_slug(title):
-    slug = slugify(title)
-    # Check if the slug already exists, if so, append a random number to make it unique
-    while Article.objects.filter(slug=slug).exists():
-        slug = f"{slug}-{random.randint(1000, 9999)}"
-    return slug
 
 
 class LikeSerializer(serializers.ModelSerializer):
