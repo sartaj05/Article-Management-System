@@ -39,7 +39,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, ContentExperimentDetailView, ContentExperimentListView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, ContentExperimentDetailView, ContentExperimentListView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -155,6 +155,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/gallery/', ArticleGalleryView.as_view(), name='article-gallery'),
     path('api/v2/articles/<int:article_id>/autosave/', ArticleAutosaveView.as_view(), name='article-autosave'),
     path('api/v2/articles/<int:article_id>/seo/', ArticleSEOView.as_view(), name='article-seo'),
+    path('api/v2/articles/<int:article_id>/accessibility/', ArticleAccessibilityView.as_view(), name='article-accessibility'),
     path('api/v2/gallery/images/<int:pk>/', ArticleImageDeleteView.as_view(), name='article-image-delete'),
     path('api/v2/discover/', ArticleDiscoveryView.as_view(), name='article-discovery'),
     path('api/v2/reports/<str:report_type>/', ReportExportView.as_view(), name='report-export'),

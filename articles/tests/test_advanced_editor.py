@@ -23,3 +23,14 @@ class AdvancedEditorTests(APITestCase):
         response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/autosave/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['content'], '<p>Draft content</p>')
+
+    def test_author_can_run_accessibility_quality_checks(self):
+        self.article.content_format = 'html'
+        self.article.content = '<h1>Title</h1><h3>Skipped heading</h3><img src="cover.jpg">'
+        self.article.save(update_fields=['content_format', 'content'])
+        self.client.force_authenticate(self.author)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/accessibility/')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['passed'])
+        self.assertGreaterEqual(response.data['errors'], 1)
+        self.assertTrue(any(issue['code'] == 'missing_image_alt' for issue in response.data['issues']))

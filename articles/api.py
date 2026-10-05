@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.db import transaction
 from django.db.models import Case, Count, IntegerField, Q, Value, When
 from django.db import connection
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -48,6 +49,7 @@ from .audit import record_audit_event
 from .notifications import notify
 from .assistant import make_suggestions
 from .seo import build_article_seo_payload
+from .accessibility import analyze_article_accessibility
 
 
 class ArticlePagination(PageNumberPagination):
@@ -434,6 +436,13 @@ class ArticleWorkflowActionView(APIView):
                 return Response({'detail': 'Only editors and admins can publish articles.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status != 'approved':
                 return Response({'detail': 'Only approved articles can be published.'}, status=status.HTTP_400_BAD_REQUEST)
+            if settings.ACCESSIBILITY_PUBLISH_GATE:
+                accessibility = analyze_article_accessibility(article)
+                if not accessibility['passed']:
+                    return Response({
+                        'detail': 'Fix accessibility errors before publishing.',
+                        'accessibility': accessibility,
+                    }, status=status.HTTP_400_BAD_REQUEST)
             article.workflow_status = 'published'
             article.review_status = 'approved'
             article.status = 'published'
@@ -1070,6 +1079,16 @@ class ArticleSEOView(APIView):
         response = ArticleSEOSerializer(article, context={'request': request}).data
         response['seo_preview'] = build_article_seo_payload(article, request)
         return Response(response)
+
+
+class ArticleAccessibilityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot access this article quality report.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'article_id': article.id, 'title': article.title, **analyze_article_accessibility(article)})
 
     def patch(self, request, article_id):
         article = self.get_article(request, article_id)
