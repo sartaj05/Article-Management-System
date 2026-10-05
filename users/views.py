@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from users.serializers import (
@@ -26,13 +26,24 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from users.models import CustomUser as User, SecurityEvent
+from users.models import CustomUser as User, SecurityEvent, SecuritySession
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 
 # Utility function for generating tokens
-def get_tokens_for_user(user):
+def get_tokens_for_user(user, request=None):
     refresh = RefreshToken.for_user(user)
+    if request is not None:
+        now = timezone.now()
+        SecuritySession.objects.create(
+            user=user,
+            refresh_jti=str(refresh['jti']),
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+            created_at=now,
+            last_seen_at=now,
+            expires_at=now + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
+        )
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),
@@ -115,7 +126,7 @@ class UserLoginView(APIView):
             )
             raise
         user = serializer.validated_data['user']
-        token = get_tokens_for_user(user)
+        token = get_tokens_for_user(user, request)
         SecurityEvent.objects.create(
             user=user, username=user.username, event_type='login_success',
             ip_address=ip_address, user_agent=request.META.get('HTTP_USER_AGENT', ''),
@@ -154,7 +165,13 @@ class LogoutView(APIView):
         refresh_token = request.data.get('refresh')
         if refresh_token:
             try:
-                RefreshToken(refresh_token).blacklist()
+                refresh = RefreshToken(refresh_token)
+                refresh.blacklist()
+                SecuritySession.objects.filter(
+                    user=request.user,
+                    refresh_jti=str(refresh['jti']),
+                    revoked_at__isnull=True,
+                ).update(revoked_at=timezone.now())
             except Exception:
                 return Response({'detail': 'Invalid refresh token.'}, status=status.HTTP_400_BAD_REQUEST)
         SecurityEvent.objects.create(
@@ -180,6 +197,62 @@ class SecurityEventListView(ListAPIView):
             }
             for event in events
         ])
+
+
+class SecurityCenterView(APIView):
+    """Return the user's active sessions and recent security activity."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        sessions = SecuritySession.objects.filter(user=request.user)
+        events = SecurityEvent.objects.filter(user=request.user)[:100]
+        return Response({
+            'sessions': [
+                {
+                    'id': session.id,
+                    'ip_address': session.ip_address,
+                    'user_agent': session.user_agent,
+                    'created_at': session.created_at,
+                    'last_seen_at': session.last_seen_at,
+                    'expires_at': session.expires_at,
+                    'is_active': session.is_active,
+                    'revoked_at': session.revoked_at,
+                }
+                for session in sessions
+            ],
+            'events': [
+                {
+                    'id': event.id,
+                    'event_type': event.event_type,
+                    'success': event.success,
+                    'ip_address': event.ip_address,
+                    'user_agent': event.user_agent,
+                    'created_at': event.created_at,
+                }
+                for event in events
+            ],
+        })
+
+
+class SecuritySessionRevokeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        session = get_object_or_404(SecuritySession, pk=pk, user=request.user)
+        if session.revoked_at is None:
+            session.revoked_at = timezone.now()
+            session.save(update_fields=['revoked_at'])
+            SecurityEvent.objects.create(
+                user=request.user,
+                username=request.user.username,
+                event_type='token_revoked',
+                success=True,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                details={'session_id': session.id},
+            )
+        return Response({'revoked': True})
 
 
 def journalist_dashboard(request):

@@ -141,6 +141,29 @@ class SecurityEvent(models.Model):
         return f"{self.event_type} for {self.username or 'anonymous'}"
 
 
+class SecuritySession(models.Model):
+    """A refresh-token session shown in the user's security center."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='security_sessions')
+    refresh_jti = models.CharField(max_length=255, unique=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-last_seen_at']
+
+    @property
+    def is_active(self):
+        return self.revoked_at is None and self.expires_at > timezone.now()
+
+    def __str__(self):
+        return f'{self.user.username} session {self.refresh_jti[:8]}'
+
+
 class NewsletterSubscription(models.Model):
     FREQUENCY_CHOICES = [('daily', 'Daily'), ('weekly', 'Weekly')]
 

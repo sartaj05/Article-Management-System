@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent
+from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent, SecuritySession
 
 
 class UserFeatureTests(TestCase):
@@ -64,3 +64,24 @@ class UserFeatureTests(TestCase):
         preferences = AccessibilityPreference.objects.get(user=self.user)
         self.assertTrue(preferences.large_text)
         self.assertTrue(preferences.reduce_motion)
+
+    def test_login_creates_a_revocable_security_session(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post('/api/login/', {
+            'username': self.user.username,
+            'password': 'StrongPass123!',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        session = SecuritySession.objects.get(user=self.user)
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get('/api/security/center/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['sessions']), 1)
+        self.assertTrue(response.data['sessions'][0]['is_active'])
+
+        response = self.client.delete(f'/api/security/sessions/{session.id}/')
+        self.assertEqual(response.status_code, 200)
+        session.refresh_from_db()
+        self.assertIsNotNone(session.revoked_at)
+        self.assertTrue(SecurityEvent.objects.filter(event_type='token_revoked', details__session_id=session.id).exists())

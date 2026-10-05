@@ -4,7 +4,8 @@ from .views import (
     UserListView, UserDetailView, UserUpdateView,
     ChangePasswordView, PasswordResetRequestView,
     RequestOTPView, PasswordResetWithOTPView,
-    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView, SecurityEventListView
+    UserDeleteView, LogoutView, ValidateTokenView,OTPVerificationView, SecurityEventListView,
+    SecurityCenterView, SecuritySessionRevokeView,
 )
 from . import views
 from .api import (
@@ -32,6 +33,8 @@ path('', views.home, name='home'),
     path('validate-token/', ValidateTokenView.as_view(), name='validate-token'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('security/events/', SecurityEventListView.as_view(), name='security-events'),
+    path('security/center/', SecurityCenterView.as_view(), name='security-center'),
+    path('security/sessions/<int:pk>/', SecuritySessionRevokeView.as_view(), name='security-session-revoke'),
     
     # User List (Admin Only)
     path('user-list/', UserListView.as_view(), name='user-list'),
