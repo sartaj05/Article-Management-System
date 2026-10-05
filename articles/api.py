@@ -1171,16 +1171,6 @@ class ArticleSEOView(APIView):
         response['seo_preview'] = build_article_seo_payload(article, request)
         return Response(response)
 
-
-class ArticleAccessibilityView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, article_id):
-        article = get_object_or_404(Article, pk=article_id)
-        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
-            return Response({'detail': 'You cannot access this article quality report.'}, status=status.HTTP_403_FORBIDDEN)
-        return Response({'article_id': article.id, 'title': article.title, **analyze_article_accessibility(article)})
-
     def patch(self, request, article_id):
         article = self.get_article(request, article_id)
         if article is None:
@@ -1192,6 +1182,16 @@ class ArticleAccessibilityView(APIView):
         response = serializer.data
         response['seo_preview'] = build_article_seo_payload(article, request)
         return Response(response)
+
+
+class ArticleAccessibilityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot access this article quality report.'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'article_id': article.id, 'title': article.title, **analyze_article_accessibility(article)})
 
 
 class ArticleDiscoveryView(generics.ListAPIView):
