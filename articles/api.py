@@ -2042,3 +2042,37 @@ class ExperimentResultsView(APIView):
                 'read_rate': round(reads / views, 4) if views else 0,
             })
         return Response({'experiment': ContentExperimentSerializer(experiment).data, 'results': results})
+
+
+class ExperimentCompleteView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        experiment = get_object_or_404(ContentExperiment.objects.prefetch_related('variants'), pk=pk)
+        if experiment.created_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot complete this experiment.'}, status=status.HTTP_403_FORBIDDEN)
+        if experiment.status != 'running':
+            return Response({'detail': 'Only running experiments can be completed.'}, status=status.HTTP_400_BAD_REQUEST)
+        requested_variant = request.data.get('variant_id')
+        if requested_variant:
+            winner = get_object_or_404(experiment.variants, pk=requested_variant)
+        else:
+            winner = None
+            best_key = (-1, -1, '')
+            for variant in experiment.variants.all():
+                views = variant.assignments.filter(events__event_type='view').distinct().count()
+                reads = variant.assignments.filter(events__event_type='read').distinct().count()
+                clicks = variant.assignments.filter(events__event_type='click').distinct().count()
+                key = (reads / views if views else 0, clicks / views if views else 0, variant.label)
+                if key > best_key:
+                    best_key = key
+                    winner = variant
+        if winner is None:
+            return Response({'detail': 'The experiment has no variants.'}, status=status.HTTP_400_BAD_REQUEST)
+        experiment.status = 'completed'
+        experiment.winning_variant = winner
+        experiment.ended_at = timezone.now()
+        experiment.save(update_fields=['status', 'winning_variant', 'ended_at', 'updated_at'])
+        record_audit_event(actor=request.user, action='content_experiment_completed', article=experiment.article, details={'experiment_id': experiment.id, 'winner_id': winner.id})
+        return Response(ContentExperimentSerializer(experiment).data)

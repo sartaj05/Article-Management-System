@@ -39,7 +39,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -120,6 +120,7 @@ urlpatterns = [
     path('api/v2/experiments/<int:pk>/assign/', ExperimentAssignmentView.as_view(), name='experiment-assign'),
     path('api/v2/experiments/<int:pk>/events/', ExperimentEventView.as_view(), name='experiment-events'),
     path('api/v2/experiments/<int:pk>/results/', ExperimentResultsView.as_view(), name='experiment-results'),
+    path('api/v2/experiments/<int:pk>/complete/', ExperimentCompleteView.as_view(), name='experiment-complete'),
     path('api/v2/live-updates/<int:pk>/', ArticleLiveUpdateDetailView.as_view(), name='article-live-update-detail'),
     path('api/v2/series/', StorySeriesListView.as_view(), name='story-series-list'),
     path('api/v2/public/articles/', HeadlessArticleFeedView.as_view(), name='headless-article-feed'),
