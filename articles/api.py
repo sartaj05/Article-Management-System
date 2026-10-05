@@ -47,6 +47,7 @@ from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
 from .assistant import make_suggestions
+from .seo import build_article_seo_payload
 
 
 class ArticlePagination(PageNumberPagination):
@@ -1066,7 +1067,9 @@ class ArticleSEOView(APIView):
         article = self.get_article(request, article_id)
         if article is None:
             return Response({'detail': 'You cannot access this article SEO data.'}, status=status.HTTP_403_FORBIDDEN)
-        return Response(ArticleSEOSerializer(article, context={'request': request}).data)
+        response = ArticleSEOSerializer(article, context={'request': request}).data
+        response['seo_preview'] = build_article_seo_payload(article, request)
+        return Response(response)
 
     def patch(self, request, article_id):
         article = self.get_article(request, article_id)
@@ -1076,7 +1079,9 @@ class ArticleSEOView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         record_audit_event(actor=request.user, action='article_seo_updated', article=article, details={'fields': sorted(request.data.keys())})
-        return Response(serializer.data)
+        response = serializer.data
+        response['seo_preview'] = build_article_seo_payload(article, request)
+        return Response(response)
 
 
 class ArticleDiscoveryView(generics.ListAPIView):

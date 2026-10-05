@@ -25,3 +25,12 @@ class SEOTests(APITestCase):
         self.article.refresh_from_db()
         self.assertEqual(self.article.meta_title, 'SEO article title')
         self.assertEqual(self.article.canonical_url, 'https://example.com/articles/seo-article/')
+
+    def test_seo_response_includes_health_checks_and_structured_data(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/seo/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('seo_preview', response.data)
+        self.assertIn('checks', response.data['seo_preview'])
+        self.assertEqual(response.data['seo_preview']['json_ld']['@type'], 'NewsArticle')
+        self.assertIn('score', response.data['seo_preview'])
