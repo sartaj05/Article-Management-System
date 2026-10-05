@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
-from .models import Article, ArticlePresence, Comment, Like, Notification
+from ..models import Article, ArticlePresence, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):

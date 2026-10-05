@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 
 from users.models import CustomUser
-from .models import Article, ArticleReaction
+from ..models import Article, ArticleReaction
 
 
 class ReactionTests(APITestCase):

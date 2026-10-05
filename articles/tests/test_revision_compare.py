@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 
 from users.models import CustomUser
-from .models import Article, ArticleRevision
+from ..models import Article, ArticleRevision
 
 
 class RevisionCompareTests(APITestCase):

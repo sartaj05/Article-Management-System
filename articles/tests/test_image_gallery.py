@@ -4,7 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
 from users.models import CustomUser
-from .models import Article, ArticleImage
+from ..models import Article, ArticleImage
 
 
 class ImageGalleryTests(APITestCase):

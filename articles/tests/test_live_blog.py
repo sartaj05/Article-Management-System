@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
-from .models import Article, ArticleLiveUpdate
+from ..models import Article, ArticleLiveUpdate
 
 
 class LiveBlogFeatureTests(TestCase):

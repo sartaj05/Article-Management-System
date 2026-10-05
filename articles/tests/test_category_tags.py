@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 
 from users.models import CustomUser
-from .models import Article, Category, Tag
+from ..models import Article, Category, Tag
 
 
 class CategoryTagTests(APITestCase):

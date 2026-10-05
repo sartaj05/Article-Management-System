@@ -3,7 +3,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
-from .models import Article, ArticleAsset
+from ..models import Article, ArticleAsset
 
 
 class MediaLibraryFeatureTests(TestCase):

@@ -1,7 +1,7 @@
 from rest_framework.test import APITestCase
 
 from users.models import CustomUser
-from .models import Article, ModerationFlag
+from ..models import Article, ModerationFlag
 
 
 class ModerationTests(APITestCase):

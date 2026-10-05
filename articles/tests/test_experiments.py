@@ -2,8 +2,8 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
-from .models import ExperimentEvent
-from .models import Article
+from ..models import ExperimentEvent
+from ..models import Article
 
 
 class ExperimentFeatureTests(TestCase):
