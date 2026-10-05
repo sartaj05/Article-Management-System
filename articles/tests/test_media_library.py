@@ -36,3 +36,24 @@ class MediaLibraryFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/media-library/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['alt_text'], 'A newsroom desk')
+
+    def test_duplicate_upload_returns_conflict_and_search_filters_assets(self):
+        payload = {
+            'title': 'Searchable photo', 'media_type': 'image',
+            'alt_text': 'Newsroom desk', 'credit': 'Article Studio', 'license': 'owned',
+        }
+        first = self.client.post('/articles/api/v2/media-library/', {
+            **payload, 'file': SimpleUploadedFile('desk.jpg', b'unique-image', content_type='image/jpeg'),
+        }, format='multipart')
+        self.assertEqual(first.status_code, 201)
+        self.assertTrue(first.data['file_hash'])
+
+        duplicate = self.client.post('/articles/api/v2/media-library/', {
+            **payload, 'file': SimpleUploadedFile('copy.jpg', b'unique-image', content_type='image/jpeg'),
+        }, format='multipart')
+        self.assertEqual(duplicate.status_code, 409)
+        self.assertEqual(duplicate.data['duplicate_asset_id'], first.data['id'])
+
+        response = self.client.get('/articles/api/v2/media-library/?q=searchable')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)

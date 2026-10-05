@@ -557,6 +557,7 @@ class MediaAsset(models.Model):
     license = models.CharField(max_length=20, choices=LICENSE_CHOICES, default='owned')
     license_expires_at = models.DateField(blank=True, null=True)
     metadata = models.JSONField(default=dict, blank=True)
+    file_hash = models.CharField(max_length=64, blank=True, db_index=True)
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

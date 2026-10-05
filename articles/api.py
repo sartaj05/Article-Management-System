@@ -1,6 +1,6 @@
 import csv
-import difflib
 import hashlib
+import difflib
 from datetime import timedelta
 
 from django.db import transaction
@@ -1366,9 +1366,17 @@ class MediaAssetLibraryView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self, request):
-        queryset = MediaAsset.objects.filter(is_archived=False)
+        queryset = MediaAsset.objects.all()
+        if request.query_params.get('include_archived') not in {'1', 'true', 'yes'}:
+            queryset = queryset.filter(is_archived=False)
         if request.user.role not in {'Editor', 'Admin'}:
             queryset = queryset.filter(uploaded_by=request.user)
+        query = request.query_params.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(Q(title__icontains=query) | Q(alt_text__icontains=query) | Q(credit__icontains=query))
+        media_type = request.query_params.get('media_type')
+        if media_type:
+            queryset = queryset.filter(media_type=media_type)
         return queryset
 
     def get(self, request):
@@ -1377,7 +1385,21 @@ class MediaAssetLibraryView(APIView):
     def post(self, request):
         serializer = MediaAssetSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        asset = serializer.save(uploaded_by=request.user)
+        uploaded_file = serializer.validated_data.get('file')
+        file_hash = ''
+        if uploaded_file:
+            digest = hashlib.sha256()
+            for chunk in uploaded_file.chunks():
+                digest.update(chunk)
+            uploaded_file.seek(0)
+            file_hash = digest.hexdigest()
+            duplicate = MediaAsset.objects.filter(file_hash=file_hash, is_archived=False).first()
+            if duplicate:
+                return Response({
+                    'detail': 'This file already exists in the media library.',
+                    'duplicate_asset_id': duplicate.id,
+                }, status=status.HTTP_409_CONFLICT)
+        asset = serializer.save(uploaded_by=request.user, file_hash=file_hash)
         return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
 
 
