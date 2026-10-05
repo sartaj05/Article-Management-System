@@ -4,7 +4,7 @@ import difflib
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Case, Count, IntegerField, Q, Value, When
+from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
 from django.db import connection
 from django.conf import settings
 from django.http import HttpResponse
@@ -44,7 +44,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -1284,6 +1284,10 @@ class ArticleAnalyticsView(APIView):
                 'views': article.views.count(),
                 'likes': article.likes.count(),
                 'comments': article.comments.count(),
+                'engagement_events': article.engagement_events.count(),
+                'completed_reads': article.engagement_events.filter(event_type='read_complete').count(),
+                'shares': article.engagement_events.filter(event_type='share').count(),
+                'average_read_progress': article.engagement_events.filter(event_type='read_progress').aggregate(avg=Avg('value'))['avg'] or 0,
                 'workflow_status': article.workflow_status,
             })
 
@@ -1302,11 +1306,44 @@ class ArticleAnalyticsView(APIView):
             'rejected': queryset.filter(workflow_status='rejected').count(),
             'total_views': sum(article.views.count() for article in queryset),
             'total_likes': sum(article.likes.count() for article in queryset),
+            'total_completed_reads': ArticleEngagementEvent.objects.filter(
+                article__in=queryset, event_type='read_complete',
+            ).count(),
+            'total_shares': ArticleEngagementEvent.objects.filter(
+                article__in=queryset, event_type='share',
+            ).count(),
             'top_authors': [
                 {'username': item['author__username'], 'article_count': item['article_count']}
                 for item in top_authors
             ],
         })
+
+
+class ArticleEngagementView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id, workflow_status='published', is_visible=True)
+        if request.user.is_authenticated and request.headers.get('X-Analytics-Consent') != 'granted':
+            return Response({'detail': 'Analytics consent is required.'}, status=status.HTTP_428_PRECONDITION_REQUIRED)
+        event_type = str(request.data.get('event_type', '')).strip()
+        allowed_events = {value for value, _ in ArticleEngagementEvent.EVENT_CHOICES}
+        if event_type not in allowed_events:
+            return Response({'detail': 'Unsupported engagement event.'}, status=400)
+        try:
+            value = min(max(int(request.data.get('value', 0)), 0), 100)
+        except (TypeError, ValueError):
+            return Response({'detail': 'value must be an integer from 0 to 100.'}, status=400)
+        event = ArticleEngagementEvent.objects.create(
+            article=article,
+            user=request.user if request.user.is_authenticated else None,
+            visitor_key=str(request.data.get('visitor_key', ''))[:128],
+            session_key=str(request.data.get('session_key', ''))[:128],
+            event_type=event_type,
+            value=value,
+            metadata=request.data.get('metadata') if isinstance(request.data.get('metadata'), dict) else {},
+        )
+        return Response({'accepted': True, 'event_id': event.id}, status=status.HTTP_201_CREATED)
 
 
 class HeadlessArticleFeedView(APIView):

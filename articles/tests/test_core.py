@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
-from ..models import Article, ArticleEditEvent, ArticlePresence, Comment, Like, Notification
+from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -113,6 +113,35 @@ class ArticleFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/analytics/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['published'], 1)
+
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/engagement/',
+            {'event_type': 'read_complete', 'visitor_key': 'reader-1'}, format='json',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.authenticate(self.journalist)
+        response = self.client.get(f'/articles/api/v2/analytics/{self.article.id}/')
+        self.assertEqual(response.data['completed_reads'], 1)
+
+    def test_authenticated_engagement_requires_analytics_consent(self):
+        self.authenticate(self.journalist)
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/engagement/',
+            {'event_type': 'read_progress', 'value': 50}, format='json',
+        )
+        self.assertEqual(response.status_code, 428)
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/engagement/',
+            {'event_type': 'read_progress', 'value': 50},
+            format='json', HTTP_X_ANALYTICS_CONSENT='granted',
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(ArticleEngagementEvent.objects.get().value, 50)
 
     def test_public_distribution_endpoints(self):
         self.article.workflow_status = 'published'

@@ -256,6 +256,28 @@ class ArticleView(models.Model):
         return f"{self.user.username if self.user else 'Anonymous'} viewed {self.article.title}"
 
 
+class ArticleEngagementEvent(models.Model):
+    EVENT_CHOICES = [
+        ('read_start', 'Read started'),
+        ('read_progress', 'Read progress'),
+        ('read_complete', 'Read completed'),
+        ('share', 'Shared'),
+    ]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='engagement_events')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='article_engagement_events')
+    visitor_key = models.CharField(max_length=128, blank=True, db_index=True)
+    session_key = models.CharField(max_length=128, blank=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    value = models.PositiveSmallIntegerField(default=0)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['article', 'event_type', 'created_at'])]
+
+
 class ArticleLiveUpdate(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='live_updates')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='live_updates_created')
