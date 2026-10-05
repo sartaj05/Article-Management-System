@@ -7,6 +7,7 @@
   <title>Editor Dashboard</title>
   <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005">
+  <link rel="stylesheet" href="{% static 'css/support-chat.css' %}">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="{% static 'js/editor.js' %}"></script>
   <script src="{% static 'js/dashboard-ui.js' %}"></script>
@@ -209,5 +210,7 @@
       <p>&copy; 2024 My Website. All rights reserved.</p>
     </footer> {% endcomment %}
   </div>
+  {% include 'support/chat_widget.html' %}
+  <script src="{% static 'js/support-chat.js' %}" defer></script>
 </body>
 </html>

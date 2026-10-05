@@ -7,6 +7,7 @@
     <title>Edit Article</title>
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005" />
+    <link rel="stylesheet" href="{% static 'css/support-chat.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body class="dashboard-shell">
@@ -178,5 +179,7 @@
             getLocationName(latitude, longitude);
         });
     </script>
+    {% include 'support/chat_widget.html' %}
+    <script src="{% static 'js/support-chat.js' %}" defer></script>
 </body>
 </html>
