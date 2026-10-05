@@ -50,6 +50,10 @@
     box-shadow: 0 22px 60px rgba(41, 37, 83, .2);
 }
 
+.support-chat__panel[hidden] {
+    display: none !important;
+}
+
 .support-chat__header {
     display: flex;
     align-items: flex-start;
