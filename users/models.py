@@ -212,6 +212,29 @@ class PushSubscription(models.Model):
         return f"Push subscription for {self.user.username}"
 
 
+class AlertRule(models.Model):
+    RULE_CHOICES = [
+        ('all', 'All new articles'),
+        ('category', 'Category'),
+        ('author', 'Author'),
+    ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='alert_rules')
+    rule_type = models.CharField(max_length=20, choices=RULE_CHOICES)
+    value = models.CharField(max_length=150, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['rule_type', 'value']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'rule_type', 'value'], name='unique_user_alert_rule'),
+        ]
+
+    def __str__(self):
+        return f'{self.user.username}: {self.rule_type}={self.value}'
+
+
 class ReaderInterest(models.Model):
     INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
 

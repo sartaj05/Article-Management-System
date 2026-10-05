@@ -23,7 +23,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.models import CustomUser, ReaderInterest, has_active_membership
 from users.api import resolve_public_api_key
-from users.delivery import dispatch_webhook_event
+from users.delivery import dispatch_article_alert, dispatch_webhook_event
 
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
@@ -572,6 +572,7 @@ class ArticleWorkflowActionView(APIView):
                 notification_type='published',
                 message=f'{article.title} was published.',
             )
+            dispatch_article_alert(article=article, title='New article published', body=article.title)
             return Response(ArticleWorkflowSerializer(article).data)
 
         if action in {'schedule', 'unschedule'}:

@@ -9,7 +9,7 @@ from .views import (
 )
 from . import views
 from .api import (
-    AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView,
+    AccessibilityPreferenceView, AlertRuleView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView,
     MembershipMeView, MembershipPlanView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
@@ -49,6 +49,8 @@ path('', views.home, name='home'),
     path('newsletter/subscribe/', NewsletterSubscriptionView.as_view(), name='newsletter-subscribe'),
     path('newsletter/preview/', NewsletterPreviewView.as_view(), name='newsletter-preview'),
     path('push/subscribe/', PushSubscriptionView.as_view(), name='push-subscribe'),
+    path('alerts/rules/', AlertRuleView.as_view(), name='alert-rules'),
+    path('alerts/rules/<int:pk>/', AlertRuleView.as_view(), name='alert-rule-detail'),
     path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
     path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
     path('membership/plans/', MembershipPlanView.as_view(), name='membership-plans'),

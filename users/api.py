@@ -3,7 +3,7 @@ import hmac
 import json
 import secrets
 
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -19,7 +19,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from .models import (
-    AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
+    AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
@@ -200,6 +200,57 @@ class PushSubscriptionView(APIView):
     def delete(self, request):
         endpoint = request.data.get('endpoint') or request.query_params.get('endpoint')
         deleted, _ = self.get_queryset(request).filter(endpoint=endpoint).delete()
+        return Response({'removed': bool(deleted)})
+
+
+class AlertRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AlertRule
+        fields = ['id', 'rule_type', 'value', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        if attrs.get('rule_type') in {'category', 'author'} and not str(attrs.get('value', '')).strip():
+            raise serializers.ValidationError({'value': 'A value is required for category and author alerts.'})
+        if attrs.get('rule_type') == 'all':
+            attrs['value'] = ''
+        return attrs
+
+
+class AlertRuleView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(AlertRuleSerializer(AlertRule.objects.filter(user=request.user), many=True).data)
+
+    def post(self, request):
+        serializer = AlertRuleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        rule, _ = AlertRule.objects.update_or_create(
+            user=request.user,
+            rule_type=serializer.validated_data['rule_type'],
+            value=serializer.validated_data.get('value', ''),
+            defaults={'is_active': serializer.validated_data.get('is_active', True)},
+        )
+        return Response(AlertRuleSerializer(rule).data, status=status.HTTP_201_CREATED)
+
+    def patch(self, request, pk):
+        rule = get_object_or_404(AlertRule, pk=pk, user=request.user)
+        serializer = AlertRuleSerializer(rule, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk=None):
+        queryset = AlertRule.objects.filter(user=request.user)
+        if pk:
+            deleted, _ = queryset.filter(pk=pk).delete()
+        else:
+            deleted, _ = queryset.filter(
+                rule_type=request.data.get('rule_type') or request.query_params.get('rule_type'),
+                value=request.data.get('value') or request.query_params.get('value', ''),
+            ).delete()
         return Response({'removed': bool(deleted)})
 
 

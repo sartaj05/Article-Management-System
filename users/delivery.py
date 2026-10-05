@@ -5,10 +5,11 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
+from django.db import models
 from django.utils import timezone
 import requests
 
-from .models import WebhookDelivery, WebhookEndpoint
+from .models import AlertRule, PushSubscription, WebhookDelivery, WebhookEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -74,3 +75,19 @@ def send_web_push(subscription, payload):
     except Exception as exc:
         logger.warning('Web push delivery failed: %s', exc)
         return {'sent': False, 'reason': 'delivery_failed'}
+
+
+def dispatch_article_alert(*, article, title=None, body=None):
+    """Send a best-effort push alert to readers matching their saved rules."""
+    matching = AlertRule.objects.filter(is_active=True).filter(
+        models.Q(rule_type='all') |
+        models.Q(rule_type='category', value__iexact=article.category or '') |
+        models.Q(rule_type='author', value=str(article.author_id)) |
+        models.Q(rule_type='author', value__iexact=article.author.username),
+    ).values_list('user_id', flat=True).distinct()
+    payload = {'title': title or article.title, 'body': body or (article.summary or article.content[:160]), 'url': f'/articles/read/{article.slug}/', 'article_id': article.id}
+    results = []
+    for subscription in PushSubscription.objects.filter(user_id__in=matching, is_active=True):
+        result = send_web_push(subscription, payload)
+        results.append({'subscription_id': subscription.id, **result})
+    return results
