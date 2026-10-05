@@ -512,7 +512,7 @@ class ArticleTranslation(models.Model):
         ('de', 'German'),
         ('ar', 'Arabic'),
     ]
-    STATUS_CHOICES = [('draft', 'Draft'), ('published', 'Published')]
+    STATUS_CHOICES = [('draft', 'Draft'), ('in_review', 'In review'), ('approved', 'Approved'), ('published', 'Published')]
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='translations')
     language_code = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
     title = models.CharField(max_length=35)
@@ -522,6 +522,9 @@ class ArticleTranslation(models.Model):
     content_format = models.CharField(max_length=20, choices=Article.CONTENT_FORMAT_CHOICES, default='plain')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     translated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_translations')
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='article_translations_reviewed')
+    review_notes = models.TextField(blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

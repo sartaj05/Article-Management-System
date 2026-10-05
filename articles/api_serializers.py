@@ -89,11 +89,12 @@ class ArticleAutosaveSerializer(serializers.ModelSerializer):
 
 class ArticleTranslationSerializer(serializers.ModelSerializer):
     translated_by_name = serializers.CharField(source='translated_by.username', read_only=True, default=None)
+    reviewed_by_name = serializers.CharField(source='reviewed_by.username', read_only=True, default=None)
 
     class Meta:
         model = ArticleTranslation
-        fields = ['id', 'article', 'language_code', 'title', 'subtitle', 'content', 'summary', 'content_format', 'status', 'translated_by', 'translated_by_name', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'article', 'translated_by', 'translated_by_name', 'created_at', 'updated_at']
+        fields = ['id', 'article', 'language_code', 'title', 'subtitle', 'content', 'summary', 'content_format', 'status', 'translated_by', 'translated_by_name', 'reviewed_by', 'reviewed_by_name', 'review_notes', 'reviewed_at', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'translated_by', 'translated_by_name', 'reviewed_by', 'reviewed_by_name', 'reviewed_at', 'created_at', 'updated_at']
 
 
 class ArticleSEOSerializer(serializers.ModelSerializer):

@@ -1082,10 +1082,33 @@ class ArticleTranslationDetailView(APIView):
             return Response({'detail': 'You cannot edit this translation.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = ArticleTranslationSerializer(translation, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        if serializer.validated_data.get('status') == 'published' and request.user.role == 'Journalist':
+        if serializer.validated_data.get('status') in {'approved', 'published'} and request.user.role == 'Journalist':
             return Response({'detail': 'Only editors and admins can publish translations.'}, status=status.HTTP_403_FORBIDDEN)
-        serializer.save()
+        values = dict(serializer.validated_data)
+        if request.user.role in {'Editor', 'Admin'} and values.get('status') in {'approved', 'published'}:
+            values.update({'reviewed_by': request.user, 'reviewed_at': timezone.now()})
+        serializer.save(**values)
         return Response(serializer.data)
+
+
+class ArticleTranslationReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, translation_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can review translations.'}, status=status.HTTP_403_FORBIDDEN)
+        translation = get_object_or_404(ArticleTranslation, pk=translation_id)
+        decision = str(request.data.get('decision', '')).strip().lower()
+        status_map = {'approve': 'approved', 'publish': 'published', 'return': 'draft'}
+        if decision not in status_map:
+            return Response({'detail': 'Decision must be approve, publish, or return.'}, status=status.HTTP_400_BAD_REQUEST)
+        translation.status = status_map[decision]
+        translation.review_notes = str(request.data.get('review_notes', '')).strip()
+        translation.reviewed_by = request.user
+        translation.reviewed_at = timezone.now()
+        translation.save(update_fields=['status', 'review_notes', 'reviewed_by', 'reviewed_at', 'updated_at'])
+        record_audit_event(actor=request.user, action='article_translation_reviewed', article=translation.article, details={'translation_id': translation.id, 'decision': decision})
+        return Response(ArticleTranslationSerializer(translation).data)
 
 
 class NotificationListView(generics.ListAPIView):
