@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
-from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, Like, Notification
+from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, EditorialAssistantRun, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -165,6 +165,15 @@ class ArticleFeatureTests(TestCase):
         self.assertTrue(response.data['requires_review'])
         self.assertEqual(response.data['provider'], 'local-rule-based')
         self.assertIn('meta_description', response.data['suggestions'])
+
+        run = EditorialAssistantRun.objects.get(pk=response.data['run_id'])
+        response = self.client.post(
+            f'/articles/api/v2/assistant/runs/{run.id}/apply/',
+            {'fields': ['meta_description']}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.article.refresh_from_db()
+        self.assertTrue(self.article.meta_description)
 
     def test_personalized_feed_prioritizes_followed_category(self):
         from users.models import ReaderInterest

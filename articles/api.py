@@ -44,7 +44,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -145,14 +145,55 @@ class ArticleAssistantView(APIView):
             suggestions = make_suggestions(article, action)
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        run = EditorialAssistantRun.objects.create(
+            article=article,
+            requested_by=request.user,
+            action=action,
+            provider=settings.AI_ASSISTANT_PROVIDER,
+            suggestions=suggestions,
+        )
         record_audit_event(actor=request.user, action='editorial_assistant_used', article=article, details={'action': action})
         return Response({
+            'run_id': run.id,
             'article_id': article.id,
             'action': action,
-            'provider': 'local-rule-based',
+            'provider': run.provider,
             'requires_review': True,
             'suggestions': suggestions,
         })
+
+
+class EditorialAssistantApplyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, run_id):
+        run = get_object_or_404(EditorialAssistantRun.objects.select_related('article'), pk=run_id)
+        article = run.article
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can apply assistant output.'}, status=403)
+        requested_fields = request.data.get('fields') or list(run.suggestions.keys())
+        supported_fields = {'title', 'summary', 'content', 'meta_title', 'meta_description', 'seo_keywords'}
+        if not isinstance(requested_fields, list) or not set(requested_fields).issubset(supported_fields | {'headlines'}):
+            return Response({'detail': 'fields contains an unsupported article field.'}, status=400)
+        updates = {}
+        for field in requested_fields:
+            value = run.suggestions.get(field)
+            if field == 'headlines' or not isinstance(value, str):
+                continue
+            updates[field] = value
+        if 'title' in requested_fields and isinstance(run.suggestions.get('headlines'), list):
+            index = int(request.data.get('headline_index', 0))
+            headlines = run.suggestions['headlines']
+            if 0 <= index < len(headlines):
+                updates['title'] = headlines[index]
+        if not updates:
+            return Response({'detail': 'No applicable assistant fields were selected.'}, status=400)
+        for field, value in updates.items():
+            setattr(article, field, value)
+        article.save(update_fields=[*updates.keys(), 'updated_at'])
+        record_audit_event(actor=request.user, action='editorial_assistant_applied', article=article, details={'run_id': run.id, 'fields': sorted(updates)})
+        return Response({'applied': sorted(updates), 'article_id': article.id})
 
 
 class PersonalizedFeedView(APIView):

@@ -660,6 +660,21 @@ class ArticleProvenance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class EditorialAssistantRun(models.Model):
+    STATUS_CHOICES = [('completed', 'Completed'), ('failed', 'Failed')]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='assistant_runs')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='assistant_runs_requested')
+    action = models.CharField(max_length=30)
+    provider = models.CharField(max_length=80)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
+    suggestions = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]
