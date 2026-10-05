@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import difflib
+import json
 from datetime import timedelta
 
 from django.db import transaction
@@ -52,6 +53,7 @@ from .notifications import notify
 from .assistant import make_suggestions
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
+from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
 
 
 class ArticlePagination(PageNumberPagination):
@@ -708,6 +710,70 @@ class ArticleReviewView(APIView):
             message=(f'{article.title} was approved.' if decision == 'approve' else f'{article.title} was rejected: {reason}'),
         )
         return Response(ArticleWorkflowSerializer(article).data)
+
+
+class ArticleExportView(APIView):
+    permission_classes = [AllowAny]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or (article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'})):
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot export this article.'}, status=status.HTTP_403_FORBIDDEN)
+        file_format = request.query_params.get('export_format', 'markdown').lower()
+        if file_format == 'markdown':
+            response = HttpResponse(markdown_document(article.title, article.subtitle, article.content, article.summary), content_type='text/markdown; charset=utf-8')
+            response['Content-Disposition'] = f'attachment; filename="{article.slug}.md"'
+            return response
+        if file_format == 'docx':
+            response = HttpResponse(markdown_to_docx(article.title, article.content).getvalue(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response['Content-Disposition'] = f'attachment; filename="{article.slug}.docx"'
+            return response
+        if file_format == 'json':
+            response = HttpResponse(json.dumps(ArticleWorkflowSerializer(article).data, default=str, indent=2), content_type='application/json')
+            response['Content-Disposition'] = f'attachment; filename="{article.slug}.json"'
+            return response
+        return Response({'detail': 'format must be markdown, docx, or json.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ArticleImportView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def post(self, request):
+        uploaded = request.FILES.get('file')
+        content_format = str(request.data.get('content_format', '')).lower().strip()
+        title = str(request.data.get('title', '')).strip()
+        if uploaded:
+            filename = uploaded.name.lower()
+            if filename.endswith('.docx'):
+                content = docx_to_markdown(uploaded)
+                content_format = 'markdown'
+            elif filename.endswith(('.md', '.markdown')):
+                content = uploaded.read().decode('utf-8')
+                content_format = 'markdown'
+            else:
+                return Response({'detail': 'Only DOCX and Markdown files are supported.'}, status=status.HTTP_400_BAD_REQUEST)
+            title = title or uploaded.name.rsplit('.', 1)[0]
+        else:
+            content = str(request.data.get('content', ''))
+            content_format = content_format or 'plain'
+        if not content.strip():
+            return Response({'detail': 'Article content is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(title) < 10:
+            title = f'Imported article: {title}'.strip()[:35]
+        article = Article.objects.create(
+            title=title[:35], content=content, content_format=content_format,
+            summary=content[:500], author=request.user, email=request.user.email,
+            agreed_to_terms=True, category=request.data.get('category') or None,
+        )
+        record_audit_event(actor=request.user, action='article_imported', article=article, details={'content_format': content_format, 'filename': uploaded.name if uploaded else None})
+        return Response(ArticleWorkflowSerializer(article).data, status=status.HTTP_201_CREATED)
 
 
 class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):

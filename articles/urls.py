@@ -5,11 +5,13 @@ from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
     ArticleAnalyticsView,
+    ArticleExportView,
     ArticleReviewView,
     ArticleSearchViewV2,
     ArticleAutocompleteView,
     ArticleWorkflowActionView,
     ArticleWorkflowView,
+    ArticleImportView,
     CommentDeleteView, CommentModerationView, CommentReportView,
     CommentListCreateView,
     LikeToggleView,
@@ -101,6 +103,8 @@ urlpatterns = [
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
     path('api/v2/articles/autocomplete/', ArticleAutocompleteView.as_view(), name='article-autocomplete'),
     path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
+    path('api/v2/articles/<int:article_id>/export/', ArticleExportView.as_view(), name='article-export'),
+    path('api/v2/import/', ArticleImportView.as_view(), name='article-import'),
     path('api/v2/articles/<int:article_id>/assistant/', ArticleAssistantView.as_view(), name='article-assistant'),
     path('api/v2/assistant/runs/<int:run_id>/apply/', EditorialAssistantApplyView.as_view(), name='assistant-run-apply'),
     path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
