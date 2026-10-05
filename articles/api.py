@@ -45,7 +45,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -292,6 +292,38 @@ class ArticleFactCheckView(APIView):
         check = serializer.save(article=article, checked_by=request.user)
         record_audit_event(actor=request.user, action='article_fact_checked', article=article, details={'fact_check_id': check.id, 'verdict': check.verdict})
         return Response(ArticleFactCheckSerializer(check).data, status=201)
+
+
+class ArticleEvidenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and (not request.user.is_authenticated or request.user.role not in {'Editor', 'Admin'}):
+            return Response({'detail': 'Evidence is not publicly available for this article.'}, status=status.HTTP_403_FORBIDDEN)
+        sources = article.sources.all()
+        checks = article.fact_checks.all()
+        verdicts = {value: checks.filter(verdict=value).count() for value, _ in ArticleFactCheck.VERDICT_CHOICES}
+        if not sources:
+            quality_status = 'missing_sources'
+        elif not checks.exists():
+            quality_status = 'needs_fact_check'
+        elif verdicts['false'] or verdicts['unverified']:
+            quality_status = 'needs_review'
+        else:
+            quality_status = 'reviewed'
+        return Response({
+            'article_id': article.id,
+            'source_count': sources.count(),
+            'primary_source_count': sources.filter(source_type='primary').count(),
+            'fact_check_count': checks.count(),
+            'verified_claims': verdicts['verified'],
+            'verdicts': verdicts,
+            'quality_status': quality_status,
+            'sources': ArticleSourceSerializer(sources, many=True).data,
+            'fact_checks': ArticleFactCheckSerializer(checks, many=True).data,
+        })
 
 
 class ArticleCollaborationView(APIView):

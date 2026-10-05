@@ -39,7 +39,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -106,6 +106,7 @@ urlpatterns = [
     path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
     path('api/v2/articles/<int:article_id>/sources/', ArticleSourceView.as_view(), name='article-sources'),
     path('api/v2/articles/<int:article_id>/fact-checks/', ArticleFactCheckView.as_view(), name='article-fact-checks'),
+    path('api/v2/articles/<int:article_id>/evidence/', ArticleEvidenceView.as_view(), name='article-evidence'),
     path('api/v2/articles/<int:article_id>/collaboration/', ArticleCollaborationView.as_view(), name='article-collaboration'),
     path('api/v2/articles/<int:article_id>/media/', ArticleMediaView.as_view(), name='article-media'),
     path('api/v2/articles/<int:article_id>/live/', ArticleLiveUpdateView.as_view(), name='article-live-updates'),
