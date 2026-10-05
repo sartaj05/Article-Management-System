@@ -174,7 +174,8 @@
       <!-- Search bar -->
       <input type="text" id="search-bar" placeholder="Search by title or category" />
   
-      <table id="article-table" class="article-table">
+      <div class="article-table article-table--manage">
+        <table id="article-table">
         <thead>
           <tr>
             <th>Sr. No.</th>  
@@ -189,7 +190,8 @@
         <tbody id="article-list">
           <!-- Data will be filled dynamically via JavaScript -->
         </tbody>
-      </table>
+        </table>
+      </div>
       <div id="no-articles-message" style="display: none">
         No articles available.
       </div>

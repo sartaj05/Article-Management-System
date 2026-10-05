@@ -270,6 +270,7 @@ function appendArticle(article) {
   const category = article.category || "No Category";
   const publishDate = article.publish_date || "No Date";
   const status = article.status || "No Status";
+  const statusKey = String(status).toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const imageUrl = article.image || "";
   const imageAlt = article.title || "Article Image"; // Use the article title as alt text
   const imageMarkup = imageUrl
@@ -283,13 +284,13 @@ function appendArticle(article) {
       <td>${title}</td>
       <td>${category}</td>
       <td>${publishDate}</td>
-      <td>${status}</td>
+      <td><span class="status-badge status-badge--${statusKey}">${status}</span></td>
       <td>${imageMarkup}</td>
-      <td>
+      <td class="table-actions">
        
- <button class="view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>        
- <button class="edit-article" data-id="${article.id}">Edit</button>
-        <button class="delete-article" data-id="${article.id}">Delete</button>
+ <button type="button" class="table-action table-action--view view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>
+ <button type="button" class="table-action table-action--edit edit-article" data-id="${article.id}">Edit</button>
+        <button type="button" class="table-action table-action--delete delete-article" data-id="${article.id}">Delete</button>
       </td>
     </tr>
   `;
