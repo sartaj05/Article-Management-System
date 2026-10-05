@@ -1,4 +1,22 @@
 body.auth-shell { display: block; min-height: 100vh; padding: 0; background: #f4f6fb; }
+body.auth-shell > .site-header {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  margin: 0;
+}
+
+body.auth-shell > .site-header .site-header__inner {
+  width: min(1180px, calc(100% - 40px));
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+@media (max-width: 720px) {
+  body.auth-shell > .site-header { min-height: 66px; }
+  body.auth-shell > .site-header .site-header__inner { width: min(100% - 28px, 620px); }
+}
+
 .auth-header { border-bottom: 1px solid var(--line); background: rgba(255,255,255,.92); }
 .auth-header > .auth-header__inner { width: min(1180px, calc(100% - 40px)); max-width: 1180px; margin-inline: auto; }
 .auth-header__inner { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
