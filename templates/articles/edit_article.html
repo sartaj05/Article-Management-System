@@ -12,9 +12,8 @@
 </head>
 <body class="dashboard-shell">
     <header class="workspace-topbar">
-        <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">*</span><span>Article Studio<small>Editorial workspace</small></span></a>
+        <a class="workspace-topbar__brand" href="{% url 'journalist-dashboard' %}"><span class="workspace-topbar__mark">*</span><span>Article Studio<small>Editorial workspace</small></span></a>
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
-            <a href="{% url 'home' %}">Discover</a>
             <a href="{% url 'journalist-dashboard' %}" id="home-link">Workspace home</a>
             <a href="{% url 'journalist-dashboard' %}#article-list-page" id="article-list-link">Articles</a>
             <a href="{% url 'home' %}" id="logout-link" class="workspace-logout" data-dashboard-logout>Log out</a>
