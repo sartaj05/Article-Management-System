@@ -11,7 +11,7 @@ from . import views
 from .api import (
     AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView,
     MembershipMeView, MembershipPlanView, NewsletterPreviewView, NewsletterSubscriptionView,
-    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView,
+    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceInvitationAcceptView,
 )
@@ -35,6 +35,7 @@ path('', views.home, name='home'),
     path('security/events/', SecurityEventListView.as_view(), name='security-events'),
     path('security/center/', SecurityCenterView.as_view(), name='security-center'),
     path('security/sessions/<int:pk>/', SecuritySessionRevokeView.as_view(), name='security-session-revoke'),
+    path('support/chat/', SupportChatView.as_view(), name='support-chat'),
     
     # User List (Admin Only)
     path('user-list/', UserListView.as_view(), name='user-list'),

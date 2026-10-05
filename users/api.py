@@ -25,6 +25,24 @@ from .models import (
     WorkspaceMembership,
 )
 from articles.models import Article
+from .support_bot import get_support_response
+
+
+class SupportChatView(APIView):
+    """Answer support questions from the project's own documentation."""
+
+    permission_classes = []
+
+    def get(self, request):
+        return Response(get_support_response(''))
+
+    def post(self, request):
+        message = str(request.data.get('message', '')).strip()
+        if not message:
+            return Response({'detail': 'message is required.'}, status=400)
+        if len(message) > 500:
+            return Response({'detail': 'message must be 500 characters or fewer.'}, status=400)
+        return Response(get_support_response(message))
 
 
 class ProfileUpdateSerializer(serializers.Serializer):

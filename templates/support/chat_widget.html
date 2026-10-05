@@ -1,0 +1,30 @@
+<section class="support-chat" data-support-chat aria-label="Help and support">
+    <button class="support-chat__launcher" type="button" data-support-open aria-expanded="false" aria-controls="support-chat-panel">
+        <span class="support-chat__launcher-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></span>
+        <span>Help &amp; support</span>
+    </button>
+
+    <div class="support-chat__panel" id="support-chat-panel" data-support-panel hidden>
+        <div class="support-chat__header">
+            <div>
+                <span class="support-chat__eyebrow">Article Studio support</span>
+                <h2>How can we help?</h2>
+            </div>
+            <button class="support-chat__close" type="button" data-support-close aria-label="Close help and support">&times;</button>
+        </div>
+        <div class="support-chat__messages" data-support-messages aria-live="polite">
+            <div class="support-chat__message support-chat__message--bot">Hi! Ask me about the article workflow, SEO, media, security, or any other project feature.</div>
+        </div>
+        <div class="support-chat__suggestions" data-support-suggestions>
+            <button type="button" data-support-question="How do I submit an article?">Submit an article</button>
+            <button type="button" data-support-question="How do I improve article SEO?">Improve SEO</button>
+            <button type="button" data-support-question="How do I revoke a session?">Revoke a session</button>
+        </div>
+        <form class="support-chat__form" data-support-form>
+            <label class="sr-only" for="support-message">Ask for help</label>
+            <input id="support-message" name="message" type="text" maxlength="500" autocomplete="off" placeholder="Ask about this project..." required>
+            <button type="submit" aria-label="Send support question"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button>
+        </form>
+        <p class="support-chat__note">Project guide answers only. Never share passwords or API keys.</p>
+    </div>
+</section>

@@ -96,3 +96,20 @@ class UserFeatureTests(TestCase):
         session.refresh_from_db()
         self.assertIsNotNone(session.revoked_at)
         self.assertTrue(SecurityEvent.objects.filter(event_type='token_revoked', details__session_id=session.id).exists())
+
+    def test_support_chat_answers_project_questions(self):
+        response = self.client.post(
+            '/api/support/chat/', {'message': 'How do I submit an article?'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['topic'], 'article-workflow')
+        self.assertIn('submit', response.data['answer'].lower())
+
+    def test_support_chat_rejects_empty_messages_and_falls_back_safely(self):
+        response = self.client.post('/api/support/chat/', {'message': ''}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.post('/api/support/chat/', {'message': 'What is my password?'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['topic'], 'fallback')
+        self.assertNotIn('password', response.data['answer'].lower())
