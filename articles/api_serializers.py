@@ -53,11 +53,13 @@ class TagSerializer(serializers.ModelSerializer):
 
 class ArticleAssignmentSerializer(serializers.ModelSerializer):
     editor_name = serializers.CharField(source='editor.username', read_only=True)
+    article_title = serializers.CharField(source='article.title', read_only=True)
+    author_name = serializers.CharField(source='article.author.username', read_only=True)
 
     class Meta:
         model = ArticleAssignment
-        fields = ['id', 'article', 'editor', 'editor_name', 'can_review', 'can_edit', 'can_publish', 'created_at']
-        read_only_fields = ['id', 'article', 'editor_name', 'created_at']
+        fields = ['id', 'article', 'article_title', 'author_name', 'editor', 'editor_name', 'can_review', 'can_edit', 'can_publish', 'status', 'priority', 'due_at', 'notes', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'article_title', 'author_name', 'editor_name', 'created_at', 'updated_at']
 
 
 class ArticleImageSerializer(serializers.ModelSerializer):

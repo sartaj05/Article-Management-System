@@ -529,14 +529,29 @@ class AuditLog(models.Model):
 
 
 class ArticleAssignment(models.Model):
+    STATUS_CHOICES = [
+        ('queued', 'Queued'),
+        ('in_progress', 'In progress'),
+        ('review', 'Review'),
+        ('blocked', 'Blocked'),
+        ('done', 'Done'),
+    ]
+    PRIORITY_CHOICES = [('low', 'Low'), ('normal', 'Normal'), ('high', 'High'), ('urgent', 'Urgent')]
+
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='assignments')
     editor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_assignments')
     can_review = models.BooleanField(default=True)
     can_edit = models.BooleanField(default=False)
     can_publish = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='queued')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
+    due_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        ordering = ['-priority', 'due_at', '-updated_at']
         constraints = [
             models.UniqueConstraint(fields=['article', 'editor'], name='unique_article_editor_assignment'),
         ]

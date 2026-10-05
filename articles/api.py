@@ -1030,10 +1030,20 @@ class ArticleAssignmentView(APIView):
         assignment, _ = ArticleAssignment.objects.update_or_create(
             article=article,
             editor=editor,
-            defaults={key: serializer.validated_data.get(key, False) for key in ('can_review', 'can_edit', 'can_publish')},
+            defaults={key: serializer.validated_data[key] for key in ('can_review', 'can_edit', 'can_publish', 'status', 'priority', 'due_at', 'notes') if key in serializer.validated_data},
         )
         record_audit_event(actor=request.user, action='article_assignment_updated', article=article, details={'editor_id': editor.id})
         return Response(ArticleAssignmentSerializer(assignment).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, article_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can update assignments.'}, status=status.HTTP_403_FORBIDDEN)
+        assignment = get_object_or_404(ArticleAssignment, article_id=article_id, pk=request.data.get('assignment_id'))
+        serializer = ArticleAssignmentSerializer(assignment, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        record_audit_event(actor=request.user, action='article_assignment_board_updated', article=assignment.article, details={'assignment_id': assignment.id})
+        return Response(serializer.data)
 
     def delete(self, request, article_id):
         if request.user.role != 'Admin':
@@ -1045,6 +1055,28 @@ class ArticleAssignmentView(APIView):
             return Response({'detail': 'Assignment not found.'}, status=status.HTTP_404_NOT_FOUND)
         record_audit_event(actor=request.user, action='article_assignment_removed', article=article, details={'editor_id': editor_id})
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AssignmentBoardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view the assignment board.'}, status=status.HTTP_403_FORBIDDEN)
+        queryset = ArticleAssignment.objects.select_related('article', 'article__author', 'editor')
+        status_filter = request.query_params.get('status')
+        priority_filter = request.query_params.get('priority')
+        editor_id = request.query_params.get('editor_id')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        if priority_filter:
+            queryset = queryset.filter(priority=priority_filter)
+        if editor_id:
+            queryset = queryset.filter(editor_id=editor_id)
+        return Response({
+            'count': queryset.count(),
+            'columns': {column: ArticleAssignmentSerializer(queryset.filter(status=column), many=True).data for column, _ in ArticleAssignment.STATUS_CHOICES},
+        })
 
 
 class ArticleFeatureView(APIView):

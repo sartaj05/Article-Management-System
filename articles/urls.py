@@ -39,7 +39,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -152,6 +152,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/trash/', ArticleTrashView.as_view(), {'action': 'trash'}, name='article-trash-action'),
     path('api/v2/articles/<int:article_id>/restore/', ArticleTrashView.as_view(), {'action': 'restore'}, name='article-restore-action'),
     path('api/v2/articles/<int:article_id>/assignments/', ArticleAssignmentView.as_view(), name='article-assignments'),
+    path('api/v2/assignments/board/', AssignmentBoardView.as_view(), name='assignment-board'),
     path('api/v2/articles/<int:article_id>/featured/', ArticleFeatureView.as_view(), name='article-featured'),
     path('api/v2/articles/<int:article_id>/gallery/', ArticleGalleryView.as_view(), name='article-gallery'),
     path('api/v2/articles/<int:article_id>/autosave/', ArticleAutosaveView.as_view(), name='article-autosave'),
