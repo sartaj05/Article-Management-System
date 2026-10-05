@@ -344,6 +344,24 @@ class WebhookEndpoint(models.Model):
         return self.url
 
 
+class WebhookDelivery(models.Model):
+    STATUS_CHOICES = [('queued', 'Queued'), ('sent', 'Sent'), ('failed', 'Failed')]
+
+    endpoint = models.ForeignKey(WebhookEndpoint, on_delete=models.CASCADE, related_name='deliveries')
+    event_id = models.UUIDField(default=uuid4, unique=True, editable=False)
+    event_type = models.CharField(max_length=80)
+    payload = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='queued')
+    response_code = models.PositiveSmallIntegerField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_error = models.CharField(max_length=500, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class PrivacyPreference(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='privacy_preferences')
     analytics_enabled = models.BooleanField(default=False)

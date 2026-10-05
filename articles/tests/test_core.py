@@ -6,7 +6,8 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from users.models import CustomUser, MembershipPlan, MembershipSubscription, MembershipWebhookEvent
+from users.models import CustomUser, MembershipPlan, MembershipSubscription, MembershipWebhookEvent, WebhookDelivery, WebhookEndpoint
+from unittest.mock import Mock, patch
 
 from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, EditorialAssistantRun, Like, Notification
 
@@ -277,3 +278,20 @@ class ArticleFeatureTests(TestCase):
         response = self.client.post('/api/membership/webhook/', body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=signature)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data['duplicate'])
+
+    @patch('users.delivery.requests.post')
+    def test_published_event_is_delivered_to_subscribed_webhook(self, post):
+        post.return_value = Mock(status_code=204)
+        WebhookEndpoint.objects.create(
+            owner=self.journalist, url='https://hooks.example.com/article', secret='delivery-secret',
+            events=['article.published'],
+        )
+        from users.delivery import dispatch_webhook_event
+        deliveries = dispatch_webhook_event(
+            owner=self.journalist, event_type='article.published',
+            payload={'article_id': self.article.id, 'status': 'published'},
+        )
+        self.assertEqual(len(deliveries), 1)
+        self.assertEqual(deliveries[0].status, 'sent')
+        self.assertEqual(WebhookDelivery.objects.count(), 1)
+        self.assertTrue(post.called)

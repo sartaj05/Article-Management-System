@@ -23,6 +23,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.models import CustomUser, ReaderInterest, has_active_membership
 from users.api import resolve_public_api_key
+from users.delivery import dispatch_webhook_event
 
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
@@ -502,6 +503,11 @@ class ArticleWorkflowActionView(APIView):
             article.is_visible = False
             article.save(update_fields=['workflow_status', 'review_status', 'status', 'rejection_reason', 'submitted_at', 'is_visible', 'updated_at'])
             record_audit_event(actor=request.user, action='article_submitted', article=article)
+            dispatch_webhook_event(
+                owner=article.author,
+                event_type='article.submitted',
+                payload={'article_id': article.id, 'title': article.title, 'status': article.workflow_status},
+            )
             for editor in CustomUser.objects.filter(role__in=['Editor', 'Admin'], is_active=True):
                 notify(
                     recipient=editor,
@@ -531,6 +537,11 @@ class ArticleWorkflowActionView(APIView):
             article.is_visible = True
             article.save(update_fields=['workflow_status', 'review_status', 'status', 'published_at', 'publish_date', 'is_visible', 'updated_at'])
             record_audit_event(actor=request.user, action='article_published', article=article)
+            dispatch_webhook_event(
+                owner=article.author,
+                event_type='article.published',
+                payload={'article_id': article.id, 'title': article.title, 'status': article.workflow_status, 'published_at': article.published_at},
+            )
             notify(
                 recipient=article.author,
                 article=article,

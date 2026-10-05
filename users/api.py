@@ -21,7 +21,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -489,6 +489,26 @@ class WebhookEndpointView(APIView):
         serializer.is_valid(raise_exception=True)
         endpoint = serializer.save(owner=request.user, secret=serializer.validated_data.get('secret') or secrets.token_urlsafe(32))
         return Response(WebhookEndpointSerializer(endpoint).data, status=201)
+
+
+class WebhookDeliveryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        deliveries = WebhookDelivery.objects.filter(endpoint__owner=request.user).select_related('endpoint')[:100]
+        return Response([{
+            'id': delivery.id,
+            'event_id': delivery.event_id,
+            'endpoint_id': delivery.endpoint_id,
+            'event_type': delivery.event_type,
+            'status': delivery.status,
+            'response_code': delivery.response_code,
+            'attempts': delivery.attempts,
+            'last_error': delivery.last_error,
+            'delivered_at': delivery.delivered_at,
+            'created_at': delivery.created_at,
+        } for delivery in deliveries])
 
 
 class DeveloperAPIDocumentationView(APIView):

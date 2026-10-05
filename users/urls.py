@@ -12,7 +12,7 @@ from .api import (
     AccessibilityPreferenceView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView,
     MembershipMeView, MembershipPlanView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView,
-    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
+    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceInvitationAcceptView,
 )
 urlpatterns = [
@@ -62,6 +62,7 @@ path('', views.home, name='home'),
     path('developer/keys/', PublicAPIKeyView.as_view(), name='public-api-keys'),
     path('developer/keys/<int:pk>/', PublicAPIKeyDetailView.as_view(), name='public-api-key-detail'),
     path('developer/webhooks/', WebhookEndpointView.as_view(), name='webhook-endpoints'),
+    path('developer/webhook-deliveries/', WebhookDeliveryView.as_view(), name='webhook-deliveries'),
     path('privacy/preferences/', PrivacyPreferenceView.as_view(), name='privacy-preferences'),
     path('privacy/consents/', PrivacyConsentView.as_view(), name='privacy-consents'),
     path('privacy/requests/', PrivacyRequestView.as_view(), name='privacy-requests'),
