@@ -268,8 +268,11 @@ function appendArticle(article) {
   const category = article.category || "No Category";
   const publishDate = article.publish_date || "No Date";
   const status = article.status || "No Status";
-  const imageUrl = article.image || "/path/to/default-image.jpg"; // Default image if not provided
+  const imageUrl = article.image || "";
   const imageAlt = article.title || "Article Image"; // Use the article title as alt text
+  const imageMarkup = imageUrl
+    ? `<img src="${imageUrl}" alt="${imageAlt}" width="100" />`
+    : '<span class="image-placeholder">No image</span>';
 
   // Create the article row using template literals
   const articleItem = `
@@ -279,7 +282,7 @@ function appendArticle(article) {
       <td>${category}</td>
       <td>${publishDate}</td>
       <td>${status}</td>
-      <td><img src="${imageUrl}" alt="${imageAlt}" width="100" /> </td>
+      <td>${imageMarkup}</td>
       <td>
        
  <button class="view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>        
@@ -314,16 +317,23 @@ $(document).on('click', '.view-article', function () {
   $('#modal-tags').text(`Tags: ${article.tags}`);
   $('#modal-publish-date').text(`Published Date: ${article.publishDate}`);
   $('#modal-status').text(`Status: ${article.status}`);
-  $('#modal-image').attr('src', article.image);
+  const $modalImage = $('#modal-image');
+  if (article.image) {
+    $modalImage.attr('src', article.image).show();
+  } else {
+    $modalImage.removeAttr('src').hide();
+  }
+  $modalImage.off('error').on('error', function () {
+    $(this).removeAttr('src').hide();
+  });
   $('#modal-content').text(`Content: ${article.content}`);
   // Show the modal
   $('#article-modal').show();
 });
 
 // Event listener for the "Close" button click
-$(document).on('click', '#close-modal', function () {
-  // Hide the modal
-  $('#article-modal').hide();
+$(document).on('click', '.modal-close, .close-modal', function () {
+  $(this).closest('.modal').hide();
 });
 
   

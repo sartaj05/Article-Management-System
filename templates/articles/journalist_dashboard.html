@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Article Management Journalist Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005" />
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1" />
     <link rel="stylesheet" href="{% static 'css/support-chat.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
  
@@ -198,7 +198,7 @@
 <!-- Article Details Modal -->
 <div id="article-modal" class="modal">
   <div class="modal-content">
-    <button id="close-modal" class="modal-close btn">X</button> <!-- Close button on the top-right -->
+    <button type="button" id="close-article-modal" class="modal-close btn" aria-label="Close article details">X</button>
     <h4>Article Details</h4>
     <p id="modal-id"></p>
     <p id="modal-title"></p>
@@ -212,7 +212,7 @@
     <img id="modal-image" src="" alt="Article Image" />
   </div>
   <div class="modal-footer">
-    <button id="close-modal" class="btn">Close</button>
+    <button type="button" id="close-article-modal-footer" class="btn modal-close">Close</button>
   </div>
 </div>
 
@@ -249,7 +249,7 @@
       </div>
       <div class="input-field">
         <label for="editCategory">Category</label>
-        <select id="category" name="category" required>
+        <select id="editCategory" name="category" required>
           <option value="" disabled selected>Select a category</option>
           <option value="news">News</option>
           <option value="opinion">Opinion</option>
