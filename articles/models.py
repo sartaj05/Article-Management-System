@@ -141,15 +141,41 @@ class Article(models.Model):
         return self.title
 
 class Comment(models.Model):
+    MODERATION_STATUS_CHOICES = [
+        ('visible', 'Visible'),
+        ('pending', 'Pending review'),
+        ('hidden', 'Hidden'),
+        ('removed', 'Removed'),
+    ]
     author = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)  # Correct reference
     content = models.TextField()
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='comments')
     is_editorial = models.BooleanField(default=False)
+    moderation_status = models.CharField(max_length=20, choices=MODERATION_STATUS_CHOICES, default='visible')
+    moderation_reason = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.content[:50]
+
+
+class CommentReport(models.Model):
+    STATUS_CHOICES = [('open', 'Open'), ('reviewed', 'Reviewed'), ('dismissed', 'Dismissed')]
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='reports')
+    reported_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comment_reports')
+    reason = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='comment_reports_reviewed')
+    resolution = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['status', '-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['comment', 'reported_by'], name='unique_comment_reporter'),
+        ]
 
 # Additional Models
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -8,8 +8,19 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['id', 'article', 'author', 'author_name', 'content', 'is_editorial', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'article', 'author', 'author_name', 'created_at', 'updated_at']
+        fields = ['id', 'article', 'author', 'author_name', 'content', 'is_editorial', 'moderation_status', 'moderation_reason', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'author', 'author_name', 'is_editorial', 'moderation_status', 'moderation_reason', 'created_at', 'updated_at']
+
+
+class CommentReportSerializer(serializers.ModelSerializer):
+    reporter_name = serializers.CharField(source='reported_by.username', read_only=True)
+    reviewer_name = serializers.CharField(source='reviewed_by.username', read_only=True, default=None)
+    comment_content = serializers.CharField(source='comment.content', read_only=True)
+
+    class Meta:
+        model = CommentReport
+        fields = ['id', 'comment', 'comment_content', 'reported_by', 'reporter_name', 'reason', 'status', 'reviewed_by', 'reviewer_name', 'resolution', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'comment', 'comment_content', 'reported_by', 'reporter_name', 'reviewed_by', 'reviewer_name', 'created_at', 'updated_at']
 
 
 class RevisionSerializer(serializers.ModelSerializer):

@@ -40,12 +40,12 @@ from .api_serializers import (
     CategorySerializer,
     TagSerializer,
     ArticleWorkflowSerializer,
-    CommentSerializer,
+    CommentSerializer, CommentReportSerializer,
     NotificationSerializer,
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -758,23 +758,76 @@ class CommentListCreateView(generics.ListCreateAPIView):
         article = get_object_or_404(Article, pk=self.kwargs['article_id'])
         queryset = article.comments.select_related('author').all()
         if self.request.user.role not in {'Editor', 'Admin'} and article.author_id != self.request.user.id:
-            queryset = queryset.filter(is_editorial=False)
+            queryset = queryset.filter(is_editorial=False, moderation_status='visible')
         return queryset
 
     def perform_create(self, serializer):
         article = get_object_or_404(Article, pk=self.kwargs['article_id'])
-        serializer.save(
+        comment = serializer.save(
             article=article,
             author=self.request.user,
             is_editorial=self.request.user.role in {'Editor', 'Admin'},
         )
+        from .moderation import moderate_comment
+        flags = moderate_comment(comment.content)
+        if flags:
+            comment.moderation_status = 'pending'
+            comment.moderation_reason = flags[0]
+            comment.save(update_fields=['moderation_status', 'moderation_reason', 'updated_at'])
         if article.author_id != self.request.user.id:
             notify(
                 recipient=article.author,
                 article=article,
                 notification_type='comment',
-                message=f'{self.request.user.username} commented on {article.title}.',
+                    message=f'{self.request.user.username} commented on {article.title}.',
             )
+
+
+class CommentReportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        comment = get_object_or_404(Comment, pk=pk)
+        reason = str(request.data.get('reason', '')).strip()
+        if len(reason) < 3:
+            return Response({'detail': 'A report reason is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        report, created = CommentReport.objects.get_or_create(
+            comment=comment, reported_by=request.user, defaults={'reason': reason},
+        )
+        if not created:
+            return Response({'detail': 'You have already reported this comment.'}, status=status.HTTP_409_CONFLICT)
+        return Response(CommentReportSerializer(report).data, status=status.HTTP_201_CREATED)
+
+
+class CommentModerationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view the moderation queue.'}, status=status.HTTP_403_FORBIDDEN)
+        queryset = CommentReport.objects.select_related('comment', 'reported_by', 'reviewed_by').all()
+        if request.query_params.get('status'):
+            queryset = queryset.filter(status=request.query_params['status'])
+        return Response(CommentReportSerializer(queryset, many=True).data)
+
+    def patch(self, request, pk):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can resolve comment reports.'}, status=status.HTTP_403_FORBIDDEN)
+        report = get_object_or_404(CommentReport.objects.select_related('comment'), pk=pk)
+        decision = str(request.data.get('decision', '')).strip().lower()
+        decisions = {'hide': 'hidden', 'remove': 'removed', 'restore': 'visible', 'dismiss': 'visible'}
+        if decision not in decisions:
+            return Response({'detail': 'Decision must be hide, remove, restore, or dismiss.'}, status=status.HTTP_400_BAD_REQUEST)
+        report.status = 'dismissed' if decision == 'dismiss' else 'reviewed'
+        report.resolution = str(request.data.get('resolution', '')).strip()
+        report.reviewed_by = request.user
+        report.save(update_fields=['status', 'resolution', 'reviewed_by', 'updated_at'])
+        comment = report.comment
+        comment.moderation_status = decisions[decision]
+        comment.moderation_reason = report.resolution
+        comment.save(update_fields=['moderation_status', 'moderation_reason', 'updated_at'])
+        record_audit_event(actor=request.user, action='comment_moderated', article=comment.article, details={'comment_id': comment.id, 'decision': decision})
+        return Response(CommentReportSerializer(report).data)
 
 
 class CommentDeleteView(generics.DestroyAPIView):
