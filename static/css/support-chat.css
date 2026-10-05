@@ -35,6 +35,20 @@
     background: rgba(255, 255, 255, .18);
 }
 
+.support-chat__launcher-icon svg {
+    width: 19px;
+    height: 19px;
+    overflow: visible;
+    fill: currentColor;
+}
+
+.support-chat__launcher-icon .support-chat__icon-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.8;
+}
+
 .support-chat__panel {
     position: absolute;
     right: 0;
@@ -87,6 +101,11 @@
     font-size: 1.7rem;
     line-height: 1;
     cursor: pointer;
+}
+
+.support-chat__close:hover,
+.support-chat__close:focus-visible {
+    opacity: .78;
 }
 
 .support-chat__messages {
@@ -167,16 +186,35 @@
     border: 1px solid #d9dded;
     border-radius: 12px;
     padding: 11px 12px;
+    outline: 0;
     background: #fff;
 }
 
+.support-chat__form input:focus {
+    border-color: #655be7;
+    box-shadow: 0 0 0 4px rgba(101, 91, 231, .16);
+}
+
 .support-chat__form button {
+    display: grid;
+    place-items: center;
     width: 42px;
+    min-width: 42px;
     border: 0;
     border-radius: 12px;
     color: #fff;
     background: #655be7;
     cursor: pointer;
+}
+
+.support-chat__form button svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.2;
 }
 
 .support-chat__note {

@@ -262,6 +262,54 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   padding: 18px 0 0;
 }
 
+.dashboard-shell #edit-article-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.dashboard-shell #edit-article-form .input-field {
+  display: grid;
+  gap: 7px;
+}
+
+.dashboard-shell #edit-article-form label {
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 750;
+}
+
+.dashboard-shell #edit-article-form input,
+.dashboard-shell #edit-article-form select,
+.dashboard-shell #edit-article-form textarea {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #dfe3ec;
+  border-radius: 10px;
+  outline: 0;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+}
+
+.dashboard-shell #edit-article-form textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.dashboard-shell #edit-article-form input:focus,
+.dashboard-shell #edit-article-form select:focus,
+.dashboard-shell #edit-article-form textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px rgba(91, 92, 226, .1);
+}
+
+.dashboard-shell #edit-article-form .modal-footer {
+  margin-top: 2px;
+}
+
 .dashboard-shell .modal-close {
   cursor: pointer;
 }

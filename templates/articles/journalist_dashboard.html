@@ -230,7 +230,7 @@
 <div id="editArticleModal" class="modal">
 
   <div class="modal-content">
-    {% comment %} <button id="close-edit-modal" class="modal-close btn">X</button> {% endcomment %}
+    <button type="button" id="close-edit-modal-top" class="modal-close btn" aria-label="Close edit article">X</button>
     <h4>Edit Article</h4>
     <form id="edit-article-form">
       <input type="hidden" id="editArticleId" />
@@ -252,7 +252,7 @@
           <option value="" disabled selected>Select a category</option>
           <option value="news">News</option>
           <option value="opinion">Opinion</option>
-          <option value="feature">Feature</option>
+          <option value="features">Features</option>
       </select>
         
       </div>
