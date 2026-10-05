@@ -1,7 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .models import AccessibilityPreference, CustomUser, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent, SecuritySession
+from .models import AccessibilityPreference, CustomUser, NewsletterEdition, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent, SecuritySession
 
 
 class UserFeatureTests(TestCase):
@@ -51,6 +51,17 @@ class UserFeatureTests(TestCase):
         self.assertTrue(NewsletterSubscription.objects.get(email='reader@example.com').is_active)
         response = self.client.delete('/api/newsletter/subscribe/?email=reader@example.com')
         self.assertTrue(response.data['unsubscribed'])
+
+    def test_editor_can_preview_a_newsletter_edition(self):
+        editor = CustomUser.objects.create_user(
+            username='newsletter-editor', email='newsletter-editor@example.com',
+            password='StrongPass123!', role='Editor',
+        )
+        NewsletterSubscription.objects.create(email='subscriber@example.com', frequency='weekly')
+        self.client.force_authenticate(editor)
+        response = self.client.get('/api/newsletter/preview/?frequency=weekly')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['active_subscribers'], 1)
 
     def test_reader_interests_can_be_followed(self):
         response = self.client.post('/api/reader/interests/', {'interest_type': 'category', 'value': 'news'}, format='json')

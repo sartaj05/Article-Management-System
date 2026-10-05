@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from articles.models import Article
-from users.models import NewsletterSubscription
+from users.models import NewsletterEdition, NewsletterSubscription
 
 
 class Command(BaseCommand):
@@ -13,6 +13,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--frequency', choices=['daily', 'weekly'], default='weekly')
+        parser.add_argument('--dry-run', action='store_true', help='Build an edition without sending email.')
+        parser.add_argument('--subject', default='Article Studio newsletter')
 
     def handle(self, *args, **options):
         since = timezone.now() - timedelta(days=1 if options['frequency'] == 'daily' else 7)
@@ -23,6 +25,16 @@ class Command(BaseCommand):
         lines = ['Here are the latest stories from Article Studio:', '']
         lines.extend(f'- {article.title}: {article.summary or article.content[:160]}' for article in articles)
         message = '\n'.join(lines)
-        recipients = NewsletterSubscription.objects.filter(frequency=options['frequency'], is_active=True).values_list('email', flat=True)
-        send_mass_mail((('Article Studio newsletter', message, settings.NEWSLETTER_FROM_EMAIL, [email]) for email in recipients), fail_silently=True)
-        self.stdout.write(self.style.SUCCESS(f'Newsletter sent to {len(recipients)} subscriber(s).'))
+        subscriptions = NewsletterSubscription.objects.filter(frequency=options['frequency'], is_active=True)
+        recipients = list(subscriptions.values_list('email', flat=True))
+        edition = NewsletterEdition.objects.create(
+            frequency=options['frequency'], subject=options['subject'], body=message,
+            article_ids=[article.id for article in articles],
+            status='draft' if options['dry_run'] else 'sent',
+            recipient_count=len(recipients),
+            sent_at=None if options['dry_run'] else timezone.now(),
+        )
+        if not options['dry_run']:
+            send_mass_mail(((edition.subject, edition.body, settings.NEWSLETTER_FROM_EMAIL, [email]) for email in recipients), fail_silently=True)
+        state = 'prepared' if options['dry_run'] else 'sent'
+        self.stdout.write(self.style.SUCCESS(f'Newsletter {state} for {len(recipients)} subscriber(s). Edition {edition.id}.'))

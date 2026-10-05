@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from .models import (
     AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
-    MembershipSubscription, NewsletterSubscription, NotificationPreference, Profile,
+    MembershipSubscription, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
@@ -128,6 +128,30 @@ class NewsletterSubscriptionView(APIView):
         queryset = NewsletterSubscription.objects.filter(email=email) if email else NewsletterSubscription.objects.filter(unsubscribe_token=token)
         updated = queryset.update(is_active=False)
         return Response({'unsubscribed': bool(updated)})
+
+
+class NewsletterPreviewView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can preview newsletters.'}, status=403)
+        frequency = request.query_params.get('frequency', 'weekly')
+        if frequency not in {'daily', 'weekly'}:
+            return Response({'detail': 'frequency must be daily or weekly.'}, status=400)
+        since = timezone.now() - timedelta(days=1 if frequency == 'daily' else 7)
+        articles = Article.objects.filter(
+            workflow_status='published', is_visible=True, published_at__gte=since,
+        ).order_by('-published_at')[:10]
+        return Response({
+            'frequency': frequency,
+            'active_subscribers': NewsletterSubscription.objects.filter(frequency=frequency, is_active=True).count(),
+            'articles': [
+                {'id': article.id, 'title': article.title, 'summary': article.summary or article.content[:160]}
+                for article in articles
+            ],
+        })
 
 
 class PushSubscriptionSerializer(serializers.ModelSerializer):

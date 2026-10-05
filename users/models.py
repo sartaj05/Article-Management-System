@@ -180,6 +180,25 @@ class NewsletterSubscription(models.Model):
         return self.email
 
 
+class NewsletterEdition(models.Model):
+    STATUS_CHOICES = [('draft', 'Draft'), ('sent', 'Sent')]
+
+    frequency = models.CharField(max_length=10, choices=NewsletterSubscription.FREQUENCY_CHOICES)
+    subject = models.CharField(max_length=200)
+    body = models.TextField()
+    article_ids = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+    recipient_count = models.PositiveIntegerField(default=0)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.frequency} newsletter: {self.subject}'
+
+
 class PushSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='push_subscriptions')
     endpoint = models.URLField(unique=True)
