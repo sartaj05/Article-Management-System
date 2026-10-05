@@ -13,24 +13,18 @@
   <script src="{% static 'js/dashboard-ui.js' %}"></script>
 </head>
 <body class="dashboard-shell">
-  <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
   <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <h2>Editor Dashboard</h2>
-      <nav>
-        <a href="#" id="home-btn">Home</a>
-        <a href="#" id="manage-articles-btn">Manage Articles</a>
-        <a href="#" id="approve-articles-btn">Approve Articles</a>
-        <a href="#" id="reject-articles-btn">Reject Articles</a>
-        <a href="#" id="published-articles-btn">Published Articles</a>
-        <a href="#" id="logout-btn">Logout</a>
-      </nav>
-    </aside>
-
     <header class="workspace-topbar">
       <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Editor workspace</small></span></a>
-      <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#home-section" id="top-editor-home">Workspace home</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+      <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+        <a href="{% url 'home' %}">Discover</a>
+        <a href="#" id="home-btn">Home</a>
+        <a href="#" id="manage-articles-btn">Manage</a>
+        <a href="#" id="approve-articles-btn">Approve</a>
+        <a href="#" id="reject-articles-btn">Review</a>
+        <a href="#" id="published-articles-btn">Published</a>
+        <a href="#" id="logout-btn" class="workspace-logout" data-dashboard-logout>Log out</a>
+      </nav>
     </header>
 
     <!-- Main Content -->

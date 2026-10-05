@@ -21,20 +21,16 @@
 
   </head>
   <body class="dashboard-shell">
-   <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
-   <!-- Sidebar navigation -->
-   <div class="sidebar">
-    <h2>Dashboard</h2>
-    <ul>
-      <li><a href="#" id="home-link">Home</a></li>
-      <li><a href="#" id="create-article-link">Create Article</a></li>
-      <li><a href="#" id="article-list-link">Article List</a></li>
-      <li><a href="#" id="logout-link">Logout</a></li>
-    </ul>
-  </div>
+   
   <header class="workspace-topbar">
     <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Journalist workspace</small></span></a>
-    <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#create-article-page" id="top-create-article">New article</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+    <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+      <a href="{% url 'home' %}">Discover</a>
+      <a href="#" id="home-link">Home</a>
+      <a href="#" id="article-list-link">Articles</a>
+      <a href="#" id="create-article-link" class="workspace-topbar__primary">New article</a>
+      <a href="#" id="logout-link" class="workspace-logout" data-dashboard-logout>Log out</a>
+    </nav>
   </header>
 
   <!-- Main content area -->

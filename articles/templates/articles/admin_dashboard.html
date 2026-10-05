@@ -13,21 +13,15 @@
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 </head>
 <body class="dashboard-shell">
-    <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <h2>Admin Dashboard</h2>
-            <ul>
-                <li><a href="#" class="nav-link" data-page="articles">Manage Articles</a></li>
-                <li><a href="#" class="nav-link" data-page="users">Manage Users</a></li>
-                <li><a href="#" id="logout-btn">Logout</a></li>
-            </ul>
-        </div>
-
         <header class="workspace-topbar">
             <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Admin workspace</small></span></a>
-            <div class="workspace-topbar__actions"><a href="{% url 'home' %}">Discover</a><a href="#articles-section">Articles</a><a href="#" class="workspace-logout" data-dashboard-logout>Log out</a></div>
+            <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+                <a href="{% url 'home' %}">Discover</a>
+                <a href="#" class="nav-link" data-page="articles">Articles</a>
+                <a href="#" class="nav-link" data-page="users">Users</a>
+                <a href="#" id="logout-btn" class="workspace-logout" data-dashboard-logout>Log out</a>
+            </nav>
         </header>
 
         <!-- Main Content -->

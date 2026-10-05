@@ -10,17 +10,15 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body class="dashboard-shell">
-    <button class="sidebar-toggle" type="button" aria-label="Toggle dashboard navigation" aria-expanded="false">☰</button>
-    <!-- Sidebar navigation -->
-    <div class="sidebar">
-        <h2>Dashboard</h2>
-        <ul>
-            <li><a href="#" id="home-link">Home</a></li>
-            <li><a href="#" id="create-article-link">Create Article</a></li>
-            <li><a href="#" id="article-list-link">Article List</a></li>
-            <li><a href="#" id="logout-link">Logout</a></li>
-        </ul>
-    </div>
+    <header class="workspace-topbar">
+        <a class="workspace-topbar__brand" href="{% url 'home' %}"><span class="workspace-topbar__mark">*</span><span>Article Studio<small>Editorial workspace</small></span></a>
+        <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+            <a href="{% url 'home' %}">Discover</a>
+            <a href="{% url 'journalist-dashboard' %}" id="home-link">Workspace home</a>
+            <a href="{% url 'journalist-dashboard' %}#article-list-page" id="article-list-link">Articles</a>
+            <a href="{% url 'home' %}" id="logout-link" class="workspace-logout" data-dashboard-logout>Log out</a>
+        </nav>
+    </header>
 
     <!-- Main content area -->
     <div class="content">
