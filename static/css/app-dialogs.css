@@ -1,0 +1,110 @@
+.app-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 23, 52, .58);
+  backdrop-filter: blur(5px);
+}
+
+.app-dialog[hidden] { display: none !important; }
+
+.app-dialog__card {
+  width: min(440px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 20px;
+  background: var(--surface, #fff);
+  box-shadow: 0 24px 70px rgba(20, 25, 60, .28);
+  animation: app-dialog-in .18s ease-out;
+}
+
+.app-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 22px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #292553, #5b5ce2);
+}
+
+.app-dialog__icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.app-dialog__eyebrow {
+  margin: 0 0 4px;
+  color: #b9f8ec;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.app-dialog__title {
+  margin: 0;
+  color: inherit;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.app-dialog__close {
+  margin-left: auto;
+  border: 0;
+  color: #fff;
+  background: transparent;
+  font-size: 1.55rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-dialog__body { padding: 22px; }
+.app-dialog__message { margin: 0; color: var(--ink, #172033); font-size: .95rem; line-height: 1.6; white-space: pre-wrap; }
+
+.app-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 22px;
+}
+
+.app-dialog__button {
+  min-height: 38px;
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: .83rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.app-dialog__button--cancel { color: var(--muted, #667085); border-color: var(--line, #e6eaf2); background: #fff; }
+.app-dialog__button--cancel:hover { background: var(--surface-soft, #f6f8fc); }
+.app-dialog__button--confirm { color: #fff; background: var(--brand, #5b5ce2); }
+.app-dialog__button--confirm:hover { background: var(--brand-dark, #4546bd); }
+
+.app-dialog[data-dialog-kind="error"] .app-dialog__header { background: linear-gradient(135deg, #7d2845, #c2415b); }
+.app-dialog[data-dialog-kind="success"] .app-dialog__header { background: linear-gradient(135deg, #176d61, #19b394); }
+
+@keyframes app-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 520px) {
+  .app-dialog { align-items: end; padding: 12px; }
+  .app-dialog__card { border-radius: 18px; }
+  .app-dialog__body { padding: 20px 18px; }
+}

@@ -72,11 +72,11 @@ $(document).ready(function () {
         });
     }
 
-    $(document).on("click", ".publish-btn", function () {
+    $(document).on("click", ".publish-btn", async function () {
         const articleId = $(this).data("id");
     
         // Confirmation dialog
-        if (!confirm("Are you sure you want to publish this article?")) {
+        if (!(await window.appConfirm("Are you sure you want to publish this article?", { title: "Publish article" }))) {
             return;
         }
     
@@ -311,10 +311,10 @@ function fetchPublishedArticles() {
     });
 
     // Approve article functionality
-    $(document).on("click", ".approve-btn", function () {
+    $(document).on("click", ".approve-btn", async function () {
         const articleId = $(this).data("id");
 
-        const confirmApproval = confirm("Are you sure you want to approve this article?");
+        const confirmApproval = await window.appConfirm("Are you sure you want to approve this article?", { title: "Approve article" });
         if (!confirmApproval) {
             return;
         }
@@ -348,10 +348,10 @@ function fetchPublishedArticles() {
     });
 
     // Reject article functionality
-    $(document).on("click", ".reject-btn", function () {
+    $(document).on("click", ".reject-btn", async function () {
         const articleId = $(this).data("id");
 
-        if (!confirm("Are you sure you want to reject this article?")) {
+        if (!(await window.appConfirm("Are you sure you want to reject this article?", { title: "Reject article" }))) {
             return;
         }
 
