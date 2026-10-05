@@ -280,6 +280,18 @@ class MembershipSubscription(models.Model):
         return f'{self.user.username}: {self.plan.name} ({self.status})'
 
 
+class MembershipWebhookEvent(models.Model):
+    provider = models.CharField(max_length=30, default='payment')
+    event_id = models.CharField(max_length=160, unique=True)
+    event_type = models.CharField(max_length=80)
+    payload = models.JSONField(default=dict, blank=True)
+    processed_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class AuthorTip(models.Model):
     STATUS_CHOICES = [('pending', 'Pending'), ('succeeded', 'Succeeded'), ('failed', 'Failed'), ('refunded', 'Refunded')]
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='tips_sent')

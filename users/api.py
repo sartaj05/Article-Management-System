@@ -1,4 +1,6 @@
 import hashlib
+import hmac
+import json
 import secrets
 
 from rest_framework import serializers
@@ -9,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -17,7 +20,7 @@ from decimal import Decimal
 
 from .models import (
     AccessibilityPreference, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
-    MembershipSubscription, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
+    MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
@@ -295,6 +298,54 @@ class MembershipCancelView(APIView):
         subscription.auto_renew = False
         subscription.save(update_fields=['status', 'auto_renew', 'updated_at'])
         return Response(MembershipSubscriptionSerializer(subscription).data)
+
+
+class MembershipWebhookView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        secret = settings.PAYMENT_WEBHOOK_SECRET
+        if not secret:
+            return Response({'detail': 'Payment webhook is not configured.'}, status=503)
+        signature = request.headers.get('X-Payment-Signature', '')
+        expected = 'sha256=' + hmac.new(secret.encode(), request.body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            return Response({'detail': 'Invalid payment webhook signature.'}, status=403)
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return Response({'detail': 'Webhook payload must be valid JSON.'}, status=400)
+        event_id = str(payload.get('id', '')).strip()
+        event_type = str(payload.get('type', '')).strip()
+        data = payload.get('data') or {}
+        if not event_id or not event_type:
+            return Response({'detail': 'Webhook id and type are required.'}, status=400)
+        event, created = MembershipWebhookEvent.objects.get_or_create(
+            event_id=event_id,
+            defaults={'event_type': event_type, 'payload': payload},
+        )
+        if not created:
+            return Response({'processed': True, 'duplicate': True})
+        if event_type not in {'subscription.active', 'subscription.canceled', 'subscription.past_due'}:
+            return Response({'processed': True, 'ignored': True})
+        user = get_object_or_404(CustomUser, pk=data.get('user_id'))
+        plan = get_object_or_404(MembershipPlan, pk=data.get('plan_id'), is_active=True)
+        status_map = {
+            'subscription.active': 'active',
+            'subscription.canceled': 'canceled',
+            'subscription.past_due': 'past_due',
+        }
+        subscription, _ = MembershipSubscription.objects.update_or_create(
+            user=user,
+            plan=plan,
+            provider_reference=str(data.get('provider_reference', '')),
+            defaults={
+                'provider': str(data.get('provider', 'payment'))[:30],
+                'status': status_map[event_type],
+                'auto_renew': event_type == 'subscription.active',
+            },
+        )
+        return Response({'processed': True, 'subscription_id': subscription.id})
 
 
 class PublicAuthorView(APIView):

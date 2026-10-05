@@ -1,8 +1,12 @@
-from django.test import TestCase
+import hashlib
+import hmac
+import json
+
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from users.models import CustomUser, MembershipPlan, MembershipSubscription
+from users.models import CustomUser, MembershipPlan, MembershipSubscription, MembershipWebhookEvent
 
 from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, EditorialAssistantRun, Like, Notification
 
@@ -255,3 +259,21 @@ class ArticleFeatureTests(TestCase):
         self.assertTrue(MembershipSubscription.objects.filter(user=self.journalist, status='active').exists())
         response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/')
         self.assertEqual(response.status_code, 200)
+
+    @override_settings(PAYMENT_WEBHOOK_SECRET='test-webhook-secret')
+    def test_membership_webhook_is_signed_and_idempotent(self):
+        plan = MembershipPlan.objects.create(name='Paid', slug='paid', price='99.00')
+        payload = {
+            'id': 'evt_membership_1', 'type': 'subscription.active',
+            'data': {'user_id': self.journalist.id, 'plan_id': plan.id, 'provider_reference': 'sub_1'},
+        }
+        body = json.dumps(payload).encode()
+        signature = 'sha256=' + hmac.new(b'test-webhook-secret', body, hashlib.sha256).hexdigest()
+        response = self.client.post('/api/membership/webhook/', body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=signature)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(MembershipSubscription.objects.filter(user=self.journalist, plan=plan, status='active').exists())
+        self.assertEqual(MembershipWebhookEvent.objects.count(), 1)
+
+        response = self.client.post('/api/membership/webhook/', body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=signature)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['duplicate'])
