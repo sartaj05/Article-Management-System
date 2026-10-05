@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="auth-shell auth-register">
-    <header class="auth-header"><div class="container auth-header__inner"><a class="brand" href="{% url 'home' %}"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a><a class="auth-header__back" href="{% url 'home' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to discover</a></div></header>
+    {% include 'partials/site_header.html' %}
     <main class="auth-main">
         <div class="auth-layout">
             <section class="auth-intro"><div class="auth-intro__icon"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i></div><span class="eyebrow">Join the newsroom</span><h1>Turn good ideas into great stories.</h1><p>Create your workspace and start writing, reviewing, or publishing with a clear editorial flow.</p><ul class="auth-intro__points"><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Choose your editorial role</li><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Save and manage your drafts</li><li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Collaborate with your team</li></ul></section>
@@ -34,6 +34,7 @@
         </div>
     </main>
     <footer class="auth-footer">&copy; 2026 Article Studio. Your next story starts here.</footer>
+    <script src="{% static 'js/home.js' %}" defer></script>
     <script src="{% static 'js/auth.js' %}" defer></script>
 </body>
 </html>

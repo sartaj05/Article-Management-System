@@ -1,0 +1,19 @@
+<header class="site-header">
+    <div class="container site-header__inner">
+        <a class="brand" href="{% url 'home' %}" aria-label="Article Studio home">
+            <span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span>
+            <span class="brand-copy">Article Studio<small>Editorial workspace</small></span>
+        </a>
+        <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Open navigation">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+        </button>
+        <nav id="site-nav" class="site-nav" aria-label="Main navigation">
+            <a href="{% url 'home' %}"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover</a>
+            <a href="{% url 'home' %}#articles"><i class="fa-regular fa-newspaper" aria-hidden="true"></i> Articles</a>
+            <button class="theme-toggle" type="button" aria-label="Toggle color theme"><i class="fa-solid fa-moon" aria-hidden="true"></i> Theme</button>
+            <button class="pwa-install" type="button" data-install-app hidden>Install app</button>
+            <a href="{% url 'user-login-template' %}">Log in</a>
+            <a class="nav-cta" href="{% url 'user-register-template' %}">Start writing</a>
+        </nav>
+    </div>
+</header>

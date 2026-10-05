@@ -15,13 +15,7 @@
 </head>
 <body class="site-shell">
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <header class="site-header">
-        <div class="container site-header__inner">
-            <a class="brand" href="/"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a>
-            <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Open navigation"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
-            <nav id="site-nav" class="site-nav" aria-label="Main navigation"><a href="/"><i class="fa-solid fa-compass" aria-hidden="true"></i> Discover</a><a href="/#articles"><i class="fa-regular fa-newspaper" aria-hidden="true"></i> Articles</a><button class="pwa-install" type="button" data-install-app hidden>Install app</button><a href="/login-template/">Log in</a><a class="nav-cta" href="/register-template/">Start writing</a></nav>
-        </div>
-    </header>
+    {% include 'partials/site_header.html' %}
     <main id="main-content" class="site-main"><div class="container">{% block content %}{% endblock %}</div></main>
     {% include 'support/chat_widget.html' %}
     <footer class="site-footer"><div class="container"><div class="site-footer__top"><div class="footer-brand"><a class="brand" href="/"><span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span><span class="brand-copy">Article Studio<small>Editorial workspace</small></span></a><p>One calm workspace for writing, reviewing, and publishing meaningful stories.</p></div><div class="footer-links"><span class="footer-label">Explore</span><a href="/">Discover stories</a><a href="/#articles">Featured articles</a></div><div class="footer-links"><span class="footer-label">Workspace</span><a href="/login-template/">Log in</a><a href="/register-template/">Create account</a></div><div class="footer-social"><span class="footer-label">Stay connected</span><p>Keep your next idea moving forward.</p><div><a href="/register-template/" aria-label="Start writing"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a><a href="mailto:hello@articlestudio.local" aria-label="Email Article Studio"><i class="fa-regular fa-envelope" aria-hidden="true"></i></a></div></div></div><div class="site-footer__bottom"><span>&copy; 2026 Article Studio. All rights reserved.</span><span>Write clearly. Review thoughtfully. Publish confidently.</span></div></div></footer>
