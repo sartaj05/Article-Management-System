@@ -6,7 +6,7 @@ Django and Django REST Framework application for managing articles through Journ
 
 ```text
 Article-Management-System/
-├── Article/                     # Django project settings, URLs, ASGI/WSGI
+├── config/                      # Django project settings, URLs, ASGI/WSGI
 ├── articles/                    # Article models, APIs, forms, templates, static files
 ├── users/                       # Authentication, profiles, and user APIs
 ├── static/                      # Source static assets
