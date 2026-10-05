@@ -39,7 +39,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -129,6 +129,7 @@ urlpatterns = [
     path('api/v2/media-library/<int:pk>/', MediaAssetDetailView.as_view(), name='media-library-detail'),
     path('api/v2/articles/<int:article_id>/assets/', ArticleAssetView.as_view(), name='article-assets'),
     path('api/v2/media/<int:pk>/', ArticleMediaDeleteView.as_view(), name='article-media-delete'),
+    path('api/v2/media/<int:pk>/process/', ArticleMediaProcessView.as_view(), name='article-media-process'),
     path('api/v2/articles/<int:article_id>/review/', ArticleReviewView.as_view(), name='article-review'),
     path('api/v2/articles/<int:article_id>/revisions/', RevisionListView.as_view(), name='article-revisions'),
     path('api/v2/articles/<int:article_id>/revisions/compare/', RevisionCompareView.as_view(), name='article-revision-compare'),

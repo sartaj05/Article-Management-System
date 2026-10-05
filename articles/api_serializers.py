@@ -165,8 +165,8 @@ class ArticleMediaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ArticleMedia
-        fields = ['id', 'article', 'media_type', 'title', 'file', 'external_url', 'caption', 'transcript', 'duration_seconds', 'sort_order', 'uploaded_by', 'uploaded_by_name', 'created_at']
-        read_only_fields = ['id', 'article', 'uploaded_by', 'uploaded_by_name', 'created_at']
+        fields = ['id', 'article', 'media_type', 'title', 'file', 'external_url', 'caption', 'transcript', 'duration_seconds', 'thumbnail', 'captions_file', 'mime_type', 'file_size', 'processing_status', 'processing_error', 'sort_order', 'uploaded_by', 'uploaded_by_name', 'created_at']
+        read_only_fields = ['id', 'article', 'uploaded_by', 'uploaded_by_name', 'mime_type', 'file_size', 'processing_status', 'processing_error', 'created_at']
 
     def validate(self, attrs):
         if not attrs.get('file') and not attrs.get('external_url'):

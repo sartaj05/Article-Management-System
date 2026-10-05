@@ -433,6 +433,32 @@ class ArticleMediaView(APIView):
         return Response(ArticleMediaSerializer(media, context={'request': request}).data, status=201)
 
 
+class ArticleMediaProcessView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        media = get_object_or_404(ArticleMedia, pk=pk)
+        if media.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot process this media.'}, status=status.HTTP_403_FORBIDDEN)
+        if not media.file and not media.external_url:
+            return Response({'detail': 'A file or external URL is required before processing.'}, status=status.HTTP_400_BAD_REQUEST)
+        media.processing_status = 'processing'
+        media.processing_error = ''
+        media.save(update_fields=['processing_status', 'processing_error'])
+        if media.file:
+            media.file_size = media.file.size
+            extension = media.file.name.rsplit('.', 1)[-1].lower() if '.' in media.file.name else ''
+            media.mime_type = getattr(media.file.file, 'content_type', '') or {
+                'mp3': 'audio/mpeg', 'wav': 'audio/wav', 'mp4': 'video/mp4', 'webm': 'video/webm',
+            }.get(extension, 'application/octet-stream')
+        elif media.external_url:
+            media.mime_type = 'external/url'
+        media.processing_status = 'ready'
+        media.save(update_fields=['file_size', 'mime_type', 'processing_status', 'updated_at'] if hasattr(media, 'updated_at') else ['file_size', 'mime_type', 'processing_status'])
+        record_audit_event(actor=request.user, action='article_media_processed', article=media.article, details={'media_id': media.id, 'status': media.processing_status})
+        return Response(ArticleMediaSerializer(media, context={'request': request}).data)
+
+
 class ArticleMediaDeleteView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]

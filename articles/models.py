@@ -411,6 +411,7 @@ class ArticleEditEvent(models.Model):
 
 class ArticleMedia(models.Model):
     MEDIA_TYPES = [('video', 'Video'), ('audio', 'Audio')]
+    PROCESSING_STATUS_CHOICES = [('pending', 'Pending'), ('processing', 'Processing'), ('ready', 'Ready'), ('failed', 'Failed')]
 
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='media_items')
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
@@ -420,6 +421,12 @@ class ArticleMedia(models.Model):
     caption = models.CharField(max_length=255, blank=True)
     transcript = models.TextField(blank=True)
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    thumbnail = models.ImageField(upload_to='articles/media-thumbnails/', blank=True, null=True)
+    captions_file = models.FileField(upload_to='articles/captions/', blank=True, null=True)
+    mime_type = models.CharField(max_length=100, blank=True)
+    file_size = models.PositiveBigIntegerField(default=0)
+    processing_status = models.CharField(max_length=20, choices=PROCESSING_STATUS_CHOICES, default='pending')
+    processing_error = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_media_uploaded')
     created_at = models.DateTimeField(auto_now_add=True)
