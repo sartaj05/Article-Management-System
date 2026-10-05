@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser, MembershipPlan, MembershipSubscription
 
-from ..models import Article, ArticlePresence, Comment, Like, Notification
+from ..models import Article, ArticleEditEvent, ArticlePresence, Comment, Like, Notification
 
 
 class ArticleFeatureTests(TestCase):
@@ -172,6 +172,22 @@ class ArticleFeatureTests(TestCase):
         self.assertEqual(self.client.get(f'/articles/api/v2/articles/{self.article.id}/collaboration/').status_code, 200)
         response = self.client.delete(f'/articles/api/v2/articles/{self.article.id}/collaboration/')
         self.assertTrue(response.data['left'])
+
+    def test_collaboration_can_publish_and_poll_edit_events(self):
+        self.authenticate(self.journalist)
+        response = self.client.post(
+            f'/articles/api/v2/articles/{self.article.id}/collaboration/',
+            {'event_type': 'content_changed', 'payload': {'field': 'content', 'version': 2}},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['event']['event_type'], 'content_changed')
+        self.assertTrue(ArticleEditEvent.objects.filter(article=self.article, user=self.journalist).exists())
+
+        response = self.client.get(f'/articles/api/v2/articles/{self.article.id}/collaboration/?include_events=1')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['events']), 1)
+        self.assertEqual(response.data['events'][0]['payload']['version'], 2)
 
     def test_article_media_can_be_added_and_read_publicly(self):
         self.authenticate(self.journalist)

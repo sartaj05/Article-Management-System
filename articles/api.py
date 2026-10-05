@@ -10,6 +10,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.text import slugify
 from rest_framework import generics, status
 from rest_framework.authentication import SessionAuthentication
@@ -43,7 +44,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -243,10 +244,28 @@ class ArticleCollaborationView(APIView):
             return Response({'detail': 'You do not have collaboration access.'}, status=403)
         cutoff = timezone.now() - timedelta(minutes=2)
         sessions = article.presence_sessions.filter(last_seen__gte=cutoff).select_related('user')
-        return Response([{
+        presence = [{
             'user_id': session.user_id, 'username': session.user.username, 'status': session.status,
             'section': session.section, 'cursor_position': session.cursor_position, 'last_seen': session.last_seen,
-        } for session in sessions])
+        } for session in sessions]
+        since_value = request.query_params.get('since')
+        if not since_value and request.query_params.get('include_events') not in {'1', 'true', 'yes'}:
+            return Response(presence)
+        since = parse_datetime(since_value) if since_value else cutoff
+        if since_value and since is None:
+            return Response({'detail': 'since must be a valid ISO-8601 datetime.'}, status=400)
+        events = article.edit_events.filter(created_at__gt=since).select_related('user')[:100]
+        return Response({
+            'presence': presence,
+            'events': [{
+                'id': event.id,
+                'user_id': event.user_id,
+                'username': event.user.username,
+                'event_type': event.event_type,
+                'payload': event.payload,
+                'created_at': event.created_at,
+            } for event in events],
+        })
 
     def post(self, request, article_id):
         article = self.get_article(request, article_id)
@@ -261,7 +280,27 @@ class ArticleCollaborationView(APIView):
                 'last_seen': timezone.now(),
             },
         )
-        return Response(ArticlePresenceSerializer(session).data)
+        event_type = str(request.data.get('event_type', '')).strip()
+        if not event_type:
+            return Response(ArticlePresenceSerializer(session).data)
+        allowed_events = {value for value, _ in ArticleEditEvent.EVENT_CHOICES}
+        if event_type not in allowed_events:
+            return Response({'detail': 'Unsupported collaboration event.'}, status=400)
+        payload = request.data.get('payload', {})
+        if not isinstance(payload, dict):
+            return Response({'detail': 'payload must be an object.'}, status=400)
+        event = ArticleEditEvent.objects.create(
+            article=article, user=request.user, event_type=event_type, payload=payload,
+        )
+        return Response({
+            'presence': ArticlePresenceSerializer(session).data,
+            'event': {
+                'id': event.id,
+                'event_type': event.event_type,
+                'payload': event.payload,
+                'created_at': event.created_at,
+            },
+        })
 
     def delete(self, request, article_id):
         ArticlePresence.objects.filter(article_id=article_id, user=request.user).delete()

@@ -325,6 +325,27 @@ class ArticlePresence(models.Model):
         return f'{self.user.username} on {self.article.title}'
 
 
+class ArticleEditEvent(models.Model):
+    EVENT_CHOICES = [
+        ('content_changed', 'Content changed'),
+        ('selection_changed', 'Selection changed'),
+        ('comment_added', 'Comment added'),
+    ]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='edit_events')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='article_edit_events')
+    event_type = models.CharField(max_length=30, choices=EVENT_CHOICES)
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+        indexes = [models.Index(fields=['article', 'created_at'])]
+
+    def __str__(self):
+        return f'{self.event_type} on {self.article_id} by {self.user.username}'
+
+
 class ArticleMedia(models.Model):
     MEDIA_TYPES = [('video', 'Video'), ('audio', 'Audio')]
 
