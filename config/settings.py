@@ -182,11 +182,7 @@ EMAIL_BACKEND = (
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-# In development, Django can serve static files automatically
-# settings.py
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
-MEDIA_URLS = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
@@ -195,7 +191,7 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",  # Adjust this based on your project structure
 ]
 
-# In production, you would use a web server (e.g., Nginx) to serve static files
+# In production, collect these files and serve them with a web server.
 STATIC_ROOT = BASE_DIR / "staticfiles"  # Where static files will be collected during deployment
 
 
