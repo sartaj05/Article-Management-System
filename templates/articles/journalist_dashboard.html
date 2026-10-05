@@ -25,9 +25,9 @@
   <header class="workspace-topbar">
     <a class="workspace-topbar__brand" href="{% url 'journalist-dashboard' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Journalist workspace</small></span></a>
     <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
-      <a href="#" id="home-link">Home</a>
-      <a href="#" id="article-list-link">Articles</a>
-      <a href="#" id="create-article-link" class="workspace-topbar__primary">New article</a>
+      <a href="#" id="home-link" data-page-link="home-page">Home</a>
+      <a href="#" id="article-list-link" data-page-link="article-list-page">Articles</a>
+      <a href="#" id="create-article-link" class="workspace-topbar__primary" data-page-link="create-article-page">New article</a>
       <a href="#" id="logout-link" class="workspace-logout" data-dashboard-logout>Log out</a>
     </nav>
   </header>

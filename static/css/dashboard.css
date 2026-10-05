@@ -83,8 +83,10 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 
 .dashboard-shell .workspace-topbar__actions a:hover,
 .dashboard-shell .workspace-topbar__actions button:hover { color: var(--brand); background: #f0f1ff; }
-.dashboard-shell .workspace-topbar__actions .workspace-topbar__primary { color: #fff; background: var(--brand); }
-.dashboard-shell .workspace-topbar__actions .workspace-topbar__primary:hover { color: #fff; background: var(--brand-dark); }
+.dashboard-shell .workspace-topbar__actions .workspace-topbar__primary { color: var(--muted); background: transparent; }
+.dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active { color: #fff; background: var(--brand); }
+.dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active:hover { color: #fff; background: var(--brand-dark); }
+.dashboard-shell .workspace-topbar__actions a.is-active:not(.workspace-topbar__primary) { color: var(--brand); background: #f0f1ff; }
 .dashboard-shell .workspace-topbar__actions .workspace-logout { color: #c2415b; }
 .dashboard-shell .workspace-topbar__actions .workspace-logout:hover { color: #b22e49; background: #fff0f3; }
 
@@ -216,6 +218,7 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   display: none;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   gap: 0;
   padding: 24px;
   overflow-y: auto;

@@ -42,6 +42,8 @@ $(document).ready(function () {
   function showPage(pageId) {
     $(".page").removeClass("active");
     $("#" + pageId).addClass("active");
+    $("[data-page-link]").removeClass("is-active").removeAttr("aria-current");
+    $("[data-page-link='" + pageId + "']").addClass("is-active").attr("aria-current", "page");
     localStorage.setItem("lastActivePage", pageId);
   }
 
