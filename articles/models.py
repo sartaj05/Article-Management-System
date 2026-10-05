@@ -192,6 +192,21 @@ class Bookmark(models.Model):
         ]
 
 
+class ReadingProgress(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reading_progress')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reading_progress')
+    progress_percent = models.PositiveSmallIntegerField(default=0)
+    position_seconds = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(fields=['article', 'user'], name='unique_article_reading_progress'),
+        ]
+
+
 class ArticleReaction(models.Model):
     REACTION_CHOICES = [
         ('like', 'Like'),

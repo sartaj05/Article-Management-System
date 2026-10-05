@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -199,6 +199,20 @@ class BookmarkSerializer(serializers.ModelSerializer):
         model = Bookmark
         fields = ['id', 'article', 'article_title', 'created_at']
         read_only_fields = ['id', 'article_title', 'created_at']
+
+
+class ReadingProgressSerializer(serializers.ModelSerializer):
+    article_title = serializers.CharField(source='article.title', read_only=True)
+
+    class Meta:
+        model = ReadingProgress
+        fields = ['id', 'article', 'article_title', 'progress_percent', 'position_seconds', 'completed', 'updated_at']
+        read_only_fields = ['id', 'article', 'article_title', 'updated_at']
+
+    def validate_progress_percent(self, value):
+        if value < 0 or value > 100:
+            raise serializers.ValidationError('Progress must be between 0 and 100.')
+        return value
 
 
 class ArticleReactionSerializer(serializers.ModelSerializer):

@@ -31,7 +31,7 @@ from .api_serializers import (
     ArticleAssignmentSerializer,
     ArticleImageSerializer, ArticleLiveUpdateSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
-    BookmarkSerializer,
+    BookmarkSerializer, ReadingProgressSerializer,
     PlagiarismCheckSerializer,
     ArticleTranslationSerializer,
     ModerationFlagSerializer,
@@ -45,7 +45,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 from .permissions import editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
@@ -793,6 +793,46 @@ class BookmarkToggleView(APIView):
         if not created:
             bookmark.delete()
         return Response({'article': article.id, 'bookmarked': created})
+
+
+class ReadingProgressView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.workflow_status != 'published' and article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return None
+        return article
+
+    def get(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot access this article progress.'}, status=status.HTTP_403_FORBIDDEN)
+        progress = ReadingProgress.objects.filter(article=article, user=request.user).first()
+        return Response(ReadingProgressSerializer(progress).data if progress else {
+            'article': article.id, 'article_title': article.title, 'progress_percent': 0,
+            'position_seconds': 0, 'completed': False,
+        })
+
+    def put(self, request, article_id):
+        return self.save_progress(request, article_id)
+
+    def patch(self, request, article_id):
+        return self.save_progress(request, article_id)
+
+    def save_progress(self, request, article_id):
+        article = self.get_article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You cannot update this article progress.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ReadingProgressSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        values = serializer.validated_data
+        if values.get('progress_percent') == 100:
+            values['completed'] = True
+        progress, _ = ReadingProgress.objects.update_or_create(
+            article=article, user=request.user, defaults=values,
+        )
+        return Response(ReadingProgressSerializer(progress).data)
 
 
 class ArticleReactionView(APIView):
