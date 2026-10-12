@@ -340,6 +340,15 @@ $(document).on('click', '.modal-close, .close-modal', function () {
   $(this).closest('.modal').hide();
 });
 
+// Keep legacy dashboard modals consistent with the shared dialog behavior.
+$(document).on('keydown', function (event) {
+  if (event.key !== 'Escape') return;
+  const $visibleModal = $('.modal:visible').last();
+  if (!$visibleModal.length) return;
+  event.preventDefault();
+  $visibleModal.hide();
+});
+
   
 
   // Fetch and display articles

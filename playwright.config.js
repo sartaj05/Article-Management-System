@@ -8,8 +8,14 @@ module.exports = defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
+  webServer: {
+    command: 'python manage.py migrate --noinput && python manage.py prepare_e2e && python manage.py runserver 127.0.0.1:8000 --noreload',
+    url: 'http://127.0.0.1:8000/login-template/',
+    timeout: 120_000,
+    reuseExistingServer: true,
+  },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    { name: 'mobile', use: { ...devices['Pixel 5'], browserName: 'chromium' } },
   ],
 });

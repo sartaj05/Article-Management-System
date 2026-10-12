@@ -21,12 +21,10 @@ jobs:
       - name: Prepare database and demo user
         run: |
           python manage.py migrate
-          python manage.py shell -c "from users.models import CustomUser; CustomUser.objects.get_or_create(username='e2e_journalist', defaults={'email':'e2e@example.com','role':'Journalist'}); u=CustomUser.objects.get(username='e2e_journalist'); u.set_password('StrongPass123!'); u.save()"
+          python manage.py prepare_e2e
       - name: Install browser test dependencies
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Start application
-        run: python manage.py runserver 127.0.0.1:8000 > server.log 2>&1 &
       - name: Run browser and mobile checks
         run: npm run test:e2e
