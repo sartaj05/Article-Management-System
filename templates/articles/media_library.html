@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Media library</title>
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1">
+    <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
+</head>
+<body class="dashboard-shell">
+    <header class="workspace-topbar">
+        <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>{{ request.user.role }} workspace</small></span></a>
+        <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+            <a class="is-active" href="{% url 'media-library-page' %}">Media</a><a href="{% url 'workspace-search-page' %}">Search</a>
+            {% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}">Assignments</a>{% endif %}
+        </nav>
+    </header>
+    <main class="feature-page">
+        <header class="feature-page__heading"><div><span class="feature-eyebrow">Asset management</span><h1>Media library</h1><p>Upload accessible assets, reuse them across stories and archive old files safely.</p></div></header>
+        <form class="media-upload" id="media-upload-form">
+            <label>File<input id="media-file" type="file" accept="image/*,audio/*,video/*,.pdf,.md,.txt" required></label>
+            <label>Title<input id="media-title" type="text" maxlength="160" required></label>
+            <label>Type<select id="media-type"><option value="image">Image</option><option value="audio">Audio</option><option value="video">Video</option><option value="document">Document</option></select></label>
+            <label>Alt text <span>(required for images)</span><input id="media-alt" type="text" maxlength="255"></label>
+            <label>Caption<input id="media-caption" type="text" maxlength="255"></label>
+            <label>Credit<input id="media-credit" type="text" maxlength="160"></label>
+            <button class="button" type="submit">Upload asset</button>
+        </form>
+        <div class="media-toolbar"><label>Search assets<input id="media-query" type="search" placeholder="Title, alt text or credit"></label><label>Type<select id="media-filter"><option value="">All types</option><option value="image">Images</option><option value="audio">Audio</option><option value="video">Video</option><option value="document">Documents</option></select></label></div>
+        <p class="feature-status" id="media-status" role="status" aria-live="polite">Loading media…</p>
+        <section class="media-grid" id="media-grid"></section>
+    </main>
+    <script src="{% static 'js/media-library.js' %}" defer></script>
+    <script src="{% static 'js/app-dialogs.js' %}" defer></script>
+</body>
+</html>

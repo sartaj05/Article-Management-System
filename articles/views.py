@@ -43,6 +43,11 @@ def workspace_search(request):
     return render(request, 'articles/workspace_search.html')
 
 
+@role_required('Journalist', 'Editor', 'Admin')
+def media_library(request):
+    return render(request, 'articles/media_library.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
