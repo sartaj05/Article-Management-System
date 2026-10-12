@@ -103,6 +103,7 @@ urlpatterns = [
     path('editor/assignments/', views.assignment_board, name='assignment-board-page'),
     path('workspace/search/', views.workspace_search, name='workspace-search-page'),
     path('workspace/media/', views.media_library, name='media-library-page'),
+    path('workspace/notifications/', views.notification_center, name='notification-center-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
