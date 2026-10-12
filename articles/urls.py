@@ -101,6 +101,7 @@ urlpatterns = [
     path('status/<int:article_id>/', views.ArticleStatusUpdateView.as_view(), name='article-status-update'),
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
     path('editor/assignments/', views.assignment_board, name='assignment-board-page'),
+    path('workspace/search/', views.workspace_search, name='workspace-search-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),

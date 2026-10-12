@@ -17,6 +17,7 @@
         </a>
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
             <a href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% else %}{% url 'editor-dashboard' %}{% endif %}">Workspace</a>
+            <a href="{% url 'workspace-search-page' %}">Search</a>
             <a class="is-active" href="{% url 'assignment-board-page' %}">Assignments</a>
             <a class="workspace-logout" href="{% url 'home' %}">Exit</a>
         </nav>
