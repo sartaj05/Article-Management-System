@@ -7,6 +7,22 @@ services:
       POSTGRES_PASSWORD: change-this-password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U article_management -d article_management"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
@@ -22,8 +38,41 @@ services:
       POSTGRES_PASSWORD: change-this-password
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["celery", "-A", "config.celery", "worker", "--loglevel=INFO"]
+    environment:
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: change-this-secret-key
+      DATABASE_ENGINE: postgresql
+      POSTGRES_DB: article_management
+      POSTGRES_USER: article_management
+      POSTGRES_PASSWORD: change-this-password
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  redis_data:
+  media_data:
+  static_data:
