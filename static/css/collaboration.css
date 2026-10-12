@@ -1,0 +1,21 @@
+.collaboration-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  margin: -4px 0 18px;
+  color: var(--muted, #66708e);
+  font-size: .84rem;
+}
+
+.collaboration-status::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #aab3d0;
+  content: "";
+}
+
+.collaboration-status.is-saving::before { background: #f0a54a; }
+.collaboration-status.is-saved::before { background: #21b79d; }
+.collaboration-status.is-conflict::before { background: #d94a64; }

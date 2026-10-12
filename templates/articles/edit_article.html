@@ -9,9 +9,10 @@
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005" />
     <link rel="stylesheet" href="{% static 'css/support-chat.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/collaboration.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
-<body class="dashboard-shell">
+<body class="dashboard-shell" data-article-id="{{ article.id }}">
     <header class="workspace-topbar">
         <a class="workspace-topbar__brand" href="{% url 'journalist-dashboard' %}"><span class="workspace-topbar__mark">*</span><span>Article Studio<small>Editorial workspace</small></span></a>
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
@@ -26,6 +27,7 @@
         <!-- Edit Article Page -->
         <div id="edit-article-page" class="page">
             <h1>Edit Article</h1>
+            <p id="collaboration-status" class="collaboration-status" role="status" aria-live="polite">Autosave is ready.</p>
             <form id="article-form" enctype="multipart/form-data" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="id" value="{{ article.id }}">
@@ -120,6 +122,7 @@
     <script src="{% static 'js/script.js' %}"></script>
     <script src="{% static 'js/workspace-ui.js' %}"></script>
     <script src="{% static 'js/dashboard-ui.js' %}"></script>
+    <script src="{% static 'js/collaboration.js' %}"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

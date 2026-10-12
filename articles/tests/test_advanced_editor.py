@@ -34,3 +34,22 @@ class AdvancedEditorTests(APITestCase):
         self.assertFalse(response.data['passed'])
         self.assertGreaterEqual(response.data['errors'], 1)
         self.assertTrue(any(issue['code'] == 'missing_image_alt' for issue in response.data['issues']))
+
+    def test_stale_autosave_is_rejected_with_latest_draft(self):
+        self.client.force_authenticate(self.author)
+        first = self.client.put(
+            f'/articles/api/v2/articles/{self.article.id}/autosave/',
+            {'title': 'Advanced editor test', 'content': 'First draft'}, format='json',
+        )
+        self.assertEqual(first.status_code, 200)
+        stale_timestamp = first.data['updated_at']
+        self.client.put(
+            f'/articles/api/v2/articles/{self.article.id}/autosave/',
+            {'title': 'Advanced editor test', 'content': 'Second draft'}, format='json',
+        )
+        response = self.client.put(
+            f'/articles/api/v2/articles/{self.article.id}/autosave/',
+            {'title': 'Advanced editor test', 'content': 'Stale draft', 'base_updated_at': stale_timestamp}, format='json',
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertTrue(response.data['conflict'])

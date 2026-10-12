@@ -1433,6 +1433,19 @@ class ArticleAutosaveView(APIView):
             return Response({'detail': 'You cannot edit this draft.'}, status=status.HTTP_403_FORBIDDEN)
         if article.workflow_status == 'published' and request.user.role == 'Journalist':
             return Response({'detail': 'Published articles cannot be autosaved by journalists.'}, status=status.HTTP_400_BAD_REQUEST)
+        base_updated_at = request.data.get('base_updated_at')
+        current_autosave = ArticleAutosave.objects.filter(article=article).first()
+        if base_updated_at and current_autosave:
+            client_timestamp = parse_datetime(str(base_updated_at))
+            if client_timestamp is None:
+                return Response({'detail': 'base_updated_at must be a valid ISO-8601 datetime.'}, status=status.HTTP_400_BAD_REQUEST)
+            if client_timestamp < current_autosave.updated_at:
+                return Response({
+                    'detail': 'This draft changed in another session. Reload the latest autosave before saving.',
+                    'conflict': True,
+                    'autosave': ArticleAutosaveSerializer(current_autosave).data,
+                }, status=status.HTTP_409_CONFLICT)
+
         serializer = ArticleAutosaveSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         autosave, _ = ArticleAutosave.objects.update_or_create(
