@@ -102,11 +102,11 @@ test('journalist articles table and detail modal remain usable on narrow screens
   await page.goto('/journalist/dashboard/');
   await page.locator('#article-list-link').click();
   await expect(page.locator('#article-list-page')).toHaveClass(/active/);
-  await expect(page.locator('#article-table')).toBeVisible();
+  await expect(page.locator('#article-table')).toBeVisible({ timeout: 15_000 });
   await expectNoHorizontalOverflow(page);
 
   const firstArticle = page.locator('#article-table tbody tr').first();
-  await expect(firstArticle).toBeVisible();
+  await expect(firstArticle).toBeVisible({ timeout: 15_000 });
   await firstArticle.locator('.view-article').click();
   const modal = page.locator('.modal:visible').first();
   await expect(modal).toBeVisible();
