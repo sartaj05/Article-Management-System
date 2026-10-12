@@ -1,0 +1,5 @@
+# Optional production worker dependencies. The management command remains the
+# zero-dependency local fallback.
+-r requirements.txt
+celery==5.4.0
+redis==5.2.1
