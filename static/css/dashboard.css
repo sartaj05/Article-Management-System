@@ -448,3 +448,22 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   .dashboard-shell .modal-content { max-height: calc(100vh - 42px); padding: 22px 18px; border-radius: 18px; }
   .dashboard-shell .modal > .modal-footer { width: min(720px, 100%); padding: 0 18px 18px; border-radius: 0 0 18px 18px; }
 }
+
+@media (max-width: 720px) {
+  body.dashboard-shell { overflow-x: hidden; }
+  .dashboard-shell .workspace-topbar { width: 100%; padding: 14px 16px; }
+  .dashboard-shell .workspace-topbar__brand { max-width: 100%; }
+  .dashboard-shell .workspace-topbar__actions { width: 100%; max-width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; scrollbar-width: thin; }
+  .dashboard-shell .workspace-topbar__actions a,
+  .dashboard-shell .workspace-topbar__actions button { flex: 0 0 auto; white-space: nowrap; }
+  .dashboard-shell .main-content,
+  .dashboard-shell .content { width: calc(100% - 24px); padding: 28px 0 56px; }
+  .dashboard-shell .page,
+  .dashboard-shell .dashboard-content,
+  .dashboard-shell #articles-section,
+  .dashboard-shell #users-section { padding: 22px 16px; }
+  .dashboard-shell .page > h1,
+  .dashboard-shell .dashboard-content h1 { font-size: clamp(1.7rem, 8vw, 2.25rem); }
+  .dashboard-shell .article-table--manage { margin-inline: -2px; }
+  .dashboard-shell .table-actions { min-width: 150px; }
+}
