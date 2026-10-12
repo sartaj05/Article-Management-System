@@ -269,7 +269,7 @@ function appendArticle(article) {
   const title = article.title || "No Title";
   const category = article.category || "No Category";
   const publishDate = article.publish_date || "No Date";
-  const status = article.status || "No Status";
+  const status = article.workflow_status || article.status || "No Status";
   const statusKey = String(status).toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const imageUrl = article.image || "";
   const imageAlt = article.title || "Article Image"; // Use the article title as alt text
@@ -284,7 +284,7 @@ function appendArticle(article) {
       <td>${title}</td>
       <td>${category}</td>
       <td>${publishDate}</td>
-      <td><span class="status-badge status-badge--${statusKey}">${status}</span></td>
+      <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(status) : `<span class="status-badge status-badge--${statusKey}">${status}</span>`}${article.rejection_reason ? `<span class="workflow-summary__reason">${WorkflowUI.escapeHtml(article.rejection_reason)}</span>` : ""}</div></td>
       <td>${imageMarkup}</td>
       <td class="table-actions">
        

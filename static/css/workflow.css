@@ -1,0 +1,9 @@
+.workflow-summary { display: grid; gap: 8px; min-width: 150px; }
+.workflow-summary__reason { max-width: 240px; color: #a43c50; font-size: .74rem; line-height: 1.35; }
+.workflow-timeline { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0; padding: 0; list-style: none; color: var(--muted, #68718b); font-size: .72rem; }
+.workflow-timeline__item { display: inline-flex; align-items: center; gap: 5px; }
+.workflow-timeline__dot { width: 7px; height: 7px; border: 1px solid #b8bfd1; border-radius: 50%; background: #fff; }
+.workflow-timeline__item.is-complete .workflow-timeline__dot, .workflow-timeline__item.is-current .workflow-timeline__dot { border-color: var(--brand, #5d59e8); background: var(--brand, #5d59e8); }
+.workflow-timeline__item.is-current { color: var(--ink, #14213d); font-weight: 800; }
+.workflow-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 720px) { .workflow-timeline { flex-direction: column; gap: 4px; } .workflow-summary__reason { max-width: none; } }

@@ -230,8 +230,9 @@ function fetchPublishedArticles() {
         });
     }
     function generateArticleRow(article, index) {
-        const isPublished = article.status === "published";
-        const isApproved = article.status === "Approved";
+        const workflowStatus = article.workflow_status || article.status;
+        const isPublished = workflowStatus === "published";
+        const isApproved = workflowStatus === "Approved" || workflowStatus === "approved";
         const isRejected = article.status === "rejected";
         // const isPending = article.status === "draft";
     
@@ -241,7 +242,7 @@ function fetchPublishedArticles() {
                 <td>${article.title}</td>
                 <td>${article.category}</td>
                 <td>${new Date(article.publish_date).toLocaleDateString()}</td>
-                <td>${article.status}</td>
+                <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(workflowStatus) : workflowStatus}${article.rejection_reason ? `<span class="workflow-summary__reason">${WorkflowUI.escapeHtml(article.rejection_reason)}</span>` : ""}</div></td>
                 <td><img src="${article.image || "/static/images/default.jpg"}" alt="Image" width="50"></td>
                 <td>
                     <div class="button-container">
