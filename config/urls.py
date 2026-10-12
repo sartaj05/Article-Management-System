@@ -21,6 +21,23 @@ from django.urls import path, include
 from articles.api import HealthCheckView
 from articles.distribution import ArticleSitemap, ArticleFeed, robots_txt
 from django.contrib.sitemaps.views import sitemap
+try:
+    from rest_framework import permissions
+    from drf_yasg import openapi
+    from drf_yasg.views import get_schema_view
+
+    schema_view = get_schema_view(
+        openapi.Info(
+            title='Article Studio API',
+            default_version='v2',
+            description='Workflow, collaboration, media, and publishing APIs for Article Studio.',
+            contact=openapi.Contact(email='support@example.com'),
+        ),
+        public=True,
+        permission_classes=(permissions.AllowAny,),
+    )
+except ImportError:
+    schema_view = None
 # Redirect root URL to login page
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,6 +51,13 @@ urlpatterns = [
     #   path('users/', include('users.urls')), 
     
 ]
+
+if schema_view:
+    urlpatterns += [
+        path('api/schema/', schema_view.without_ui(cache_timeout=0), name='api-schema'),
+        path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
+        path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='api-redoc'),
+    ]
 from django.conf import settings
 from django.conf.urls.static import static
 if settings.DEBUG:
