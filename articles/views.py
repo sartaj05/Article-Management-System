@@ -1,17 +1,3 @@
-# View for Journalist Dashboard
-def journalist_dashboard(request):
-    return render(request, 'articles/journalist_dashboard.html')
-
-# View for Editor Dashboard
-def editor_dashboard(request):
-    return render(request, 'articles/editor_dashboard.html')
-
-# View for Admin Dashboard
-def admin_dashboard(request):
-    return render(request, 'articles/admin_dashboard.html')
-
-# def journalist_dashboard(request):
-#     return render(request, 'journalist_dashboard.html')
 from datetime import datetime
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseRedirect
@@ -34,6 +20,22 @@ from rest_framework import generics
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.pagination import PageNumberPagination
 from django.core.mail import send_mail
+from users.decorators import role_required
+
+
+@role_required('Journalist')
+def journalist_dashboard(request):
+    return render(request, 'articles/journalist_dashboard.html')
+
+
+@role_required('Editor')
+def editor_dashboard(request):
+    return render(request, 'articles/editor_dashboard.html')
+
+
+@role_required('Admin')
+def admin_dashboard(request):
+    return render(request, 'articles/admin_dashboard.html')
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from django.views.decorators.csrf import csrf_exempt

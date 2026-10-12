@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from .models import AccessibilityPreference, CustomUser, NewsletterEdition, NewsletterSubscription, Profile, ReaderInterest, SecurityEvent, SecuritySession
@@ -96,6 +97,22 @@ class UserFeatureTests(TestCase):
         session.refresh_from_db()
         self.assertIsNotNone(session.revoked_at)
         self.assertTrue(SecurityEvent.objects.filter(event_type='token_revoked', details__session_id=session.id).exists())
+
+    def test_login_session_protects_role_dashboard(self):
+        self.client.logout()
+        response = self.client.post('/api/login/', {
+            'username': self.user.username,
+            'password': 'StrongPass123!',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get(reverse('journalist-dashboard')).status_code, 200)
+
+        editor = CustomUser.objects.create_user(
+            username='dashboard-editor', email='dashboard-editor@example.com',
+            password='StrongPass123!', role='Editor',
+        )
+        self.client.force_login(editor)
+        self.assertEqual(self.client.get(reverse('journalist-dashboard')).status_code, 403)
 
     def test_support_chat_answers_project_questions(self):
         response = self.client.post(

@@ -8,6 +8,7 @@ from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404, render
 from django.http import JsonResponse
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from users.serializers import (
     RegistrationSerializer, 
@@ -29,6 +30,7 @@ from django.core.mail import send_mail
 from users.models import CustomUser as User, SecurityEvent, SecuritySession
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
+from users.decorators import role_required
 
 # Utility function for generating tokens
 def get_tokens_for_user(user, request=None):
@@ -126,6 +128,8 @@ class UserLoginView(APIView):
             )
             raise
         user = serializer.validated_data['user']
+        # Keep the browser workspace protected by Django's session as well as JWT.
+        login(request, user)
         token = get_tokens_for_user(user, request)
         SecurityEvent.objects.create(
             user=user, username=user.username, event_type='login_success',
@@ -178,6 +182,7 @@ class LogoutView(APIView):
             user=request.user, username=request.user.username, event_type='logout',
             ip_address=request.META.get('REMOTE_ADDR'), user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+        logout(request)
         return Response({"message": "Successfully logged out"}, status=200)
 
 
@@ -255,14 +260,17 @@ class SecuritySessionRevokeView(APIView):
         return Response({'revoked': True})
 
 
+@role_required('Journalist')
 def journalist_dashboard(request):
     return render(request, 'articles/journalist_dashboard.html')
 
 # View for Editor Dashboard
+@role_required('Editor')
 def editor_dashboard(request):
     return render(request, 'articles/editor_dashboard.html')
 
 # View for Admin Dashboard
+@role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
 class UserListView(ListAPIView):
@@ -317,7 +325,6 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         
         email = serializer.validated_data['email']
-        print(email)
         # Generate a 6-digit OTP
         otp = get_random_string(length=6, allowed_chars='0123456789')
         otp_created_at = datetime.now().isoformat()
