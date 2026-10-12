@@ -28,6 +28,7 @@ node_modules/
 test-results/
 media/
 profile_pictures/
+backups/
 
 # Editors and operating-system files
 .vscode/

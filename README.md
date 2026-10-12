@@ -46,6 +46,10 @@ Run `docker compose up --build` for a PostgreSQL-backed deployment. The health e
 `/health/` and verifies database connectivity. Set `DATABASE_ENGINE=postgresql` and the `POSTGRES_*`
 environment variables in production.
 
+For a database backup, run `./docker/backup_postgres.sh` on Linux/macOS or
+`./docker/backup_postgres.ps1` in PowerShell. Backups are intentionally ignored by Git; copy them to
+durable encrypted storage as part of your operations policy.
+
 ## Implemented feature set
 
 The versioned `/articles/api/v2/` API now supports:
@@ -76,4 +80,7 @@ Useful endpoints include `/articles/api/v2/articles/search/`,
 ```powershell
 python manage.py check
 python manage.py test
+npm ci
+npx playwright install chromium
+npm run test:e2e
 ```
