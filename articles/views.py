@@ -58,6 +58,11 @@ def analytics_dashboard(request):
     return render(request, 'articles/analytics_dashboard.html')
 
 
+@role_required('Editor', 'Admin')
+def monitoring_dashboard(request):
+    return render(request, 'articles/monitoring_dashboard.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')

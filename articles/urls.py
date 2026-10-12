@@ -105,6 +105,7 @@ urlpatterns = [
     path('workspace/media/', views.media_library, name='media-library-page'),
     path('workspace/notifications/', views.notification_center, name='notification-center-page'),
     path('workspace/analytics/', views.analytics_dashboard, name='analytics-dashboard-page'),
+    path('workspace/monitoring/', views.monitoring_dashboard, name='monitoring-dashboard-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),

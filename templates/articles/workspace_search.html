@@ -18,6 +18,7 @@
             <a href="{% url 'media-library-page' %}">Media</a>
             <a href="{% url 'notification-center-page' %}">Notifications</a>
             <a href="{% url 'analytics-dashboard-page' %}">Analytics</a>
+            {% if request.user.role != 'Journalist' %}<a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a>{% endif %}
             <a href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}">Workspace</a>
         </nav>
     </header>
