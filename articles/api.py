@@ -50,7 +50,7 @@ from .api_serializers import (
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
 from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
-from .permissions import editor_has_capability
+from .permissions import capabilities_for_user, editor_has_capability
 from .audit import record_audit_event
 from .notifications import notify
 from .assistant import make_suggestions
@@ -64,6 +64,19 @@ class ArticlePagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 50
+
+
+class CurrentUserCapabilitiesView(APIView):
+    """Expose the server-side capability contract to workspace navigation."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        capabilities = sorted(capabilities_for_user(request.user))
+        return Response({
+            'role': request.user.role,
+            'capabilities': capabilities,
+        })
 
 
 class ArticleQuerySetMixin:

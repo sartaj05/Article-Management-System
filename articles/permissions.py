@@ -1,6 +1,57 @@
 from rest_framework.permissions import BasePermission
 
 
+ROLE_CAPABILITIES = {
+    'Journalist': frozenset({
+        'article.create',
+        'article.edit.own',
+        'article.submit',
+        'article.autosave.own',
+        'article.revision.view.own',
+        'article.media.manage.own',
+        'analytics.view.own',
+    }),
+    'Editor': frozenset({
+        'article.view.all',
+        'article.edit.assigned',
+        'article.review',
+        'article.publish',
+        'article.assign.view',
+        'article.autosave.assigned',
+        'article.revision.view.all',
+        'article.media.manage.all',
+        'analytics.view.all',
+        'audit.view',
+    }),
+    'Admin': frozenset({
+        'admin.*',
+        'article.view.all',
+        'article.edit.all',
+        'article.review',
+        'article.publish',
+        'article.assign.manage',
+        'article.revision.view.all',
+        'article.media.manage.all',
+        'analytics.view.all',
+        'audit.view',
+        'system.health.view',
+    }),
+}
+
+
+def capabilities_for_user(user):
+    """Return stable, UI-safe capability names for the current user."""
+
+    if not getattr(user, 'is_authenticated', False):
+        return frozenset()
+    return ROLE_CAPABILITIES.get(getattr(user, 'role', ''), frozenset())
+
+
+def user_has_capability(user, capability):
+    capabilities = capabilities_for_user(user)
+    return 'admin.*' in capabilities or capability in capabilities
+
+
 class HasRole(BasePermission):
     """Allow a request when the authenticated user has an allowed role."""
 
