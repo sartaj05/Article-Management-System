@@ -69,11 +69,12 @@ class ArticlePagination(PageNumberPagination):
 class ArticleQuerySetMixin:
     def article_queryset(self):
         user = self.request.user
+        base = Article.objects.select_related('author', 'reviewed_by', 'category_ref').prefetch_related('tag_objects')
         if user.is_authenticated and user.role in {'Editor', 'Admin'}:
-            return Article.objects.all()
+            return base
         if user.is_authenticated:
-            return Article.objects.filter(author=user)
-        return Article.objects.filter(workflow_status='published', is_visible=True)
+            return base.filter(author=user)
+        return base.filter(workflow_status='published', is_visible=True)
 
 
 class ArticleWorkflowView(ArticleQuerySetMixin, APIView):

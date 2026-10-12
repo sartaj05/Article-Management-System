@@ -110,6 +110,13 @@ class Article(models.Model):
     objects = ActiveArticleManager()
     all_objects = models.Manager()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['workflow_status', '-updated_at'], name='article_workflow_updated_idx'),
+            models.Index(fields=['is_visible', '-publish_date'], name='article_visible_publish_idx'),
+            models.Index(fields=['author', 'workflow_status'], name='article_author_workflow_idx'),
+        ]
+
     def clean(self):
         if self.publish_date and self.workflow_status != 'published' and self.publish_date <= now().date():
             raise ValidationError('Publish date must be in the future.')
@@ -673,6 +680,10 @@ class MediaAsset(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_archived', '-updated_at'], name='media_archived_updated_idx'),
+            models.Index(fields=['media_type', 'is_archived'], name='media_type_archived_idx'),
+        ]
 
     def clean(self):
         if not self.file and not self.external_url:
