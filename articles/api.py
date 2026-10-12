@@ -1578,6 +1578,13 @@ class HealthCheckView(APIView):
                 cursor.fetchone()
         except Exception:
             return Response({'status': 'unhealthy', 'database': 'unavailable'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if request.query_params.get('verbose') in {'1', 'true', 'yes'}:
+            return Response({
+                'status': 'healthy',
+                'database': 'ok',
+                'checks': {'database': 'ok'},
+                'request_id': getattr(request, 'request_id', None),
+            })
         return Response({'status': 'healthy', 'database': 'ok'})
 
 
