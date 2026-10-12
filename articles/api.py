@@ -11,7 +11,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.text import slugify
 from rest_framework import generics, status
 from rest_framework.authentication import SessionAuthentication
@@ -20,6 +20,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.models import CustomUser, ReaderInterest, has_active_membership
@@ -788,7 +789,11 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
             queryset = queryset.filter(is_premium=False)
         query = self.request.query_params.get('q', '').strip()
         if query:
-            queryset = queryset.filter(Q(title__icontains=query) | Q(content__icontains=query) | Q(summary__icontains=query) | Q(tags__icontains=query))
+            queryset = queryset.filter(
+                Q(title__icontains=query) | Q(content__icontains=query) |
+                Q(summary__icontains=query) | Q(tags__icontains=query) |
+                Q(category__icontains=query)
+            )
             queryset = queryset.annotate(
                 relevance=Case(
                     When(title__iexact=query, then=Value(100)),
@@ -800,21 +805,30 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
                     output_field=IntegerField(),
                 )
             )
-        for field in ('workflow_status', 'category', 'author_id'):
+        workflow_status = self.request.query_params.get('workflow_status') or self.request.query_params.get('status')
+        if workflow_status:
+            queryset = queryset.filter(workflow_status=workflow_status)
+        for field in ('category', 'author_id'):
             value = self.request.query_params.get(field)
             if value:
                 queryset = queryset.filter(**{field: value})
         published_from = self.request.query_params.get('published_from')
         published_to = self.request.query_params.get('published_to')
         if published_from:
+            if parse_date(published_from) is None:
+                raise ValidationError({'published_from': 'Use YYYY-MM-DD.'})
             queryset = queryset.filter(publish_date__gte=published_from)
         if published_to:
+            if parse_date(published_to) is None:
+                raise ValidationError({'published_to': 'Use YYYY-MM-DD.'})
             queryset = queryset.filter(publish_date__lte=published_to)
         sort = self.request.query_params.get('sort', 'relevance' if query else 'recent')
         if sort == 'popular':
             return queryset.annotate(view_count=Count('views'), like_count=Count('likes')).order_by('-view_count', '-like_count', '-created_at')
         if sort == 'recent':
             return queryset.order_by('-created_at')
+        if sort == 'oldest':
+            return queryset.order_by('created_at')
         return queryset.order_by('-relevance', '-created_at')
 
 

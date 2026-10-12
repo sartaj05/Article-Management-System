@@ -17,3 +17,10 @@ class SearchImprovementTests(APITestCase):
         response = self.client.get('/articles/api/v2/articles/autocomplete/?q=Djan')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+    def test_search_supports_filters_sorting_and_rejects_invalid_dates(self):
+        response = self.client.get('/articles/api/v2/articles/search/?status=published&sort=oldest&page_size=1')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        response = self.client.get('/articles/api/v2/articles/search/?published_from=not-a-date')
+        self.assertEqual(response.status_code, 400)

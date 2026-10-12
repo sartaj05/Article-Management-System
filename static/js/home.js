@@ -8,7 +8,10 @@
   const navToggle = document.querySelector(".nav-toggle");
   const nav = document.getElementById("site-nav");
   const themeToggle = document.querySelector(".theme-toggle");
-  const state = { mode: "featured", query: "", sort: "recent", next: null, loading: false };
+  const params = new URLSearchParams(window.location.search);
+  const state = { mode: params.get("mode") || "featured", query: params.get("q") || "", sort: params.get("sort") || "recent", next: null, loading: false };
+  if (search) search.value = state.query;
+  if (sort) sort.value = state.sort;
 
   const escapeHTML = (value) => String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   const formatDate = (value) => {
@@ -27,7 +30,18 @@
     return `<article class="article-card"><div class="article-cover">${image}</div><div class="article-info"><div class="article-meta"><span class="meta-pill"><i class="fa-regular fa-folder" aria-hidden="true"></i>${category}</span><span class="meta-pill"><i class="fa-regular fa-calendar" aria-hidden="true"></i>${formatDate(article.published_at || article.publish_date)}</span></div><h3>${title}</h3><p class="article-summary">${summary}</p><div class="article-meta"><span><i class="fa-regular fa-user" aria-hidden="true"></i> ${author}</span><span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(article.views_count || 0)}</span></div><a class="article-link" href="${articleLink(article)}">Read article <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></article>`;
   }
   function setStatus(message, isError) { if (!status) return; status.textContent = message || ""; status.classList.toggle("is-error", Boolean(isError)); }
-  function endpoint() { return state.query ? `/articles/api/v2/articles/search/?q=${encodeURIComponent(state.query)}&sort=${encodeURIComponent(state.sort)}` : `/articles/api/v2/discover/?mode=${encodeURIComponent(state.mode)}`; }
+  function endpoint() {
+    const query = state.query ? `?q=${encodeURIComponent(state.query)}&sort=${encodeURIComponent(state.sort)}` : `?mode=${encodeURIComponent(state.mode)}`;
+    return state.query ? `/articles/api/v2/articles/search/${query}` : `/articles/api/v2/discover/${query}`;
+  }
+  function syncUrl() {
+    const query = new URLSearchParams();
+    if (state.query) query.set("q", state.query);
+    if (state.query && state.sort !== "recent") query.set("sort", state.sort);
+    if (!state.query && state.mode !== "featured") query.set("mode", state.mode);
+    const nextUrl = `${window.location.pathname}${query.toString() ? `?${query}` : ""}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
 
   async function loadArticles(url, append) {
     if (!container || state.loading || (!url && !state.next)) return;
@@ -59,11 +73,11 @@
     resetFeed();
     document.querySelectorAll("[data-feed-mode]").forEach((button) => button.addEventListener("click", () => {
       state.mode = button.dataset.feedMode; state.query = ""; if (search) search.value = "";
-      document.querySelectorAll("[data-feed-mode]").forEach((item) => item.setAttribute("aria-pressed", String(item === button))); resetFeed();
+      document.querySelectorAll("[data-feed-mode]").forEach((item) => item.setAttribute("aria-pressed", String(item === button))); syncUrl(); resetFeed();
     }));
-    sort?.addEventListener("change", () => { state.sort = sort.value; resetFeed(); });
+    sort?.addEventListener("change", () => { state.sort = sort.value; syncUrl(); resetFeed(); });
     let timer;
-    search?.addEventListener("input", () => { window.clearTimeout(timer); timer = window.setTimeout(() => { state.query = search.value.trim(); resetFeed(); }, 300); });
+    search?.addEventListener("input", () => { window.clearTimeout(timer); timer = window.setTimeout(() => { state.query = search.value.trim(); syncUrl(); resetFeed(); }, 300); });
     loadMore?.addEventListener("click", () => loadArticles(state.next, true));
   }
   navToggle?.addEventListener("click", () => { const open = nav?.classList.toggle("is-open"); navToggle.setAttribute("aria-expanded", String(Boolean(open))); });
