@@ -8,14 +8,24 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         user_model = get_user_model()
-        user, created = user_model.objects.get_or_create(
-            username='e2e_journalist',
-            defaults={'email': 'e2e@example.com', 'role': 'Journalist'},
-        )
-        user.email = 'e2e@example.com'
-        user.role = 'Journalist'
-        user.set_password('StrongPass123!')
-        user.save(update_fields=['email', 'role', 'password'])
+        accounts = [
+            ('e2e_journalist', 'e2e@example.com', 'Journalist'),
+            ('e2e_editor', 'e2e-editor@example.com', 'Editor'),
+            ('e2e_admin', 'e2e-admin@example.com', 'Admin'),
+        ]
+        users = {}
+        for username, email, role in accounts:
+            user, _ = user_model.objects.get_or_create(
+                username=username,
+                defaults={'email': email, 'role': role},
+            )
+            user.email = email
+            user.role = role
+            user.set_password('StrongPass123!')
+            user.save(update_fields=['email', 'role', 'password'])
+            users[role] = user
+
+        user = users['Journalist']
         Article.objects.get_or_create(
             author=user,
             title='E2E Workflow Article',
@@ -29,5 +39,4 @@ class Command(BaseCommand):
                 'status': 'draft',
             },
         )
-        state = 'created' if created else 'reset'
-        self.stdout.write(self.style.SUCCESS(f'E2E user {state}: e2e_journalist'))
+        self.stdout.write(self.style.SUCCESS('Prepared deterministic E2E users and article.'))
