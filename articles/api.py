@@ -8,6 +8,8 @@ from django.db import transaction
 from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
 from django.db import connection
 from django.conf import settings
+from django.core.cache import cache
+from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -1573,19 +1575,36 @@ class HealthCheckView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        checks = {}
         try:
             with connection.cursor() as cursor:
                 cursor.execute('SELECT 1')
                 cursor.fetchone()
+            checks['database'] = 'ok'
         except Exception:
-            return Response({'status': 'unhealthy', 'database': 'unavailable'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            checks['database'] = 'unavailable'
+            if request.query_params.get('verbose') not in {'1', 'true', 'yes'}:
+                return Response({'status': 'unhealthy', 'database': 'unavailable'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if request.query_params.get('verbose') in {'1', 'true', 'yes'}:
+            try:
+                cache_key = f'health-check-{getattr(request, "request_id", "local")}'
+                cache.set(cache_key, 'ok', timeout=5)
+                checks['cache'] = 'ok' if cache.get(cache_key) == 'ok' else 'unavailable'
+                cache.delete(cache_key)
+            except Exception:
+                checks['cache'] = 'unavailable'
+            try:
+                default_storage.listdir('')
+                checks['storage'] = 'ok'
+            except Exception:
+                checks['storage'] = 'unavailable'
+            healthy = all(value == 'ok' for value in checks.values())
             return Response({
-                'status': 'healthy',
-                'database': 'ok',
-                'checks': {'database': 'ok'},
+                'status': 'healthy' if healthy else 'unhealthy',
+                'database': checks['database'],
+                'checks': checks,
                 'request_id': getattr(request, 'request_id', None),
-            })
+            }, status=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({'status': 'healthy', 'database': 'ok'})
 
 
