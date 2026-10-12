@@ -53,6 +53,11 @@ def notification_center(request):
     return render(request, 'articles/notification_center.html')
 
 
+@role_required('Journalist', 'Editor', 'Admin')
+def analytics_dashboard(request):
+    return render(request, 'articles/analytics_dashboard.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')

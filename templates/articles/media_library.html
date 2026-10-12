@@ -16,6 +16,7 @@
             <a class="is-active" href="{% url 'media-library-page' %}">Media</a><a href="{% url 'workspace-search-page' %}">Search</a>
             {% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}">Assignments</a>{% endif %}
             <a href="{% url 'notification-center-page' %}">Notifications</a>
+            <a href="{% url 'analytics-dashboard-page' %}">Analytics</a>
         </nav>
     </header>
     <main class="feature-page">
