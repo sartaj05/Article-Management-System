@@ -13,7 +13,7 @@ async function loginAs(page, role) {
   await page.locator('#username').fill(account.username);
   await page.locator('#password').fill(password);
   await page.locator('#login-form button[type="submit"]').click();
-  await page.waitForURL(new RegExp(account.dashboard.replaceAll('/', '\\/') + '$'));
+  await expect(page).toHaveURL(new RegExp(account.dashboard.replaceAll('/', '\\/') + '$'), { timeout: 15_000 });
 }
 
 async function expectUsablePage(page, path, heading) {

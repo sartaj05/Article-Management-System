@@ -8,7 +8,7 @@ async function login(page) {
   await page.locator('#username').fill(username);
   await page.locator('#password').fill(password);
   await page.locator('#login-form button[type="submit"]').click();
-  await page.waitForURL(/journalist\/dashboard\//, { timeout: 15_000 });
+  await expect(page).toHaveURL(/journalist\/dashboard\//, { timeout: 15_000 });
 }
 
 test('public login page keeps a responsive shared shell', async ({ page }) => {
