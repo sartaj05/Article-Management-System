@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import importlib.util
 
 from datetime import timedelta
 import os
@@ -60,6 +61,9 @@ INSTALLED_APPS = [
     'articles',
 ]
 
+if importlib.util.find_spec('channels'):
+    INSTALLED_APPS.append('channels')
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'config.middleware.RequestIDMiddleware',
@@ -93,6 +97,15 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+if importlib.util.find_spec('channels'):
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': os.getenv('CHANNEL_LAYER_BACKEND', 'channels.layers.InMemoryChannelLayer'),
+            'CONFIG': {'hosts': [os.getenv('REDIS_URL', 'redis://localhost:6379/1')]},
+        },
+    }
 
 
 # Database

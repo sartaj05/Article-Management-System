@@ -1,0 +1,4 @@
+# Install this optional production transport for WebSocket collaboration.
+-r requirements.txt
+channels==4.2.0
+channels-redis==4.2.1

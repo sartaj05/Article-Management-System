@@ -14,6 +14,8 @@
   let lastSavedAt = null;
   let saveTimer = null;
   let since = null;
+  let socket = null;
+  let socketReady = false;
 
   const setStatus = (text, className = "") => {
     status.textContent = text;
@@ -56,6 +58,10 @@
   [title, subtitle, content].filter(Boolean).forEach((field) => field.addEventListener("input", scheduleSave));
 
   async function heartbeat() {
+    if (socketReady) {
+      socket.send(JSON.stringify({ type: "presence", status: "editing", section: document.activeElement?.id || "content", cursor_position: content.selectionStart || 0 }));
+      return;
+    }
     try {
       await fetch(collaborationUrl, {
         method: "POST",
@@ -66,6 +72,7 @@
   }
 
   async function pollPresence() {
+    if (socketReady) return;
     try {
       const query = since ? `?include_events=1&since=${encodeURIComponent(since)}` : "";
       const response = await fetch(`${collaborationUrl}${query}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -78,6 +85,29 @@
     } catch (_) {}
   }
 
+  function connectSocket() {
+    if (!window.WebSocket) return;
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    socket = new WebSocket(`${protocol}://${window.location.host}/ws/articles/${articleId}/collaboration/`);
+    socket.addEventListener("open", () => {
+      socketReady = true;
+      setStatus("Live collaboration connected.", "is-saved");
+      heartbeat();
+    });
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data || "{}");
+      const person = data.presence;
+      const currentUser = JSON.parse(window.localStorage.getItem("user") || "{}").username;
+      if (person && person.username !== currentUser) setStatus(`${person.username} is editing this article.`, "is-saving");
+    });
+    socket.addEventListener("close", () => {
+      socketReady = false;
+      setStatus("Live collaboration unavailable; using sync fallback.", "is-conflict");
+    });
+    socket.addEventListener("error", () => { socketReady = false; });
+  }
+
+  connectSocket();
   heartbeat();
   pollPresence();
   const heartbeatTimer = window.setInterval(heartbeat, 15000);
@@ -85,6 +115,7 @@
   window.addEventListener("beforeunload", () => {
     window.clearInterval(heartbeatTimer);
     window.clearInterval(presenceTimer);
+    if (socket && socket.readyState === WebSocket.OPEN) socket.close();
     fetch(collaborationUrl, { method: "DELETE", headers: { Authorization: `Bearer ${token}` }, keepalive: true });
   });
 })();
