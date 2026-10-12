@@ -55,6 +55,7 @@ from .assistant import make_suggestions
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
+from .media_processing import generate_image_variants
 
 
 class ArticlePagination(PageNumberPagination):
@@ -1886,6 +1887,12 @@ class MediaAssetLibraryView(APIView):
                 'size_bytes': uploaded_file.size,
             }
             asset.save(update_fields=['metadata', 'updated_at'])
+            if asset.media_type == 'image':
+                try:
+                    generate_image_variants(asset)
+                except (OSError, ValueError):
+                    asset.metadata = {**(asset.metadata or {}), 'processing': 'failed'}
+                    asset.save(update_fields=['metadata', 'updated_at'])
         return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
 
 
@@ -1913,6 +1920,16 @@ class MediaAssetDetailView(APIView):
         asset.is_archived = True
         asset.save(update_fields=['is_archived', 'updated_at'])
         return Response({'archived': True})
+
+    def post(self, request, pk):
+        asset = get_object_or_404(MediaAsset, pk=pk)
+        if not self.can_manage(request, asset):
+            return Response({'detail': 'You cannot process this asset.'}, status=403)
+        try:
+            generate_image_variants(asset)
+        except (OSError, ValueError):
+            return Response({'detail': 'The image could not be processed.'}, status=400)
+        return Response(MediaAssetSerializer(asset, context={'request': request}).data)
 
 
 class ArticleAssetView(APIView):
