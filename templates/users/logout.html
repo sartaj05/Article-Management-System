@@ -14,7 +14,7 @@
 <body class="auth-shell">
     {% include 'partials/site_header.html' %}
     <main class="auth-main"><section class="auth-card logout-state" aria-labelledby="logout-title"><div class="auth-intro__icon"><i class="fa-solid fa-check" aria-hidden="true"></i></div><span class="eyebrow">Session complete</span><h1 id="logout-title">You’re safely signed out.</h1><p>Your workspace is closed and your local session tokens have been cleared. Redirecting you to the newsroom...</p><a class="button" href="{% url 'home' %}"><i class="fa-solid fa-compass" aria-hidden="true"></i> Go to discover</a><div class="auth-links"><a href="{% url 'user-login-template' %}">Log in again</a></div></section></main>
-    <footer class="auth-footer">&copy; 2026 Article Studio. Write clearly. Publish confidently.</footer>
+    {% include 'partials/site_footer.html' %}
     <script>
         ['access_token', 'refresh_token', 'user', 'lastActivePage'].forEach((key) => localStorage.removeItem(key));
         window.setTimeout(() => window.location.replace("{% url 'home' %}"), 900);
