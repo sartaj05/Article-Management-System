@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 
 from users.models import CustomUser
 from ..models import Article
+from ..jobs import publish_scheduled_articles
 
 
 class ScheduledPublishingTests(APITestCase):
@@ -33,3 +34,11 @@ class ScheduledPublishingTests(APITestCase):
         self.article.refresh_from_db()
         self.assertEqual(self.article.workflow_status, 'published')
         self.assertTrue(self.article.is_visible)
+
+    def test_concurrent_safe_job_is_idempotent(self):
+        self.article.scheduled_publish_at = timezone.now() - timedelta(minutes=1)
+        self.article.save(update_fields=['scheduled_publish_at'])
+        first = publish_scheduled_articles()
+        second = publish_scheduled_articles()
+        self.assertEqual(first['published'], 1)
+        self.assertEqual(second['published'], 0)
