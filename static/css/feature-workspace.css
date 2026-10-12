@@ -1,0 +1,27 @@
+.feature-page { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 54px 0 80px; }
+.feature-page__heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+.feature-page h1 { margin: 6px 0 8px; color: var(--ink); font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.055em; }
+.feature-page__heading p, .feature-status { margin: 0; color: var(--muted); }
+.feature-eyebrow { color: var(--accent); font-size: .72rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+.feature-toolbar { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; }
+.feature-toolbar label { display: grid; gap: 5px; color: var(--muted); font-size: .75rem; font-weight: 750; }
+.feature-toolbar select { min-height: 38px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); }
+.feature-status { min-height: 24px; margin-bottom: 12px; }
+.assignment-board { display: grid; grid-template-columns: repeat(5, minmax(180px, 1fr)); gap: 14px; align-items: start; }
+.assignment-column { min-width: 0; min-height: 260px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.72); }
+.assignment-column > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.assignment-column h2 { margin: 0; color: var(--ink); font-size: .95rem; }
+.assignment-column > header span { display: grid; place-items: center; min-width: 25px; height: 25px; border-radius: 999px; color: var(--brand); background: #eeefff; font-size: .75rem; font-weight: 800; }
+.assignment-column__items { display: grid; gap: 10px; padding-top: 12px; }
+.assignment-card { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.assignment-card h3 { margin: 8px 0 7px; color: var(--ink); font-size: .92rem; line-height: 1.25; }
+.assignment-card p { margin: 4px 0; color: var(--muted); font-size: .78rem; }
+.assignment-card__notes { padding-top: 6px; border-top: 1px solid var(--line); }
+.assignment-card__priority { display: inline-flex; padding: 4px 7px; border-radius: 999px; color: var(--brand); background: #eeefff; font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.assignment-card__priority--urgent { color: #b42318; background: #fff0ee; }
+.assignment-card__priority--high { color: #a15c00; background: #fff7e6; }
+.assignment-card__status { display: grid; gap: 4px; margin-top: 10px; color: var(--muted); font-size: .72rem; font-weight: 700; }
+.assignment-card__status select { width: 100%; min-height: 34px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font-size: .78rem; }
+.assignment-column__empty, .feature-empty { padding: 24px 8px; color: var(--muted); font-size: .8rem; text-align: center; }
+@media (max-width: 1080px) { .assignment-board { grid-template-columns: repeat(3, minmax(200px, 1fr)); } }
+@media (max-width: 720px) { .feature-page { width: min(100% - 28px, 620px); padding: 32px 0 54px; } .feature-page__heading { align-items: stretch; flex-direction: column; } .assignment-board { grid-template-columns: 1fr; } .assignment-column { min-height: auto; } }

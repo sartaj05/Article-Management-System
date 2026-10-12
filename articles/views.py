@@ -33,6 +33,11 @@ def editor_dashboard(request):
     return render(request, 'articles/editor_dashboard.html')
 
 
+@role_required('Editor', 'Admin')
+def assignment_board(request):
+    return render(request, 'articles/assignment_board.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
