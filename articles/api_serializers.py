@@ -108,6 +108,17 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
     comments_count = serializers.IntegerField(source='comments.count', read_only=True)
     likes_count = serializers.IntegerField(source='likes.count', read_only=True)
     views_count = serializers.IntegerField(source='views.count', read_only=True)
+    workflow_steps = serializers.SerializerMethodField()
+    available_actions = serializers.SerializerMethodField()
+
+    def get_workflow_steps(self, obj):
+        from .workflow import workflow_steps
+        return workflow_steps(obj)
+
+    def get_available_actions(self, obj):
+        from .workflow import available_actions
+        request = self.context.get('request')
+        return available_actions(obj, request.user if request else None)
 
     class Meta:
         model = Article
@@ -121,7 +132,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
             'scheduled_publish_at', 'updated_at', 'comments_count', 'likes_count', 'views_count',
             'is_deleted', 'deleted_at',
             'is_featured', 'featured_at',
-            'is_premium',
+            'is_premium', 'workflow_steps', 'available_actions',
         ]
         read_only_fields = [
             'id', 'author', 'author_name', 'workflow_status', 'rejection_reason',
