@@ -8,6 +8,7 @@
     const form = widget.querySelector('[data-support-form]');
     const input = widget.querySelector('#support-message');
     const messages = widget.querySelector('[data-support-messages]');
+    let lastFocusedElement = null;
 
     function addMessage(text, type, links) {
         const message = document.createElement('div');
@@ -32,8 +33,15 @@
 
     function setOpen(isOpen) {
         panel.hidden = !isOpen;
+        panel.setAttribute('aria-hidden', String(!isOpen));
         openButton.setAttribute('aria-expanded', String(isOpen));
-        if (isOpen) input.focus();
+        if (isOpen) {
+            lastFocusedElement = document.activeElement;
+            input.focus();
+        } else {
+            (lastFocusedElement || openButton).focus();
+            lastFocusedElement = null;
+        }
     }
 
     async function ask(question) {
@@ -76,6 +84,9 @@
     });
     closeButton.addEventListener('click', function () {
         setOpen(false);
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !panel.hidden) setOpen(false);
     });
     form.addEventListener('submit', function (event) {
         event.preventDefault();

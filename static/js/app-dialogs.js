@@ -2,6 +2,8 @@
   "use strict";
 
   let activeResolve = null;
+  let activeTrigger = null;
+  let activeKeyHandler = null;
 
   function ensureDialog() {
     let dialog = document.querySelector("[data-app-dialog]");
@@ -53,11 +55,15 @@
   function finish(result) {
     const dialog = document.querySelector("[data-app-dialog]");
     if (dialog) dialog.hidden = true;
+    if (activeKeyHandler) document.removeEventListener("keydown", activeKeyHandler);
+    activeKeyHandler = null;
     if (activeResolve) {
       const resolve = activeResolve;
       activeResolve = null;
       resolve(result);
     }
+    activeTrigger?.focus?.();
+    activeTrigger = null;
   }
 
   function openDialog(message, options) {
@@ -74,8 +80,30 @@
     dialog.querySelector("[data-dialog-message]").textContent = String(message || "");
     dialog.querySelector("[data-dialog-cancel]").hidden = !confirmMode;
     dialog.querySelector("[data-dialog-confirm]").textContent = confirmMode ? "Continue" : "Okay";
+    activeTrigger = document.activeElement;
     dialog.hidden = false;
-    dialog.querySelector(confirmMode ? "[data-dialog-cancel]" : "[data-dialog-confirm]").focus();
+    const initialFocus = dialog.querySelector(confirmMode ? "[data-dialog-cancel]" : "[data-dialog-confirm]");
+    initialFocus.focus();
+    activeKeyHandler = function (event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finish(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...dialog.querySelectorAll("button:not([hidden])")];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", activeKeyHandler);
 
     return new Promise(function (resolve) {
       activeResolve = resolve;
