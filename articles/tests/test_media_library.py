@@ -1,9 +1,12 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
+from django.core.management import call_command
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
-from ..models import Article, ArticleAsset
+from ..models import Article, ArticleAsset, MediaAsset
 
 
 class MediaLibraryFeatureTests(TestCase):
@@ -57,3 +60,18 @@ class MediaLibraryFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/media-library/?q=searchable')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+    def test_image_requires_alt_text_and_cleanup_archives_orphans(self):
+        invalid = self.client.post('/articles/api/v2/media-library/', {
+            'title': 'Missing alt', 'media_type': 'image',
+            'file': SimpleUploadedFile('missing-alt.jpg', b'image', content_type='image/jpeg'),
+        }, format='multipart')
+        self.assertEqual(invalid.status_code, 400)
+        orphan = MediaAsset.objects.create(
+            uploaded_by=self.user, title='Old orphan', media_type='image',
+            alt_text='Old image', external_url='https://example.com/old.jpg',
+        )
+        MediaAsset.objects.filter(pk=orphan.pk).update(updated_at=timezone.now() - timedelta(days=45))
+        call_command('cleanup_media_assets', '--days', '30', '--apply')
+        orphan.refresh_from_db()
+        self.assertTrue(orphan.is_archived)

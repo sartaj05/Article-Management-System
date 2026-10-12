@@ -1857,6 +1857,14 @@ class MediaAssetLibraryView(APIView):
                     'duplicate_asset_id': duplicate.id,
                 }, status=status.HTTP_409_CONFLICT)
         asset = serializer.save(uploaded_by=request.user, file_hash=file_hash)
+        if uploaded_file:
+            asset.metadata = {
+                **(asset.metadata or {}),
+                'original_name': uploaded_file.name,
+                'content_type': getattr(uploaded_file, 'content_type', ''),
+                'size_bytes': uploaded_file.size,
+            }
+            asset.save(update_fields=['metadata', 'updated_at'])
         return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
 
 

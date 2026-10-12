@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 
 from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 
@@ -296,8 +297,26 @@ class MediaAssetSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'uploaded_by', 'uploaded_by_name', 'file_hash', 'created_at', 'updated_at']
 
     def validate(self, attrs):
-        if not attrs.get('file') and not attrs.get('external_url'):
+        uploaded_file = attrs.get('file')
+        external_url = attrs.get('external_url')
+        media_type = attrs.get('media_type', getattr(self.instance, 'media_type', 'image'))
+        if not uploaded_file and not external_url:
             raise serializers.ValidationError('Provide a file or external URL for this asset.')
+        if media_type == 'image' and not attrs.get('alt_text', getattr(self.instance, 'alt_text', '')).strip():
+            raise serializers.ValidationError({'alt_text': 'Alternative text is required for image assets.'})
+        if uploaded_file:
+            max_bytes = getattr(settings, 'MEDIA_MAX_UPLOAD_BYTES', 10 * 1024 * 1024)
+            if uploaded_file.size > max_bytes:
+                raise serializers.ValidationError({'file': f'File size cannot exceed {max_bytes // (1024 * 1024)} MB.'})
+            allowed_types = {
+                'image': {'image/jpeg', 'image/png', 'image/webp', 'image/gif'},
+                'audio': {'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'},
+                'video': {'video/mp4', 'video/webm', 'video/ogg'},
+                'document': {'application/pdf', 'text/plain', 'text/markdown'},
+            }
+            content_type = getattr(uploaded_file, 'content_type', '')
+            if content_type and content_type not in allowed_types.get(media_type, set()):
+                raise serializers.ValidationError({'file': f'Unsupported {media_type} file type: {content_type}.'})
         return attrs
 
 
