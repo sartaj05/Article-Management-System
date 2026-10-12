@@ -36,6 +36,16 @@
         <p class="feature-status" id="assignment-status" role="status" aria-live="polite">Loading assignments…</p>
         <section class="assignment-board" id="assignment-board" aria-label="Article assignments"></section>
     </main>
+    <div class="feature-modal" id="timeline-modal" hidden>
+        <div class="feature-modal__panel" role="dialog" aria-modal="true" aria-labelledby="timeline-title">
+            <button class="feature-modal__close" id="timeline-close" type="button" aria-label="Close workflow timeline">×</button>
+            <span class="feature-eyebrow">Workflow history</span>
+            <h2 id="timeline-title">Article timeline</h2>
+            <div class="workflow-steps" id="timeline-steps"></div>
+            <p class="timeline-rejection" id="timeline-rejection" hidden></p>
+            <ol class="timeline-events" id="timeline-events"></ol>
+        </div>
+    </div>
     <script src="{% static 'js/assignment-board.js' %}" defer></script>
 </body>
 </html>

@@ -51,6 +51,7 @@ from .api_serializers import (
 )
 from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 from .permissions import capabilities_for_user, editor_has_capability
+from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
 from .assistant import make_suggestions
@@ -76,6 +77,35 @@ class CurrentUserCapabilitiesView(APIView):
         return Response({
             'role': request.user.role,
             'capabilities': capabilities,
+        })
+
+
+class ArticleWorkflowTimelineView(APIView):
+    """Return the current workflow state and its auditable transitions."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article.objects.select_related('reviewed_by', 'author'), pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot view this workflow timeline.'}, status=status.HTTP_403_FORBIDDEN)
+
+        events = []
+        for item in AuditLog.objects.filter(article=article).select_related('actor').order_by('created_at', 'id'):
+            events.append({
+                'id': item.id,
+                'action': item.action,
+                'actor': item.actor.username if item.actor else 'System',
+                'details': item.details or {},
+                'created_at': item.created_at,
+            })
+        return Response({
+            'article_id': article.id,
+            'title': article.title,
+            'workflow_status': article.workflow_status,
+            'rejection_reason': article.rejection_reason,
+            'workflow_steps': workflow_steps(article),
+            'events': events,
         })
 
 

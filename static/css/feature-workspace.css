@@ -22,6 +22,21 @@
 .assignment-card__priority--high { color: #a15c00; background: #fff7e6; }
 .assignment-card__status { display: grid; gap: 4px; margin-top: 10px; color: var(--muted); font-size: .72rem; font-weight: 700; }
 .assignment-card__status select { width: 100%; min-height: 34px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface); font-size: .78rem; }
+.assignment-card__timeline { width: 100%; margin-top: 10px; }
 .assignment-column__empty, .feature-empty { padding: 24px 8px; color: var(--muted); font-size: .8rem; text-align: center; }
+.feature-modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: rgba(23,27,58,.56); }
+.feature-modal[hidden] { display: none; }
+.feature-modal__panel { position: relative; width: min(680px, 100%); max-height: min(720px, calc(100vh - 40px)); overflow: auto; padding: clamp(22px, 5vw, 34px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-lg); }
+.feature-modal__panel h2 { margin: 8px 0 20px; color: var(--ink); font-size: clamp(1.3rem, 3vw, 1.8rem); }
+.feature-modal__close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; border: 0; border-radius: 10px; color: var(--muted); background: var(--surface-soft); font-size: 1.4rem; }
+.workflow-steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.workflow-step { padding: 7px 10px; border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: .76rem; font-weight: 750; }
+.workflow-step--complete, .workflow-step--current { color: #0e7765; background: #e3fbf5; }
+.workflow-step--rejected { color: #b42318; background: #fff0ee; }
+.timeline-rejection { margin: 0 0 18px; padding: 11px 13px; border-radius: 10px; color: #9b2c22; background: #fff4f2; font-size: .86rem; }
+.timeline-events { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.timeline-events li { display: grid; gap: 3px; padding: 12px 14px; border-left: 3px solid var(--brand); border-radius: 0 10px 10px 0; background: var(--surface-soft); }
+.timeline-events li span { color: var(--muted); font-size: .78rem; }
+.timeline-events__empty { color: var(--muted); }
 @media (max-width: 1080px) { .assignment-board { grid-template-columns: repeat(3, minmax(200px, 1fr)); } }
 @media (max-width: 720px) { .feature-page { width: min(100% - 28px, 620px); padding: 32px 0 54px; } .feature-page__heading { align-items: stretch; flex-direction: column; } .assignment-board { grid-template-columns: 1fr; } .assignment-column { min-height: auto; } }

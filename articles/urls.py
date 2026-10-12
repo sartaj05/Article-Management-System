@@ -5,6 +5,7 @@ from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
     ArticleAnalyticsView,
+    ArticleWorkflowTimelineView,
     CurrentUserCapabilitiesView,
     ArticleExportView,
     ArticleReviewView,
@@ -173,6 +174,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/seo/', ArticleSEOView.as_view(), name='article-seo'),
     path('api/v2/articles/<int:article_id>/accessibility/', ArticleAccessibilityView.as_view(), name='article-accessibility'),
     path('api/v2/articles/<int:article_id>/engagement/', ArticleEngagementView.as_view(), name='article-engagement'),
+    path('api/v2/articles/<int:article_id>/timeline/', ArticleWorkflowTimelineView.as_view(), name='article-workflow-timeline'),
     path('api/v2/gallery/images/<int:pk>/', ArticleImageDeleteView.as_view(), name='article-image-delete'),
     path('api/v2/discover/', ArticleDiscoveryView.as_view(), name='article-discovery'),
     path('api/v2/reports/<str:report_type>/', ReportExportView.as_view(), name='report-export'),
