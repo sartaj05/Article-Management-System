@@ -164,7 +164,7 @@ class ArticleSearchView(View):
         page_obj = paginator.get_page(page_number)
 
         # Serialize the articles
-        serializer = ArticleSerializer(page_obj, many=True)
+        serializer = ArticleSerializer(page_obj, many=True, context={'request': request})
 
         # Prepare the paginated response (including page and total pages)
         response_data = {

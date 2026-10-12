@@ -284,13 +284,14 @@ function appendArticle(article) {
       <td>${title}</td>
       <td>${category}</td>
       <td>${publishDate}</td>
-      <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(status) : `<span class="status-badge status-badge--${statusKey}">${status}</span>`}${article.rejection_reason ? `<span class="workflow-summary__reason">${WorkflowUI.escapeHtml(article.rejection_reason)}</span>` : ""}</div></td>
+      <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(status) : `<span class="status-badge status-badge--${statusKey}">${status}</span>`}${window.WorkflowUI ? WorkflowUI.timeline(article.workflow_steps) : ""}${article.rejection_reason ? `<span class="workflow-summary__reason">${window.WorkflowUI ? WorkflowUI.escapeHtml(article.rejection_reason) : article.rejection_reason}</span>` : ""}</div></td>
       <td>${imageMarkup}</td>
       <td class="table-actions">
        
  <button type="button" class="table-action table-action--view view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>
  <button type="button" class="table-action table-action--edit edit-article" data-id="${article.id}">Edit</button>
         <button type="button" class="table-action table-action--delete delete-article" data-id="${article.id}">Delete</button>
+        ${window.WorkflowUI ? WorkflowUI.actionButtons(article.available_actions, article.id) : ""}
       </td>
     </tr>
   `;

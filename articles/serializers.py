@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Article, Comment, Like
+from .workflow import available_actions, workflow_steps
 from rest_framework.exceptions import ValidationError
 from django.utils.text import slugify
 import random
@@ -22,16 +23,25 @@ class ArticleSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)  # Include image field for the API response
     latitude = serializers.FloatField(required=False, allow_null=True)  # Latitude field
     longitude = serializers.FloatField(required=False, allow_null=True)  # Longitude field
+    workflow_steps = serializers.SerializerMethodField()
+    available_actions = serializers.SerializerMethodField()
+
+    def get_workflow_steps(self, obj):
+        return workflow_steps(obj)
+
+    def get_available_actions(self, obj):
+        request = self.context.get('request')
+        return available_actions(obj, request.user if request else None)
 
     class Meta:
         model = Article
         fields = [
             'id', 'title', 'subtitle', 'content', 'author', 'author_name', 'email',
             'image', 'tags', 'category', 'summary', 'publish_date', 'agreed_to_terms',
-            'status', 'review_status', 'slug', 'is_visible', 'created_at', 'updated_at',
+            'status', 'review_status', 'workflow_status', 'rejection_reason', 'workflow_steps', 'available_actions', 'slug', 'is_visible', 'created_at', 'updated_at',
             'likes_count', 'views_count', 'comments', 'latitude', 'longitude'
         ]
-        read_only_fields = ['id', 'author', 'slug', 'is_visible', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'author', 'workflow_status', 'rejection_reason', 'workflow_steps', 'available_actions', 'slug', 'is_visible', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         category_data = self.context['request'].data.get('category')

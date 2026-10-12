@@ -29,5 +29,29 @@
     }).join("")}</div>`;
   }
 
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest(".workflow-action");
+    if (!button) return;
+    const action = button.dataset.action;
+    if (action === "schedule" || action === "review") {
+      button.title = action === "schedule" ? "Use the scheduling form to choose a publication time." : "Use the review controls for this article.";
+      return;
+    }
+    const token = window.localStorage.getItem("access_token");
+    button.disabled = true;
+    try {
+      const response = await fetch(`/articles/api/v2/articles/${button.dataset.id}/${action}/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!response.ok) throw new Error("Workflow action failed.");
+      window.location.reload();
+    } catch (error) {
+      button.disabled = false;
+      button.setAttribute("aria-label", error.message);
+    }
+  });
+
   window.WorkflowUI = { escapeHtml, statusBadge, timeline, actionButtons };
 })(window);
