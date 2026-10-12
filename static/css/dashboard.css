@@ -431,6 +431,12 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   .dashboard-shell .main-content,
   .dashboard-shell .content { width: min(100% - 28px, 680px); padding-top: 34px; }
   .dashboard-shell .user-info-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-shell table.articles-table,
+  .dashboard-shell table.users-table {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
 }
 
 @media (max-width: 560px) {
@@ -498,7 +504,9 @@ body.dashboard-shell .sidebar-toggle { display: none; }
     background: var(--surface);
   }
   .dashboard-shell .article-table td,
-  .dashboard-shell .article-table--manage td {
+  .dashboard-shell .article-table--manage td,
+  .dashboard-shell table.articles-table td,
+  .dashboard-shell table.users-table td {
     display: grid;
     grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr);
     gap: 12px;
@@ -508,14 +516,57 @@ body.dashboard-shell .sidebar-toggle { display: none; }
     border-bottom: 1px solid var(--line);
   }
   .dashboard-shell .article-table td:last-child,
-  .dashboard-shell .article-table--manage td:last-child { border-bottom: 0; }
+  .dashboard-shell .article-table--manage td:last-child,
+  .dashboard-shell table.articles-table td:last-child,
+  .dashboard-shell table.users-table td:last-child { border-bottom: 0; }
   .dashboard-shell .article-table td::before,
-  .dashboard-shell .article-table--manage td::before {
+  .dashboard-shell .article-table--manage td::before,
+  .dashboard-shell table.articles-table td::before,
+  .dashboard-shell table.users-table td::before {
     color: var(--muted);
     content: attr(data-label);
     font-size: .7rem;
     font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
+  }
+
+  /* Admin tables are direct table elements rather than table wrappers. Convert
+     them to the same stacked cards used by the journalist workspace so their
+     720px desktop minimum never creates page-level horizontal scrolling. */
+  .dashboard-shell table.articles-table,
+  .dashboard-shell table.users-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
+
+  .dashboard-shell table.articles-table thead,
+  .dashboard-shell table.users-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .dashboard-shell table.articles-table tbody,
+  .dashboard-shell table.articles-table tbody tr,
+  .dashboard-shell table.users-table tbody,
+  .dashboard-shell table.users-table tbody tr {
+    display: block;
+    width: 100%;
+  }
+
+  .dashboard-shell table.articles-table tbody tr,
+  .dashboard-shell table.users-table tbody tr {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
   }
 }

@@ -11,7 +11,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".article-table table, table.article-table").forEach((table) => {
+    document.querySelectorAll(".article-table table, table.article-table, table.articles-table, table.users-table").forEach((table) => {
       addLabels(table);
       const body = table.querySelector("tbody");
       if (body) new MutationObserver(() => addLabels(table)).observe(body, { childList: true });
