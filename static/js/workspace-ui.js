@@ -27,8 +27,20 @@
       }));
     }
 
-    document.querySelectorAll("[data-dashboard-logout]").forEach((link) => link.addEventListener("click", (event) => {
+    document.querySelectorAll("[data-dashboard-logout]").forEach((link) => link.addEventListener("click", async (event) => {
       event.preventDefault();
+      const refreshToken = window.localStorage.getItem("refresh_token");
+      if (refreshToken) {
+        try {
+          await fetch("/api/logout/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ refresh: refreshToken }),
+          });
+        } catch (_) {
+          // Continue with local cleanup even if the network is unavailable.
+        }
+      }
       clearWorkspaceSession();
       window.location.replace("/");
     }));
