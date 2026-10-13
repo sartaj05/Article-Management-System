@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, SavedSearchView, RoleCapabilityView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView,
+    WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView,
 )
 urlpatterns = [
     
@@ -89,6 +89,8 @@ path('', views.home, name='home'),
     path('workspaces/', WorkspaceListCreateView.as_view(), name='workspace-list-create'),
     path('workspaces/<slug:slug>/members/', WorkspaceMembersView.as_view(), name='workspace-members'),
     path('workspaces/<slug:slug>/billing/', WorkspaceBillingView.as_view(), name='workspace-billing'),
+    path('workspaces/<slug:slug>/select/', WorkspaceSelectView.as_view(), name='workspace-select'),
+    path('workspaces/select/', WorkspaceSelectView.as_view(), name='workspace-clear'),
     path('workspaces/<slug:slug>/invite/', WorkspaceInviteView.as_view(), name='workspace-invite'),
     path('workspaces/invitations/<uuid:token>/accept/', WorkspaceInvitationAcceptView.as_view(), name='workspace-invitation-accept'),
     # Change Password (Authenticated User)

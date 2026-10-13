@@ -1148,6 +1148,20 @@ class WorkspaceBillingView(APIView):
         return self.get(request, slug)
 
 
+class WorkspaceSelectView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        request.session['active_workspace_slug'] = workspace.slug
+        return Response({'workspace': WorkspaceSerializer(workspace).data, 'active': True})
+
+    def delete(self, request):
+        request.session.pop('active_workspace_slug', None)
+        return Response({'active': False})
+
+
 class WorkspaceInviteView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]

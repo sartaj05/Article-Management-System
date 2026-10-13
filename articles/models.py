@@ -60,6 +60,7 @@ class Article(models.Model):
     og_image = models.ImageField(upload_to='articles/og-images/', null=True, blank=True)
     author_name = models.CharField(max_length=80, null=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.SET_NULL, null=True, blank=True, related_name='articles')
     email = models.EmailField(validators=[EmailValidator()], null=True)
     image = models.ImageField(upload_to='articles/images/', null=True, blank=True)
 
@@ -681,6 +682,7 @@ class MediaAsset(models.Model):
         ('public_domain', 'Public domain'),
     ]
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='media_assets')
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.SET_NULL, null=True, blank=True, related_name='media_assets')
     media_type = models.CharField(max_length=15, choices=MEDIA_TYPES, default='image')
     title = models.CharField(max_length=160)
     file = models.FileField(upload_to='media-library/', blank=True, null=True)

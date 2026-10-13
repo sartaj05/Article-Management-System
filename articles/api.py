@@ -29,7 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, ReaderInterest, has_active_membership
+from users.models import CustomUser, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
 
@@ -114,9 +114,21 @@ class ArticleWorkflowTimelineView(APIView):
 
 
 class ArticleQuerySetMixin:
+    def active_workspace(self):
+        slug = self.request.headers.get('X-Workspace-Slug') or self.request.query_params.get('workspace') or self.request.session.get('active_workspace_slug')
+        if not slug or not self.request.user.is_authenticated:
+            return None
+        return Workspace.objects.filter(
+            slug=slug, is_active=True,
+            memberships__user=self.request.user,
+        ).first()
+
     def article_queryset(self):
         user = self.request.user
         base = Article.objects.select_related('author', 'reviewed_by', 'category_ref').prefetch_related('tag_objects')
+        workspace = self.active_workspace()
+        if workspace:
+            base = base.filter(workspace=workspace)
         if user.is_authenticated and user.role in {'Editor', 'Admin'}:
             return base
         if user.is_authenticated:
@@ -129,7 +141,7 @@ class ArticleWorkflowView(ArticleQuerySetMixin, APIView):
     permission_classes = [AllowAny]
 
     def get_article(self, request, article_id):
-        article = get_object_or_404(Article, pk=article_id)
+        article = get_object_or_404(self.article_queryset(), pk=article_id)
         if article.is_premium and not has_active_membership(request.user):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('An active membership is required to read this article.')
