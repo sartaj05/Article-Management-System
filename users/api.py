@@ -23,7 +23,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from .models import (
-    AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
+    AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
@@ -336,6 +336,64 @@ class SavedSearchView(APIView):
         saved_search = get_object_or_404(self.get_queryset(request), pk=pk)
         saved_search.delete()
         return Response({'removed': True})
+
+
+class FeatureFlagView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def _enabled_for(self, flag, request):
+        if not flag.is_enabled:
+            return False
+        if flag.allowed_roles and request.user.role not in flag.allowed_roles:
+            return False
+        if flag.workspace_id:
+            slug = request.headers.get('X-Workspace-Slug') or request.session.get('active_workspace_slug')
+            if not slug or flag.workspace.slug != slug or not WorkspaceMembership.objects.filter(workspace=flag.workspace, user=request.user).exists():
+                return False
+        bucket = int(hashlib.sha256(f'{flag.key}:{request.user.pk}'.encode()).hexdigest()[:8], 16) % 100
+        return bucket < flag.rollout_percent
+
+    def _payload(self, flag, request):
+        return {
+            'id': flag.id, 'key': flag.key, 'description': flag.description,
+            'is_enabled': flag.is_enabled, 'rollout_percent': flag.rollout_percent,
+            'allowed_roles': flag.allowed_roles, 'workspace_id': flag.workspace_id,
+            'enabled_for_request': self._enabled_for(flag, request), 'updated_at': flag.updated_at,
+        }
+
+    def get(self, request):
+        key = str(request.query_params.get('key', '')).strip()
+        flags = FeatureFlag.objects.select_related('workspace')
+        if key:
+            flag = get_object_or_404(flags, key=key)
+            return Response(self._payload(flag, request))
+        if request.user.role != 'Admin':
+            flags = flags.filter(is_enabled=True)
+        return Response([self._payload(flag, request) for flag in flags])
+
+    def post(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage feature flags.'}, status=403)
+        key = str(request.data.get('key', '')).strip().lower()
+        if not key:
+            return Response({'detail': 'key is required.'}, status=400)
+        try:
+            rollout = int(request.data.get('rollout_percent', 100))
+        except (TypeError, ValueError):
+            return Response({'detail': 'rollout_percent must be an integer from 0 to 100.'}, status=400)
+        if not 0 <= rollout <= 100:
+            return Response({'detail': 'rollout_percent must be between 0 and 100.'}, status=400)
+        flag, _ = FeatureFlag.objects.update_or_create(key=key, defaults={
+            'description': str(request.data.get('description', ''))[:255],
+            'is_enabled': bool(request.data.get('is_enabled', False)),
+            'rollout_percent': rollout,
+            'allowed_roles': request.data.get('allowed_roles') or [],
+            'workspace_id': request.data.get('workspace_id') or None,
+        })
+        return Response(self._payload(flag, request), status=201)
+
+    patch = post
 
 
 class RoleCapabilityView(APIView):

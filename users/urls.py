@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView,
+    WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView,
 )
 urlpatterns = [
     
@@ -58,6 +58,7 @@ path('', views.home, name='home'),
     path('alerts/saved-searches/', SavedSearchView.as_view(), name='saved-search-list'),
     path('alerts/saved-searches/<int:pk>/', SavedSearchView.as_view(), name='saved-search-detail'),
     path('role-capabilities/', RoleCapabilityView.as_view(), name='role-capabilities'),
+    path('feature-flags/', FeatureFlagView.as_view(), name='feature-flags'),
     path('two-factor/', TwoFactorView.as_view(), name='two-factor'),
     path('trusted-devices/', TrustedDeviceView.as_view(), name='trusted-devices'),
     path('trusted-devices/<int:pk>/', TrustedDeviceView.as_view(), name='trusted-device-detail'),
