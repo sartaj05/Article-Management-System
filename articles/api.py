@@ -1386,7 +1386,15 @@ class NotificationListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user)
+        queryset = Notification.objects.filter(recipient=self.request.user)
+        if self.request.query_params.get('unread') in {'1', 'true'}:
+            queryset = queryset.filter(is_read=False)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data = {'unread_count': Notification.objects.filter(recipient=request.user, is_read=False).count(), 'results': response.data}
+        return response
 
 
 class NotificationReadView(APIView):
@@ -1395,7 +1403,8 @@ class NotificationReadView(APIView):
     def patch(self, request, notification_id):
         notification = get_object_or_404(Notification, pk=notification_id, recipient=request.user)
         notification.is_read = True
-        notification.save(update_fields=['is_read'])
+        notification.read_at = timezone.now()
+        notification.save(update_fields=['is_read', 'read_at'])
         return Response(NotificationSerializer(notification).data)
 
 

@@ -573,7 +573,10 @@ class Notification(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     message = models.CharField(max_length=500)
+    action_url = models.CharField(max_length=500, blank=True)
+    priority = models.CharField(max_length=10, choices=[('normal', 'Normal'), ('high', 'High')], default='normal')
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
