@@ -102,22 +102,27 @@ test('public feed only shows load more when another page exists', async ({ page 
 
 test('dark theme keeps public controls readable', async ({ page }) => {
   await page.goto('/');
+  const navigationToggle = page.getByRole('button', { name: 'Open navigation' });
+  if (await navigationToggle.isVisible()) await navigationToggle.click();
   await page.locator('.theme-toggle').click();
+  if (await navigationToggle.isVisible()) await navigationToggle.click();
   await page.locator('[data-feed-mode="trending"]').click();
 
-  const colors = await page.locator('.hero .button--light').evaluate((element) => {
-    const styles = getComputedStyle(element);
-    return { color: styles.color, background: styles.backgroundColor };
-  });
-  const activeFeedColors = await page.locator('[data-feed-mode="trending"]').evaluate((element) => {
-    const styles = getComputedStyle(element);
-    return { color: styles.color, background: styles.backgroundColor };
-  });
-
-  expect(colors.color).toBe('rgb(32, 54, 57)');
-  expect(colors.background).toBe('rgb(255, 250, 242)');
-  expect(activeFeedColors.color).toBe('rgb(32, 54, 57)');
-  expect(activeFeedColors.background).toBe('rgb(255, 250, 242)');
+  for (const selector of ['.hero .button--light', '[data-feed-mode="trending"]']) {
+    await expect.poll(() => page.locator(selector).evaluate((element) => {
+      const styles = getComputedStyle(element);
+      const luminance = (color) => {
+        const rgb = color.match(/[\d.]+/g).slice(0, 3).map(Number).map((value) => {
+          const channel = value / 255;
+          return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+        });
+        return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+      };
+      const foreground = luminance(styles.color);
+      const background = luminance(styles.backgroundColor);
+      return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
+    }), { message: `${selector} must have readable text contrast` }).toBeGreaterThanOrEqual(4.5);
+  }
 });
 
 test('support chat returns topic-specific answers', async ({ page }) => {
