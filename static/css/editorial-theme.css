@@ -249,6 +249,15 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .comment-report h2 { margin: 8px 0 4px; color: var(--ink); font-size: .98rem; }
 .comment-report p { margin: 0; color: var(--muted); font-size: .82rem; }
 .comment-report__actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.workspace-search-form__wide { grid-column: 1 / -1; }
+.workspace-search-form textarea { width: 100%; min-height: 120px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); resize: vertical; }
+.translation-list { display: grid; gap: 12px; margin-top: 22px; }
+.translation-card { display: flex; justify-content: space-between; gap: 18px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.translation-card h2 { margin: 8px 0 5px; color: var(--ink); font-size: 1rem; }
+.translation-card p { max-width: 620px; margin: 0; color: var(--muted); font-size: .84rem; }
+.translation-card__actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.translation-card__actions > strong { color: var(--brand); font-size: .78rem; text-transform: capitalize; }
+@media (max-width: 680px) { .translation-card { flex-direction: column; } .translation-card__actions { justify-content: flex-start; } }
 @media (max-width: 680px) { .article-comments__heading, .comment-report { align-items: stretch; flex-direction: column; } }
 .block-editor-toolbar { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .block-editor-toolbar button { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--brand); background: var(--surface); font-size: .78rem; font-weight: 700; }

@@ -68,6 +68,11 @@ def comment_moderation(request):
     return render(request, 'articles/comment_moderation.html')
 
 
+@role_required('Journalist', 'Editor', 'Admin')
+def translation_workspace(request):
+    return render(request, 'articles/translation_workspace.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
