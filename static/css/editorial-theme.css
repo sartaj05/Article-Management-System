@@ -90,6 +90,7 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .membership-plan-card ul { display: grid; gap: 8px; min-height: 52px; margin: 0; padding-left: 18px; color: var(--muted); }
 .membership-plan-card .button { margin-top: auto; }
 .membership-plan-card .button:disabled { cursor: default; opacity: .7; }
+.scope-option { display: flex; align-items: center; gap: 8px; margin: 10px 0; color: var(--muted); font-size: .9rem; }
 
 .dashboard-shell .main-content > header h1,
 .dashboard-shell .content > header h1,

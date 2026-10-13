@@ -383,6 +383,7 @@ class PublicAPIKey(models.Model):
     name = models.CharField(max_length=100)
     prefix = models.CharField(max_length=12, db_index=True)
     key_hash = models.CharField(max_length=64, unique=True)
+    scopes = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(blank=True, null=True)

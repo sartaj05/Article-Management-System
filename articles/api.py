@@ -1825,9 +1825,9 @@ class HeadlessArticleFeedView(APIView):
 
     def get(self, request):
         raw_key = request.headers.get('X-API-Key', '')
-        owner = resolve_public_api_key(raw_key) if raw_key else None
+        owner = resolve_public_api_key(raw_key, required_scope='articles:read') if raw_key else None
         if raw_key and not owner:
-            return Response({'detail': 'Invalid or revoked API key.'}, status=401)
+            return Response({'detail': 'Invalid, revoked, unauthorized, or rate-limited API key.'}, status=401)
 
         queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
         category = request.query_params.get('category')

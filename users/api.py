@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -638,9 +639,15 @@ class AuthorTipHistoryView(APIView):
 
 
 class PublicAPIKeySerializer(serializers.ModelSerializer):
+    scopes = serializers.ListField(
+        child=serializers.ChoiceField(choices=['articles:read']),
+        required=False,
+        allow_empty=True,
+    )
+
     class Meta:
         model = PublicAPIKey
-        fields = ['id', 'name', 'prefix', 'is_active', 'created_at', 'last_used_at']
+        fields = ['id', 'name', 'prefix', 'scopes', 'is_active', 'created_at', 'last_used_at']
         read_only_fields = ['id', 'prefix', 'is_active', 'created_at', 'last_used_at']
 
 
@@ -659,6 +666,7 @@ class PublicAPIKeyView(APIView):
         key = PublicAPIKey.objects.create(
             owner=request.user,
             name=serializer.validated_data['name'],
+            scopes=serializer.validated_data.get('scopes', []),
             prefix=raw_key[:10],
             key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
         )
@@ -733,6 +741,8 @@ class DeveloperAPIDocumentationView(APIView):
         return Response({
             'name': 'Article Studio Headless API',
             'authentication': 'Send a generated key in the X-API-Key header.',
+            'rate_limit': '120 requests per minute per API key.',
+            'scopes': {'articles:read': 'Read published articles from the headless feed.'},
             'endpoints': {
                 'articles': '/api/v2/public/articles/',
                 'rss': '/rss.xml',
@@ -743,7 +753,7 @@ class DeveloperAPIDocumentationView(APIView):
         })
 
 
-def resolve_public_api_key(raw_key):
+def resolve_public_api_key(raw_key, required_scope=None):
     if not raw_key:
         return None
     key = PublicAPIKey.objects.filter(
@@ -751,6 +761,13 @@ def resolve_public_api_key(raw_key):
         key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
     ).select_related('owner').first()
     if key:
+        if required_scope and key.scopes and required_scope not in key.scopes:
+            return None
+        rate_key = f'public-api-key:{key.id}:{timezone.now().strftime("%Y%m%d%H%M")}'
+        requests_in_window = cache.get(rate_key, 0)
+        if requests_in_window >= 120:
+            return None
+        cache.set(rate_key, requests_in_window + 1, timeout=70)
         key.last_used_at = timezone.now()
         key.save(update_fields=['last_used_at'])
         return key.owner
