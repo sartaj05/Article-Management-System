@@ -12,7 +12,7 @@ from .api import (
     AccessibilityPreferenceView, AlertRuleView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView, PaymentTransactionView,
     MembershipMeView, MembershipPlanView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
-    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
+    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
 urlpatterns = [
@@ -67,6 +67,7 @@ path('', views.home, name='home'),
     path('sso/<str:provider>/start/', SSOProviderStartView.as_view(), name='sso-provider-start'),
     path('sso/<str:provider>/callback/', SSOProviderCallbackView.as_view(), name='sso-provider-callback'),
     path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
+    path('reader/personalization/', PersonalizationPreferenceView.as_view(), name='reader-personalization'),
     path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
     path('membership/plans/', MembershipPlanView.as_view(), name='membership-plans'),
     path('membership/me/', MembershipMeView.as_view(), name='membership-me'),

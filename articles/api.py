@@ -29,7 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
+from users.models import CustomUser, PersonalizationPreference, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
 
@@ -268,11 +268,14 @@ class PersonalizedFeedView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        preference, _ = PersonalizationPreference.objects.get_or_create(user=request.user)
         interests = list(ReaderInterest.objects.filter(user=request.user).values_list('interest_type', 'value'))
+        if not preference.enabled or not preference.use_topic_interests:
+            interests = []
         category_values = {value.lower() for kind, value in interests if kind == 'category'}
         tag_values = {value.lower() for kind, value in interests if kind == 'tag'}
         author_values = {value.lower() for kind, value in interests if kind == 'author'}
-        progress_rows = list(ReadingProgress.objects.filter(user=request.user, completed=False, progress_percent__gt=0).select_related('article').order_by('-updated_at')[:10])
+        progress_rows = list(ReadingProgress.objects.filter(user=request.user, completed=False, progress_percent__gt=0).select_related('article').order_by('-updated_at')[:10]) if preference.enabled and preference.use_reading_history else []
         resume_ids = {row.article_id for row in progress_rows}
         resume_categories = {(row.article.category or '').lower() for row in progress_rows}
         mode = request.query_params.get('mode', 'for_you').strip().lower()
@@ -320,6 +323,7 @@ class PersonalizedFeedView(APIView):
             'cold_start': not bool(interests),
             'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
             'resume_reading': [{'article_id': row.article_id, 'progress_percent': row.progress_percent, 'position_seconds': row.position_seconds} for row in progress_rows],
+            'personalization': {'enabled': preference.enabled, 'use_reading_history': preference.use_reading_history, 'use_topic_interests': preference.use_topic_interests},
             'results': serialized,
         })
 

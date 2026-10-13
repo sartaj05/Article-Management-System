@@ -25,7 +25,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -604,6 +604,38 @@ class ReaderInterestSerializer(serializers.ModelSerializer):
         model = ReaderInterest
         fields = ['id', 'interest_type', 'value', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+
+class PersonalizationPreferenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def preference(self, user):
+        return PersonalizationPreference.objects.get_or_create(user=user)[0]
+
+    def payload(self, item):
+        return {'enabled': item.enabled, 'use_reading_history': item.use_reading_history, 'use_topic_interests': item.use_topic_interests, 'updated_at': item.updated_at}
+
+    def get(self, request):
+        return Response(self.payload(self.preference(request.user)))
+
+    def patch(self, request):
+        item = self.preference(request.user)
+        for field in ('enabled', 'use_reading_history', 'use_topic_interests'):
+            if field in request.data:
+                setattr(item, field, bool(request.data[field]))
+        item.save()
+        return Response(self.payload(item))
+
+    def delete(self, request):
+        from articles.models import ArticleEngagementEvent, ArticleView, ReadingProgress
+        ArticleView.objects.filter(user=request.user).delete()
+        ArticleEngagementEvent.objects.filter(user=request.user).delete()
+        ReadingProgress.objects.filter(user=request.user).delete()
+        item = self.preference(request.user)
+        item.use_reading_history = False
+        item.save(update_fields=['use_reading_history', 'updated_at'])
+        return Response({'history_reset': True, **self.payload(item)})
 
 
 class ReaderInterestView(APIView):

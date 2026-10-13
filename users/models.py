@@ -360,6 +360,14 @@ class AccessibilityPreference(models.Model):
     high_contrast = models.BooleanField(default=False)
     reduce_motion = models.BooleanField(default=False)
     large_text = models.BooleanField(default=False)
+
+
+class PersonalizationPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='personalization_preferences')
+    enabled = models.BooleanField(default=True)
+    use_reading_history = models.BooleanField(default=True)
+    use_topic_interests = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
