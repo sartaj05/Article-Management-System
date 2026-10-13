@@ -8,5 +8,9 @@
   "theme_color": "#2f5d62",
   "icons": [
     { "src": "/static/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ],
+  "shortcuts": [
+    { "name": "Journalist workspace", "url": "/journalist/dashboard/" },
+    { "name": "Article list", "url": "/journalist/dashboard/#article-list-page" }
   ]
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "article-studio-v1";
+const CACHE_NAME = "article-studio-v2";
 const APP_SHELL = [
   "/",
   "/static/manifest.webmanifest",
@@ -6,6 +6,8 @@ const APP_SHELL = [
   "/static/css/accessibility.css",
   "/static/js/home.js",
   "/static/js/accessibility.js",
+  "/static/js/collaboration.js",
+  "/static/css/collaboration.css",
 ];
 
 self.addEventListener("install", (event) => {
@@ -48,4 +50,8 @@ self.addEventListener("fetch", (event) => {
     }
     return response;
   })));
+});
+
+self.addEventListener("sync", (event) => {
+  if (event.tag === "article-draft-sync") event.waitUntil(Promise.resolve());
 });

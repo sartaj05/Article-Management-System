@@ -17,6 +17,7 @@
   let since = null;
   let socket = null;
   let socketReady = false;
+  const offlineDraftKey = `article-studio-offline-draft-${articleId}`;
 
   const setStatus = (text, className = "") => {
     status.textContent = text;
@@ -55,8 +56,23 @@
       lastSavedAt = data.updated_at;
       setStatus("All changes saved.", "is-saved");
     } catch (error) {
-      setStatus(error.message || "Autosave unavailable.", "is-conflict");
+      window.localStorage.setItem(offlineDraftKey, JSON.stringify({ payload, queued_at: new Date().toISOString() }));
+      setStatus("Offline: draft queued on this device.", "is-conflict");
     }
+  }
+
+  async function flushOfflineDraft() {
+    const queued = window.localStorage.getItem(offlineDraftKey);
+    if (!queued || !navigator.onLine) return;
+    try {
+      const { payload } = JSON.parse(queued);
+      const response = await fetch(autosaveUrl, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Queued draft could not be synced.");
+      lastSavedAt = data.updated_at;
+      window.localStorage.removeItem(offlineDraftKey);
+      setStatus("Offline draft synced successfully.", "is-saved");
+    } catch (_) { setStatus("Offline draft is waiting for a safe connection.", "is-conflict"); }
   }
 
   const scheduleSave = () => {
@@ -120,6 +136,8 @@
   }
 
   connectSocket();
+  flushOfflineDraft();
+  window.addEventListener("online", flushOfflineDraft);
   heartbeat();
   pollPresence();
   const heartbeatTimer = window.setInterval(heartbeat, 15000);

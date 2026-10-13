@@ -21,6 +21,7 @@
 .collaboration-status.is-conflict::before { background: #d94a64; }
 .collaborator-presence { display: inline-flex; align-items: center; gap: 9px; margin: 8px 0 16px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface); font-size: .76rem; }
 .collaborator-presence__label { color: var(--brand); font-weight: 800; }
+.collaboration-status.is-conflict { color: #9a4c36; }
 .editor-tool-panel { display: grid; gap: 12px; margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
 .editor-tool-panel h2 { margin: 4px 0; color: var(--ink); font-size: 1rem; }
 .editor-tool-panel p { margin: 0; color: var(--muted); font-size: .82rem; }
