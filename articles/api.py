@@ -1013,6 +1013,31 @@ class RevisionCompareView(APIView):
         return Response({'from': left, 'to': right, 'changed': left != right, 'content_diff': diff})
 
 
+class RevisionRestoreView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot restore revisions for this article.'}, status=403)
+        revision = get_object_or_404(article.revisions, pk=request.data.get('revision_id'))
+        with transaction.atomic():
+            ArticleRevision.objects.create(
+                article=article, editor=request.user, title=article.title,
+                subtitle=article.subtitle, content=article.content,
+                summary=article.summary, category=article.category, tags=article.tags,
+            )
+            article.title = revision.title
+            article.subtitle = revision.subtitle
+            article.content = revision.content
+            article.summary = revision.summary
+            article.category = revision.category
+            article.tags = revision.tags
+            article.save(update_fields=['title', 'subtitle', 'content', 'summary', 'category', 'tags', 'updated_at'])
+            record_audit_event(actor=request.user, action='article_revision_restored', article=article, details={'revision_id': revision.id})
+        return Response(ArticleWorkflowSerializer(article, context={'request': request}).data)
+
+
 class CommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]

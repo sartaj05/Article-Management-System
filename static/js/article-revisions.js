@@ -32,16 +32,17 @@
       const payload = await getJson(`/articles/api/v2/articles/${articleId}/revisions/`);
       const revisions = Array.isArray(payload) ? payload : (payload.results || []);
       list.hidden = false;
-      list.innerHTML = revisions.length ? revisions.map((revision, index) => `<article class="revision-item"><div><strong>Revision ${revisions.length - index}</strong><span>${escapeHtml(revision.editor_name || 'Unknown')} · ${new Date(revision.created_at).toLocaleString()}</span></div><button class="btn btn-secondary revision-compare" type="button" data-revision-id="${revision.id}">Compare latest</button></article>`).join('') : '<p>No saved revisions yet.</p>';
+      list.innerHTML = revisions.length ? revisions.map((revision, index) => `<article class="revision-item"><div><strong>Revision ${revisions.length - index}</strong><span>${escapeHtml(revision.editor_name || 'Unknown')} · ${new Date(revision.created_at).toLocaleString()}</span></div><div><button class="btn btn-secondary revision-compare" type="button" data-revision-id="${revision.id}">Compare current</button><button class="btn btn-secondary revision-restore" type="button" data-revision-id="${revision.id}">Restore</button></div></article>`).join('') : '<p>No saved revisions yet.</p>';
       status.textContent = `${revisions.length} saved revision${revisions.length === 1 ? '' : 's'} found.`;
       list.querySelectorAll('.revision-compare').forEach((button) => button.addEventListener('click', () => compare(button.dataset.revisionId, revisions[0]?.id)));
+      list.querySelectorAll('.revision-restore').forEach((button) => button.addEventListener('click', () => restore(button.dataset.revisionId)));
     } catch (error) { status.textContent = error.message; }
   });
 
   async function compare(from, to) {
-    if (!from || !to || from === to) { status.textContent = 'Create at least two revisions to compare changes.'; return; }
+    if (!from) { status.textContent = 'Choose a revision to compare.'; return; }
     try {
-      const payload = await getJson(`/articles/api/v2/articles/${articleId}/revisions/compare/?from=${from}&to=${to}`);
+      const payload = await getJson(`/articles/api/v2/articles/${articleId}/revisions/compare/?from=${from}&to=current`);
       const diff = (payload.content_diff || []).join('\n');
       status.textContent = payload.changed ? `Comparison ready: ${payload.additions || 0} additions, ${payload.deletions || 0} deletions.` : 'No changes between these revisions.';
       const existing = document.getElementById('revision-diff');
@@ -49,6 +50,14 @@
       const pre = document.createElement('pre');
       pre.id = 'revision-diff'; pre.className = 'revision-diff'; pre.textContent = diff || 'No content changes.';
       list.appendChild(pre);
+    } catch (error) { status.textContent = error.message; }
+  }
+
+  async function restore(revisionId) {
+    if (!window.confirm('Restore this revision? The current article will be saved as a new revision first.')) return;
+    try {
+      await getJson(`/articles/api/v2/articles/${articleId}/revisions/restore/`, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ revision_id: revisionId }) });
+      status.textContent = 'Revision restored. Reload the editor to review the restored content.';
     } catch (error) { status.textContent = error.message; }
   }
 })();
