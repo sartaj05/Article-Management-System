@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 import requests
 
-from .models import AlertRule, PushSubscription, WebhookDelivery, WebhookEndpoint
+from .models import AlertRule, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +107,12 @@ def dispatch_article_alert(*, article, title=None, body=None):
         models.Q(rule_type='author', value=str(article.author_id)) |
         models.Q(rule_type='author', value__iexact=article.author.username),
     ).values_list('user_id', flat=True).distinct()
+    searchable_text = ' '.join(filter(None, [article.title, article.summary, article.category, article.tags])).casefold()
+    matching_search_users = [
+        saved_search.user_id for saved_search in SavedSearch.objects.filter(is_active=True)
+        if saved_search.query.casefold() in searchable_text
+    ]
+    matching = set(matching).union(matching_search_users)
     payload = {'title': title or article.title, 'body': body or (article.summary or article.content[:160]), 'url': f'/articles/read/{article.slug}/', 'article_id': article.id}
     results = []
     for subscription in PushSubscription.objects.filter(user_id__in=matching, is_active=True):
