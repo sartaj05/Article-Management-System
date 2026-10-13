@@ -122,6 +122,25 @@ class UserFeatureTests(TestCase):
         self.assertEqual(response.data['topic'], 'article-workflow')
         self.assertIn('submit', response.data['answer'].lower())
 
+        response = self.client.post(
+            '/api/support/chat/', {'message': 'How do I revoke a session?'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['links'][0]['url'], '/account/settings/#security')
+        self.assertEqual(response.data['links'][1]['url'], '/account/settings/#privacy')
+
+    def test_account_settings_page_requires_login_and_loads_for_authenticated_users(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/account/settings/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Privacy &amp; security')
+        self.assertContains(response, 'privacy-preferences-form')
+
+        self.client.logout()
+        response = self.client.get('/account/settings/')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login-template/', response.url)
+
     def test_support_chat_selects_specific_topic_over_generic_article_word(self):
         response = self.client.post(
             '/api/support/chat/', {'message': 'How do I improve article SEO?'}, format='json',

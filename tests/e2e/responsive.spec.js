@@ -134,6 +134,14 @@ test('support chat returns topic-specific answers', async ({ page }) => {
   await expect(page.locator('.support-chat__message--bot').nth(2)).toContainText('media workflow');
 });
 
+test('authenticated privacy link opens the account settings page', async ({ page }) => {
+  await loginAs(page, 'journalist');
+  await page.goto('/account/settings/#privacy');
+  await expect(page).toHaveTitle(/Account settings/);
+  await expect(page.locator('#privacy-preferences-form')).toBeVisible();
+  await expect(page.locator('#security')).toBeVisible();
+});
+
 test.describe('responsive authenticated workspaces', () => {
   for (const [role, account] of Object.entries(roles)) {
     test(`${role} workspace shell stays inside the viewport`, async ({ page }) => {

@@ -161,6 +161,11 @@ def login_template(request):
 def logout_template(request):
     return render(request, 'users/logout.html')
 
+
+@login_required(login_url='/login-template/')
+def account_settings(request):
+    return render(request, 'users/account_settings.html')
+
 # Logout View
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

@@ -44,7 +44,10 @@
       try {
         const data = await jsonRequest("/api/login/", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ username, password }) });
         localStorage.setItem("access_token", data.token.access); localStorage.setItem("refresh_token", data.token.refresh); localStorage.setItem("user", JSON.stringify(data.user));
-        setMessage("Login successful. Opening your workspace...", "success"); window.setTimeout(() => { window.location.href = data.dashboard_url || "/"; }, 450);
+        setMessage("Login successful. Opening your workspace...", "success");
+        const requestedPath = new URLSearchParams(window.location.search).get("next");
+        const safeNext = requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : null;
+        window.setTimeout(() => { window.location.href = safeNext || data.dashboard_url || "/"; }, 450);
       } catch (error) { setMessage(error.message || "Unable to log in. Check your details and try again.", "error"); setBusy(false, "Log in"); }
     });
   }

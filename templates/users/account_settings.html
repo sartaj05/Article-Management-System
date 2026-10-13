@@ -1,0 +1,51 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Account settings | Article Studio{% endblock %}
+
+{% block content %}
+<section class="account-page container" aria-labelledby="account-settings-title">
+    <header class="account-page__header">
+        <div>
+            <span class="eyebrow">Account controls</span>
+            <h1 id="account-settings-title">Privacy &amp; security</h1>
+            <p>Manage your data preferences and review the sessions connected to your Article Studio account.</p>
+        </div>
+        <a class="button button--secondary" href="{% url 'home' %}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to newsroom</a>
+    </header>
+
+    <div class="account-page__grid">
+        <section class="account-panel" id="privacy" aria-labelledby="privacy-title">
+            <div class="account-panel__heading">
+                <div>
+                    <span class="feature-eyebrow">Privacy preferences</span>
+                    <h2 id="privacy-title">Choose what the workspace may use</h2>
+                </div>
+                <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+            </div>
+            <form id="privacy-preferences-form" class="account-preferences-form">
+                <label class="account-switch"><input type="checkbox" name="analytics_enabled"><span><strong>Analytics</strong><small>Help improve reading and workspace performance.</small></span></label>
+                <label class="account-switch"><input type="checkbox" name="marketing_enabled"><span><strong>Marketing</strong><small>Receive relevant product and newsletter updates.</small></span></label>
+                <label class="account-switch"><input type="checkbox" name="functional_enabled"><span><strong>Functional features</strong><small>Enable optional convenience features and preferences.</small></span></label>
+                <button class="button" type="submit">Save preferences</button>
+                <p id="privacy-status" class="account-status" role="status" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <section class="account-panel" id="security" aria-labelledby="security-title">
+            <div class="account-panel__heading">
+                <div>
+                    <span class="feature-eyebrow">Security center</span>
+                    <h2 id="security-title">Active sessions</h2>
+                </div>
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+            </div>
+            <p id="security-status" class="account-status" role="status" aria-live="polite">Loading security activity…</p>
+            <div id="security-sessions" class="account-session-list"></div>
+            <h3>Recent security events</h3>
+            <div id="security-events" class="account-event-list"></div>
+        </section>
+    </div>
+</section>
+<script src="{% static 'js/account-settings.js' %}" defer></script>
+{% endblock %}

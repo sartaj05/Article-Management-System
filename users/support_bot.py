@@ -46,7 +46,7 @@ TOPICS = (
         "security",
         ("security", "session", "password", "token", "logout", "privacy", "delete account"),
         "The Security Center helps you review security events and revoke active sessions. Password reset, privacy preferences, export, and deletion requests are available from the account area.",
-        (("Security events", "/api/security/events/"), ("Privacy preferences", "/api/privacy/preferences/")),
+        (("Security center", "/account/settings/#security"), ("Privacy preferences", "/account/settings/#privacy")),
     ),
     SupportTopic(
         "analytics",
