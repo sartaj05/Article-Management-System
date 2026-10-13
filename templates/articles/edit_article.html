@@ -35,6 +35,12 @@
                 <p class="editor-tool-panel__status" id="revision-status" role="status" aria-live="polite"></p>
                 <div class="revision-list" id="revision-list" hidden></div>
             </section>
+            <section class="quality-gate" aria-labelledby="quality-gate-title">
+                <div class="quality-gate__heading"><div><span class="feature-eyebrow">Before publishing</span><h2 id="quality-gate-title">Publish-readiness checklist</h2><p>Review SEO, accessibility, sources, and originality before sending this story live.</p></div><strong id="quality-gate-score">Checking…</strong></div>
+                <div id="quality-gate-checks" class="quality-gate__checks" aria-live="polite"></div>
+                <button class="btn btn-secondary" type="button" id="run-plagiarism-check">Run originality check</button>
+                <p id="quality-gate-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
+            </section>
             <form id="article-form" enctype="multipart/form-data" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="id" value="{{ article.id }}">
@@ -130,6 +136,7 @@
     <script src="{% static 'js/workspace-ui.js' %}"></script>
     <script src="{% static 'js/collaboration.js' %}"></script>
     <script src="{% static 'js/article-revisions.js' %}"></script>
+    <script src="{% static 'js/quality-gate.js' %}" defer></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

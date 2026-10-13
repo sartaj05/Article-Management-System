@@ -204,6 +204,21 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .saved-search-item div { display: grid; gap: 3px; min-width: 0; }
 .saved-search-item strong { color: var(--ink); font-size: .88rem; }
 .saved-search-item span { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; text-transform: capitalize; }
+.quality-gate { display: grid; gap: 18px; margin: 22px 0; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.quality-gate__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.quality-gate__heading h2 { margin: 5px 0; color: var(--ink); font-size: 1.2rem; }
+.quality-gate__heading p { margin: 0; color: var(--muted); font-size: .86rem; }
+.quality-gate__heading > strong { padding: 8px 12px; border-radius: 999px; color: var(--brand); background: #eaf1ef; white-space: nowrap; }
+.quality-gate__checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.quality-check { display: flex; align-items: flex-start; gap: 9px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+.quality-check > i { color: var(--brand); margin-top: 2px; }
+.quality-check.is-pending > i { color: var(--accent); }
+.quality-check span { display: grid; gap: 2px; min-width: 0; }
+.quality-check strong { color: var(--ink); font-size: .8rem; }
+.quality-check small { color: var(--muted); font-size: .7rem; line-height: 1.4; }
+html.theme-dark .quality-gate__heading > strong { background: #294344; }
+@media (max-width: 760px) { .quality-gate__heading { flex-direction: column; } .quality-gate__checks { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .quality-gate__checks { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .saved-search-item { align-items: stretch; flex-direction: column; } }
 .account-panel { min-width: 0; padding: clamp(22px, 4vw, 34px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
 .account-panel__heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
