@@ -73,6 +73,11 @@ def translation_workspace(request):
     return render(request, 'articles/translation_workspace.html')
 
 
+@role_required('Journalist', 'Editor', 'Admin')
+def integration_hub(request):
+    return render(request, 'articles/integration_hub.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')

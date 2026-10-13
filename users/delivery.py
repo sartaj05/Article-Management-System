@@ -54,6 +54,28 @@ def dispatch_webhook_event(*, owner, event_type, payload):
     return deliveries
 
 
+def retry_webhook_delivery(delivery):
+    """Retry one failed delivery while preserving its event id and audit trail."""
+    body = json.dumps(delivery.payload, default=str, sort_keys=True).encode('utf-8')
+    signature = hmac.new(delivery.endpoint.secret.encode('utf-8'), body, hashlib.sha256).hexdigest()
+    delivery.attempts += 1
+    try:
+        response = requests.post(
+            delivery.endpoint.url, data=body,
+            headers={'Content-Type': 'application/json', 'X-Webhook-Event': delivery.event_type, 'X-Webhook-Id': str(delivery.event_id), 'X-Webhook-Signature': f'sha256={signature}'},
+            timeout=5,
+        )
+        delivery.response_code = response.status_code
+        delivery.status = 'sent' if 200 <= response.status_code < 300 else 'failed'
+        delivery.last_error = '' if delivery.status == 'sent' else f'Endpoint returned HTTP {response.status_code}'
+        delivery.delivered_at = timezone.now() if delivery.status == 'sent' else None
+    except Exception as exc:
+        delivery.status = 'failed'
+        delivery.last_error = str(exc)[:500]
+    delivery.save(update_fields=['attempts', 'response_code', 'status', 'last_error', 'delivered_at'])
+    return delivery
+
+
 def send_web_push(subscription, payload):
     """Deliver a push message when pywebpush and VAPID settings are configured.
 

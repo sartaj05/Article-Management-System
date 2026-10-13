@@ -257,6 +257,20 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .translation-card p { max-width: 620px; margin: 0; color: var(--muted); font-size: .84rem; }
 .translation-card__actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .translation-card__actions > strong { color: var(--brand); font-size: .78rem; text-transform: capitalize; }
+.integration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.integration-panel { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.integration-panel--full { margin-top: 18px; }
+.integration-panel h2 { margin: 0 0 5px; color: var(--ink); font-size: 1.12rem; }
+.integration-panel p { color: var(--muted); font-size: .83rem; }
+.integration-panel form { display: grid; gap: 8px; margin: 15px 0; }
+.integration-panel input { min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface-soft); }
+.integration-list { display: grid; gap: 8px; }
+.integration-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.integration-item span { display: grid; gap: 2px; min-width: 0; }
+.integration-item strong { color: var(--ink); font-size: .8rem; overflow-wrap: anywhere; }
+.integration-item small { color: var(--muted); font-size: .7rem; overflow-wrap: anywhere; }
+.integration-panel__heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+@media (max-width: 760px) { .integration-grid { grid-template-columns: 1fr; } .integration-panel__heading { flex-direction: column; } }
 .article-media-list { display: grid; gap: 16px; margin: 32px 0; }
 .article-media-list > h2 { margin: 0; color: var(--ink); font-size: 1.35rem; }
 .article-media { display: grid; gap: 10px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }

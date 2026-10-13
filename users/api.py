@@ -625,6 +625,13 @@ class WebhookDeliveryView(APIView):
             'created_at': delivery.created_at,
         } for delivery in deliveries])
 
+    def post(self, request):
+        from .delivery import retry_webhook_delivery
+        delivery = get_object_or_404(WebhookDelivery.objects.select_related('endpoint'), pk=request.data.get('delivery_id'), endpoint__owner=request.user)
+        if delivery.status != 'failed':
+            return Response({'detail': 'Only failed deliveries can be retried.'}, status=400)
+        return Response({'status': retry_webhook_delivery(delivery).status, 'attempts': delivery.attempts})
+
 
 class DeveloperAPIDocumentationView(APIView):
     permission_classes = []

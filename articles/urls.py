@@ -108,6 +108,7 @@ urlpatterns = [
     path('workspace/monitoring/', views.monitoring_dashboard, name='monitoring-dashboard-page'),
     path('workspace/comments/', views.comment_moderation, name='comment-moderation-page'),
     path('workspace/translations/', views.translation_workspace, name='translation-workspace-page'),
+    path('workspace/integrations/', views.integration_hub, name='integration-hub-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
