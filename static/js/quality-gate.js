@@ -32,7 +32,7 @@
       score.textContent = `${passedCount}/4 ready`;
       checks.innerHTML = [
         addCheck("SEO metadata", seoPassed, seoPassed ? "Metadata checks passed." : "Complete title, description, canonical URL, image, and keywords."),
-        addCheck("Accessibility", Boolean(accessibility.passed), accessibility.passed ? "No blocking accessibility issues." : `${accessibility.errors || 0} blocking issue(s) found.`),
+        addCheck("Accessibility", Boolean(accessibility.passed), accessibility.passed ? `WCAG scan passed${accessibility.warnings ? ` with ${accessibility.warnings} warning(s)` : "."}` : `${accessibility.errors || 0} blocking issue(s) found.`),
         addCheck("Sources", sourceItems.length > 0, sourceItems.length ? `${sourceItems.length} source(s) attached.` : "Attach at least one source."),
         addCheck("Originality", plagiarismPassed, plagiarism.check ? `Similarity status: ${plagiarism.check.status}.` : "Run the originality check when the draft is ready."),
       ].join("");
