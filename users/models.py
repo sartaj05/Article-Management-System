@@ -278,6 +278,43 @@ class TwoFactorAuth(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class TrustedDevice(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='trusted_devices')
+    label = models.CharField(max_length=120, default='Trusted device')
+    token_hash = models.CharField(max_length=64, unique=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    expires_at = models.DateTimeField()
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class PasskeyCredential(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='passkey_credentials')
+    credential_id = models.CharField(max_length=512, unique=True)
+    public_key = models.TextField()
+    sign_count = models.PositiveIntegerField(default=0)
+    label = models.CharField(max_length=120, default='Passkey')
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class SSOProvider(models.Model):
+    PROVIDER_CHOICES = [('oidc', 'OpenID Connect'), ('google', 'Google'), ('microsoft', 'Microsoft')]
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, unique=True)
+    client_id = models.CharField(max_length=255, blank=True)
+    discovery_url = models.URLField(blank=True)
+    is_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class ReaderInterest(models.Model):
     INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
 

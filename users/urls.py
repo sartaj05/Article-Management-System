@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceInvitationAcceptView, SavedSearchView, RoleCapabilityView, TwoFactorView,
+    WorkspaceMembersView, WorkspaceInvitationAcceptView, SavedSearchView, RoleCapabilityView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView,
 )
 urlpatterns = [
     
@@ -59,6 +59,10 @@ path('', views.home, name='home'),
     path('alerts/saved-searches/<int:pk>/', SavedSearchView.as_view(), name='saved-search-detail'),
     path('role-capabilities/', RoleCapabilityView.as_view(), name='role-capabilities'),
     path('two-factor/', TwoFactorView.as_view(), name='two-factor'),
+    path('trusted-devices/', TrustedDeviceView.as_view(), name='trusted-devices'),
+    path('trusted-devices/<int:pk>/', TrustedDeviceView.as_view(), name='trusted-device-detail'),
+    path('passkeys/', PasskeyView.as_view(), name='passkeys'),
+    path('sso/providers/', SSOProviderView.as_view(), name='sso-providers'),
     path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
     path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
     path('membership/plans/', MembershipPlanView.as_view(), name='membership-plans'),

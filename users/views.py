@@ -30,7 +30,7 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from users.models import CustomUser as User, SecurityEvent, SecuritySession, TwoFactorAuth
+from users.models import CustomUser as User, SecurityEvent, SecuritySession, TwoFactorAuth, TrustedDevice
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 from users.decorators import role_required
@@ -132,7 +132,12 @@ class UserLoginView(APIView):
             raise
         user = serializer.validated_data['user']
         two_factor = TwoFactorAuth.objects.filter(user=user).first()
-        if two_factor and two_factor.is_enabled:
+        trusted_token = str(request.data.get('trusted_device') or request.COOKIES.get('trusted_device') or '').strip()
+        trusted_device = TrustedDevice.objects.filter(
+            user=user, token_hash=hashlib.sha256(trusted_token.encode()).hexdigest(),
+            revoked_at__isnull=True, expires_at__gt=timezone.now(),
+        ).first() if trusted_token else None
+        if two_factor and two_factor.is_enabled and not trusted_device:
             code = str(request.data.get('otp') or request.data.get('backup_code') or '').strip()
             from .two_factor import verify_totp
             valid_otp = verify_totp(two_factor.secret, code) if code else False
@@ -145,6 +150,9 @@ class UserLoginView(APIView):
                     break
             if not (valid_otp or valid_backup):
                 return Response({'detail': 'A valid authenticator code is required.', 'mfa_required': True}, status=status.HTTP_401_UNAUTHORIZED)
+        if trusted_device:
+            trusted_device.last_used_at = timezone.now()
+            trusted_device.save(update_fields=['last_used_at'])
         # Keep the browser workspace protected by Django's session as well as JWT.
         login(request, user)
         token = get_tokens_for_user(user, request)

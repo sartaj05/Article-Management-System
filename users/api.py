@@ -22,7 +22,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -392,6 +392,75 @@ class TwoFactorView(APIView):
         factor.is_enabled = False
         factor.save(update_fields=['is_enabled', 'updated_at'])
         return Response({'enabled': False})
+
+
+class TrustedDeviceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        devices = TrustedDevice.objects.filter(user=request.user, revoked_at__isnull=True, expires_at__gt=timezone.now())
+        return Response([{'id': item.id, 'label': item.label, 'user_agent': item.user_agent, 'created_at': item.created_at, 'expires_at': item.expires_at, 'last_used_at': item.last_used_at} for item in devices])
+
+    def post(self, request):
+        factor = TwoFactorAuth.objects.filter(user=request.user, is_enabled=True).first()
+        if not factor:
+            return Response({'detail': 'Enable two-factor authentication before trusting a device.'}, status=400)
+        from .two_factor import verify_totp
+        if not verify_totp(factor.secret, request.data.get('code', '')):
+            return Response({'detail': 'Enter a valid authenticator code to trust this device.'}, status=400)
+        raw_token = secrets.token_urlsafe(36)
+        device = TrustedDevice.objects.create(
+            user=request.user,
+            label=str(request.data.get('label', 'Trusted device')).strip()[:120] or 'Trusted device',
+            token_hash=hashlib.sha256(raw_token.encode()).hexdigest(),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+        return Response({'id': device.id, 'token': raw_token, 'expires_at': device.expires_at}, status=201)
+
+    def delete(self, request, pk=None):
+        device = get_object_or_404(TrustedDevice, pk=pk, user=request.user)
+        device.revoked_at = timezone.now()
+        device.save(update_fields=['revoked_at'])
+        return Response({'revoked': True})
+
+
+class PasskeyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        credentials = PasskeyCredential.objects.filter(user=request.user)
+        return Response({
+            'supported': False,
+            'detail': 'WebAuthn verification is not configured. Install the project WebAuthn provider before registering passkeys.',
+            'credentials': [{'id': item.id, 'label': item.label, 'created_at': item.created_at, 'last_used_at': item.last_used_at} for item in credentials],
+        })
+
+
+class SSOProviderView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage SSO providers.'}, status=403)
+        providers = SSOProvider.objects.all()
+        return Response([{'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'is_enabled': item.is_enabled} for item in providers])
+
+    def patch(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage SSO providers.'}, status=403)
+        provider = str(request.data.get('provider', '')).strip().lower()
+        if provider not in {'oidc', 'google', 'microsoft'}:
+            return Response({'detail': 'Choose oidc, google, or microsoft.'}, status=400)
+        item, _ = SSOProvider.objects.update_or_create(provider=provider, defaults={
+            'client_id': str(request.data.get('client_id', '')).strip(),
+            'discovery_url': str(request.data.get('discovery_url', '')).strip(),
+            'is_enabled': bool(request.data.get('is_enabled', False)),
+        })
+        return Response({'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'is_enabled': item.is_enabled})
 
 
 class ReaderInterestSerializer(serializers.ModelSerializer):
