@@ -98,6 +98,9 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .compliance-request span, .compliance-request time { color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
 .compliance-request__status { padding: 5px 9px; border-radius: 999px; color: var(--brand) !important; background: #eaf1ef; text-transform: capitalize; }
 @media (max-width: 700px) { .compliance-request { grid-template-columns: 1fr; gap: 8px; } }
+.health-metadata { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.health-metadata span { display: inline-flex; gap: 5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: .76rem; }
+.health-metadata strong { color: var(--ink); }
 
 .dashboard-shell .main-content > header h1,
 .dashboard-shell .content > header h1,

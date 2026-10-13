@@ -2,6 +2,7 @@ import csv
 import hashlib
 import difflib
 import json
+import time
 from datetime import timedelta
 
 from django.db import transaction
@@ -1646,6 +1647,7 @@ class HealthCheckView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        started_at = time.perf_counter()
         checks = {}
         try:
             with connection.cursor() as cursor:
@@ -1669,11 +1671,16 @@ class HealthCheckView(APIView):
                 checks['storage'] = 'ok'
             except Exception:
                 checks['storage'] = 'unavailable'
-            healthy = all(value == 'ok' for value in checks.values())
+            checks['channel_layer'] = 'ok' if getattr(settings, 'CHANNEL_LAYERS', None) else 'not_configured'
+            checks['queue'] = 'ok' if getattr(settings, 'CELERY_BROKER_URL', '') or getattr(settings, 'CELERY_BROKER_TRANSPORT', '') else 'not_configured'
+            healthy = all(value in {'ok', 'not_configured'} for value in checks.values())
             return Response({
                 'status': 'healthy' if healthy else 'unhealthy',
                 'database': checks['database'],
                 'checks': checks,
+                'latency_ms': round((time.perf_counter() - started_at) * 1000, 2),
+                'environment': 'development' if settings.DEBUG else 'production',
+                'database_engine': settings.DATABASES['default']['ENGINE'].rsplit('.', 1)[-1],
                 'request_id': getattr(request, 'request_id', None),
             }, status=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({'status': 'healthy', 'database': 'ok'})
