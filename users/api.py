@@ -518,6 +518,8 @@ class PasskeyView(APIView):
             })
         return Response({
             'supported': True,
+            'rp_id': settings.WEBAUTHN_RP_ID,
+            'origin': settings.WEBAUTHN_ORIGIN,
             'registration': 'Use ?action=options to request a browser registration challenge.',
             'verification': 'A WebAuthn server adapter must verify the attestation before a credential is stored.',
             'credentials': [{'id': item.id, 'label': item.label, 'created_at': item.created_at, 'last_used_at': item.last_used_at} for item in credentials],
@@ -554,6 +556,23 @@ class SSOProviderStartView(APIView):
             'discovery_url': item.discovery_url,
             'detail': 'Complete the provider authorization redirect and callback exchange on the configured SSO adapter.',
         })
+
+
+class SSOProviderCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, provider):
+        state = str(request.query_params.get('state', '')).strip()
+        state_data = request.session.pop(f'sso_state_{state}', None)
+        if not state_data or state_data.get('provider') != provider:
+            return Response({'detail': 'Invalid or expired SSO state.'}, status=400)
+        if not request.query_params.get('code'):
+            return Response({'detail': 'The identity provider did not return an authorization code.'}, status=400)
+        return Response({
+            'provider': provider,
+            'ready': False,
+            'detail': 'Authorization code received. Configure the provider token/userinfo adapter before enabling account login.',
+        }, status=501)
 
 
 class SSOProviderView(APIView):
