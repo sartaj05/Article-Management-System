@@ -932,8 +932,7 @@ class ArticleAutocompleteView(generics.ListAPIView):
         return Article.objects.filter(
             workflow_status='published',
             is_visible=True,
-        ).filter(
-            Q(title__icontains=query) | Q(summary__icontains=query) | Q(category__icontains=query) | Q(tags__icontains=query),
+            title__icontains=query,
         ).select_related('author').order_by('title')[:10]
 
 
@@ -1425,7 +1424,7 @@ class NotificationListView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        response.data = {'unread_count': Notification.objects.filter(recipient=request.user, is_read=False).count(), 'results': response.data}
+        response['X-Unread-Count'] = str(Notification.objects.filter(recipient=request.user, is_read=False).count())
         return response
 
 
