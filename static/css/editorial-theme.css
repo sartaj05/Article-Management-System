@@ -216,6 +216,22 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .quality-check span { display: grid; gap: 2px; min-width: 0; }
 .quality-check strong { color: var(--ink); font-size: .8rem; }
 .quality-check small { color: var(--muted); font-size: .7rem; line-height: 1.4; }
+.article-trust-panel { display: grid; gap: 16px; margin: 24px 0 30px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); background: var(--surface); box-shadow: var(--shadow-sm); }
+.article-trust-panel__header { display: flex; justify-content: space-between; gap: 16px; }
+.article-trust-panel__header h2 { margin: 5px 0 0; font-size: 1.12rem; }
+.article-trust-panel__header > i { color: var(--brand); font-size: 1.15rem; }
+.article-trust-panel__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.article-trust-panel__grid div { display: grid; gap: 2px; padding: 12px; border-radius: 10px; background: var(--surface-soft); }
+.article-trust-panel__grid strong { color: var(--brand); font-size: 1.05rem; }
+.article-trust-panel__grid span, .article-trust-panel li small { color: var(--muted); font-size: .76rem; }
+.article-trust-panel details { border-top: 1px solid var(--line); padding-top: 12px; }
+.article-trust-panel summary { color: var(--brand); cursor: pointer; font-size: .86rem; font-weight: 750; }
+.article-trust-panel ul { display: grid; gap: 8px; margin: 11px 0 0; padding-left: 19px; }
+.article-trust-panel li { color: var(--ink); font-size: .82rem; }
+.article-trust-panel li a { color: var(--brand); }
+.article-trust-panel li small { display: block; margin-top: 2px; }
+.article-trust-panel__disclosure { margin: 0; color: var(--muted); font-size: .82rem; }
+@media (max-width: 520px) { .article-trust-panel__grid { grid-template-columns: 1fr; } }
 html.theme-dark .quality-gate__heading > strong { background: #294344; }
 @media (max-width: 760px) { .quality-gate__heading { flex-direction: column; } .quality-gate__checks { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 460px) { .quality-gate__checks { grid-template-columns: 1fr; } }

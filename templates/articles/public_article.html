@@ -29,6 +29,18 @@
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.subtitle %}<p class="article-subtitle">{{ article.subtitle }}</p>{% endif %}
     <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>
+    <aside class="article-trust-panel" aria-labelledby="article-trust-title">
+        <div class="article-trust-panel__header"><div><span class="feature-eyebrow">Editorial transparency</span><h2 id="article-trust-title">How this story was checked</h2></div><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
+        <div class="article-trust-panel__grid">
+            <div><strong>{{ article_sources|length }}</strong><span>Sources reviewed</span></div>
+            <div><strong>{{ article_fact_checks|length }}</strong><span>Claims checked</span></div>
+            <div><strong>{% if article_provenance and article_provenance.sources_reviewed %}Reviewed{% else %}In progress{% endif %}</strong><span>Reporting status</span></div>
+        </div>
+        {% if article_sources %}<details><summary>View sources</summary><ul>{% for source in article_sources %}<li><a href="{{ source.url }}" target="_blank" rel="noopener">{{ source.title|default:source.url }}</a>{% if source.source_type %}<small>{{ source.source_type }}</small>{% endif %}</li>{% endfor %}</ul></details>{% endif %}
+        {% if article_fact_checks %}<details><summary>View fact-check results</summary><ul>{% for check in article_fact_checks %}<li><strong>{{ check.verdict|cut:'_'|title }}</strong> — {{ check.claim }}<small>{{ check.explanation }}</small></li>{% endfor %}</ul></details>{% endif %}
+        {% if article_provenance and article_provenance.disclosure %}<p class="article-trust-panel__disclosure"><strong>Author disclosure:</strong> {{ article_provenance.disclosure }}</p>{% endif %}
+        {% if article_corrections %}<details><summary>Corrections and updates</summary><ul>{% for correction in article_corrections %}<li><strong>{{ correction.created_at|date:'M d, Y' }}</strong> — {{ correction.reason }}<small>{{ correction.corrected_text }}</small></li>{% endfor %}</ul></details>{% endif %}
+    </aside>
     {% if article.image %}<img class="article-detail-image" src="{{ article.image.url }}" alt="{{ article.title }}">{% endif %}
     <div class="article-content">{{ article.content|linebreaks }}</div>
     {% if article.media_items.all %}<section class="article-media-list" aria-label="Article media"><h2>Listen and watch</h2>{% for media in article.media_items.all %}<figure class="article-media"><figcaption><strong>{{ media.title }}</strong>{% if media.caption %}<span>{{ media.caption }}</span>{% endif %}</figcaption>{% if media.media_type == 'video' %}<video controls preload="metadata"{% if media.file %} src="{{ media.file.url }}"{% else %} src="{{ media.external_url }}"{% endif %}></video>{% else %}<audio controls preload="metadata"{% if media.file %} src="{{ media.file.url }}"{% else %} src="{{ media.external_url }}"{% endif %}></audio>{% endif %}{% if media.transcript %}<details><summary>Read transcript</summary><p>{{ media.transcript }}</p></details>{% endif %}</figure>{% endfor %}</section>{% endif %}

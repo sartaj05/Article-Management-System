@@ -58,4 +58,11 @@ def robots_txt(request):
 @cache_page(300)
 def public_article(request, slug):
     article = get_object_or_404(published_articles(), slug=slug)
-    return render(request, 'articles/public_article.html', {'article': article})
+    context = {
+        'article': article,
+        'article_sources': article.sources.all(),
+        'article_fact_checks': article.fact_checks.select_related('checked_by').all(),
+        'article_corrections': article.corrections.filter(status='published'),
+        'article_provenance': getattr(article, 'provenance', None),
+    }
+    return render(request, 'articles/public_article.html', context)
