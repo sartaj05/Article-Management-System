@@ -122,6 +122,20 @@ class UserFeatureTests(TestCase):
         self.assertEqual(response.data['topic'], 'article-workflow')
         self.assertIn('submit', response.data['answer'].lower())
 
+    def test_support_chat_selects_specific_topic_over_generic_article_word(self):
+        response = self.client.post(
+            '/api/support/chat/', {'message': 'How do I improve article SEO?'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['topic'], 'seo')
+        self.assertIn('search title', response.data['answer'].lower())
+
+        response = self.client.post(
+            '/api/support/chat/', {'message': 'How do I upload an image?'}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['topic'], 'media')
+
     def test_support_chat_rejects_empty_messages_and_falls_back_safely(self):
         response = self.client.post('/api/support/chat/', {'message': ''}, format='json')
         self.assertEqual(response.status_code, 400)

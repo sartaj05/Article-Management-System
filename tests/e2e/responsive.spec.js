@@ -120,6 +120,20 @@ test('dark theme keeps public controls readable', async ({ page }) => {
   expect(activeFeedColors.background).toBe('rgb(255, 250, 242)');
 });
 
+test('support chat returns topic-specific answers', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('[data-support-open]').click();
+  const input = page.locator('#support-message');
+
+  await input.fill('How do I improve article SEO?');
+  await input.press('Enter');
+  await expect(page.locator('.support-chat__message--bot').nth(1)).toContainText('search title');
+
+  await input.fill('How do I upload an image?');
+  await input.press('Enter');
+  await expect(page.locator('.support-chat__message--bot').nth(2)).toContainText('media workflow');
+});
+
 test.describe('responsive authenticated workspaces', () => {
   for (const [role, account] of Object.entries(roles)) {
     test(`${role} workspace shell stays inside the viewport`, async ({ page }) => {

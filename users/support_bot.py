@@ -26,7 +26,7 @@ TOPICS = (
     ),
     SupportTopic(
         "article-workflow",
-        ("draft", "submit", "review", "approve", "publish", "workflow", "article status", "article"),
+        ("draft", "write", "create", "submit", "submission", "review", "approve", "publish", "workflow", "article status"),
         "Write an article as a draft, submit it for editorial review, and publish it after approval. The article list shows your current status and available actions.",
         (("Browse articles", "/#articles"),),
     ),
