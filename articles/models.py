@@ -52,6 +52,7 @@ class Article(models.Model):
     title = models.CharField(max_length=35, validators=[MinLengthValidator(10)])
     subtitle = models.CharField(max_length=50, blank=True, null=True)
     content = models.TextField()
+    structured_content = models.JSONField(default=list, blank=True)
     content_format = models.CharField(max_length=20, choices=CONTENT_FORMAT_CHOICES, default='plain')
     meta_title = models.CharField(max_length=60, blank=True)
     meta_description = models.CharField(max_length=160, blank=True)

@@ -84,6 +84,7 @@
                       required
                       minlength="10"
                     >{{ article.content }}</textarea>
+                    <input type="hidden" id="structured_content" name="structured_content" value="{{ article.structured_content|default:'[]'|escape }}" />
                     <span id="content-error" class="error-message"></span>
 
                     <!-- Email with pattern validation -->

@@ -124,7 +124,7 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            'id', 'title', 'subtitle', 'content', 'content_format', 'summary', 'author', 'author_name',
+            'id', 'title', 'subtitle', 'content', 'structured_content', 'content_format', 'summary', 'author', 'author_name',
             'meta_title', 'meta_description', 'seo_keywords', 'canonical_url', 'og_image',
             'email', 'image', 'tags', 'category', 'publish_date', 'agreed_to_terms',
             'category_ref', 'tag_objects',

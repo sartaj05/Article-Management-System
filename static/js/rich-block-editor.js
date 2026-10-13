@@ -3,6 +3,17 @@
   const editor = document.getElementById("content");
   const toolbar = document.querySelector(".block-editor-toolbar");
   if (!editor || !toolbar) return;
+  const structured = document.getElementById("structured_content");
+  const parseBlocks = () => {
+    if (!structured) return [];
+    try { return JSON.parse(structured.value || "[]"); } catch (_) { return []; }
+  };
+  const saveBlocks = (type, value) => {
+    if (!structured) return;
+    const blocks = parseBlocks();
+    blocks.push({ type, value, inserted_at: new Date().toISOString() });
+    structured.value = JSON.stringify(blocks.slice(-100));
+  };
 
   const blocks = {
     heading: "<h2>Section heading</h2>\n",
@@ -18,6 +29,7 @@
     const selected = editor.value.slice(start, end);
     const block = blocks[button.dataset.block].replace("Section heading", selected || "Section heading");
     editor.setRangeText(block, start, end, "end");
+    saveBlocks(button.dataset.block, selected || blocks[button.dataset.block]);
     editor.focus();
     editor.dispatchEvent(new Event("input", { bubbles: true }));
   }));
