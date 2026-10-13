@@ -1136,6 +1136,17 @@ class RevisionRestoreView(APIView):
         return Response(ArticleWorkflowSerializer(article, context={'request': request}).data)
 
 
+class RevisionExportView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot export revisions for this article.'}, status=403)
+        revisions = article.revisions.select_related('editor').all()
+        return Response({'article_id': article.id, 'article_title': article.title, 'versions': RevisionSerializer(revisions, many=True).data})
+
+
 class CommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]

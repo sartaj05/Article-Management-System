@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+import hashlib
 
 
 class ActiveArticleManager(models.Manager):
@@ -499,10 +500,20 @@ class ArticleRevision(models.Model):
     summary = models.TextField(max_length=500, blank=True, null=True)
     category = models.CharField(max_length=255, blank=True, null=True)
     tags = models.CharField(max_length=255, blank=True, null=True)
+    version_number = models.PositiveIntegerField(default=0)
+    snapshot_hash = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.version_number:
+            last = ArticleRevision.objects.filter(article=self.article).order_by('-version_number').first()
+            self.version_number = (last.version_number if last else 0) + 1
+        snapshot = '\n'.join([self.title or '', self.subtitle or '', self.content or '', self.summary or '', self.category or '', self.tags or ''])
+        self.snapshot_hash = hashlib.sha256(snapshot.encode('utf-8')).hexdigest()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Revision {self.pk} for {self.article.title}"

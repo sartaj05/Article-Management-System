@@ -30,7 +30,7 @@ class RevisionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ArticleRevision
-        fields = ['id', 'article', 'editor', 'editor_name', 'title', 'subtitle', 'content', 'summary', 'category', 'tags', 'created_at']
+        fields = ['id', 'article', 'editor', 'editor_name', 'title', 'subtitle', 'content', 'summary', 'category', 'tags', 'version_number', 'snapshot_hash', 'created_at']
         read_only_fields = ['id', 'article', 'editor', 'editor_name', 'created_at']
 
 
