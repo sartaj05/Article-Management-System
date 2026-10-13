@@ -307,7 +307,7 @@ class MediaAssetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MediaAsset
-        fields = ['id', 'uploaded_by', 'uploaded_by_name', 'media_type', 'title', 'file', 'external_url', 'alt_text', 'caption', 'credit', 'license', 'license_expires_at', 'metadata', 'variant_urls', 'file_hash', 'is_archived', 'created_at', 'updated_at']
+        fields = ['id', 'uploaded_by', 'uploaded_by_name', 'media_type', 'title', 'file', 'external_url', 'alt_text', 'caption', 'credit', 'license', 'license_expires_at', 'metadata', 'variant_urls', 'file_hash', 'processing_status', 'processing_error', 'processed_at', 'cdn_url', 'is_archived', 'created_at', 'updated_at']
         read_only_fields = ['id', 'uploaded_by', 'uploaded_by_name', 'file_hash', 'created_at', 'updated_at']
 
     def validate(self, attrs):

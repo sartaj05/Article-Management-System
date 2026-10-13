@@ -2285,7 +2285,7 @@ class MediaAssetLibraryView(APIView):
                     'detail': 'This file already exists in the media library.',
                     'duplicate_asset_id': duplicate.id,
                 }, status=status.HTTP_409_CONFLICT)
-        asset = serializer.save(uploaded_by=request.user, file_hash=file_hash)
+        asset = serializer.save(uploaded_by=request.user, file_hash=file_hash, processing_status='processing' if uploaded_file else 'ready')
         if uploaded_file:
             asset.metadata = {
                 **(asset.metadata or {}),
@@ -2297,9 +2297,14 @@ class MediaAssetLibraryView(APIView):
             if asset.media_type == 'image':
                 try:
                     generate_image_variants(asset)
+                    asset.processing_status = 'ready'
+                    asset.processed_at = timezone.now()
+                    asset.save(update_fields=['processing_status', 'processed_at', 'updated_at'])
                 except (OSError, ValueError):
+                    asset.processing_status = 'failed'
+                    asset.processing_error = 'Image derivative generation failed.'
                     asset.metadata = {**(asset.metadata or {}), 'processing': 'failed'}
-                    asset.save(update_fields=['metadata', 'updated_at'])
+                    asset.save(update_fields=['metadata', 'processing_status', 'processing_error', 'updated_at'])
         return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
 
 

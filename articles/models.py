@@ -719,6 +719,11 @@ class MediaAsset(models.Model):
     license_expires_at = models.DateField(blank=True, null=True)
     metadata = models.JSONField(default=dict, blank=True)
     file_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    PROCESSING_CHOICES = [('pending', 'Pending'), ('processing', 'Processing'), ('ready', 'Ready'), ('failed', 'Failed')]
+    processing_status = models.CharField(max_length=20, choices=PROCESSING_CHOICES, default='pending')
+    processing_error = models.CharField(max_length=255, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    cdn_url = models.URLField(blank=True)
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
