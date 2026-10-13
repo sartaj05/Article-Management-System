@@ -260,6 +260,9 @@ class PersonalizedFeedView(APIView):
         category_values = {value.lower() for kind, value in interests if kind == 'category'}
         tag_values = {value.lower() for kind, value in interests if kind == 'tag'}
         author_values = {value.lower() for kind, value in interests if kind == 'author'}
+        progress_rows = list(ReadingProgress.objects.filter(user=request.user, completed=False, progress_percent__gt=0).select_related('article').order_by('-updated_at')[:10])
+        resume_ids = {row.article_id for row in progress_rows}
+        resume_categories = {(row.article.category or '').lower() for row in progress_rows}
         mode = request.query_params.get('mode', 'for_you').strip().lower()
         try:
             limit = min(max(int(request.query_params.get('limit', 20)), 1), 50)
@@ -277,6 +280,10 @@ class PersonalizedFeedView(APIView):
             points += 3 * len(article_tags & tag_values)
             if article.author.username.lower() in author_values:
                 points += 6
+            if article.id in resume_ids:
+                points += 10
+            if (article.category or '').lower() in resume_categories:
+                points += 2
             return points
 
         if mode == 'latest':
@@ -290,6 +297,7 @@ class PersonalizedFeedView(APIView):
             article_score = score(article)
             item['recommendation_score'] = article_score
             item['recommendation_reason'] = (
+                'Continue reading where you left off.' if article.id in resume_ids else
                 'Matches your saved interests.' if article_score else
                 'Popular with readers.' if mode == 'trending' else
                 'Recently published.' if mode == 'latest' or not interests else
@@ -299,6 +307,7 @@ class PersonalizedFeedView(APIView):
             'mode': mode if mode in {'for_you', 'latest', 'trending'} else 'for_you',
             'cold_start': not bool(interests),
             'interests': [{'interest_type': kind, 'value': value} for kind, value in interests],
+            'resume_reading': [{'article_id': row.article_id, 'progress_percent': row.progress_percent, 'position_seconds': row.position_seconds} for row in progress_rows],
             'results': serialized,
         })
 
