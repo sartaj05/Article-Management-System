@@ -2,11 +2,13 @@ import hashlib
 import hmac
 import json
 import secrets
+import base64
+import hashlib
 
 from rest_framework import serializers, status
 from rest_framework import generics
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -430,12 +432,68 @@ class PasskeyView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
+    @staticmethod
+    def _b64(value):
+        return base64.urlsafe_b64encode(value).rstrip(b'=').decode()
+
     def get(self, request):
         credentials = PasskeyCredential.objects.filter(user=request.user)
+        if request.query_params.get('action') == 'options':
+            challenge = secrets.token_bytes(32)
+            request.session['passkey_registration_challenge'] = self._b64(challenge)
+            request.session['passkey_registration_user'] = request.user.pk
+            return Response({
+                'supported': True,
+                'publicKey': {
+                    'challenge': self._b64(challenge),
+                    'rp': {'name': 'Article Studio'},
+                    'user': {
+                        'id': self._b64(str(request.user.pk).encode()),
+                        'name': request.user.username,
+                        'displayName': request.user.get_full_name() or request.user.username,
+                    },
+                    'pubKeyCredParams': [{'type': 'public-key', 'alg': -7}, {'type': 'public-key', 'alg': -257}],
+                    'timeout': 60000,
+                    'attestation': 'none',
+                },
+            })
         return Response({
-            'supported': False,
-            'detail': 'WebAuthn verification is not configured. Install the project WebAuthn provider before registering passkeys.',
+            'supported': True,
+            'registration': 'Use ?action=options to request a browser registration challenge.',
+            'verification': 'A WebAuthn server adapter must verify the attestation before a credential is stored.',
             'credentials': [{'id': item.id, 'label': item.label, 'created_at': item.created_at, 'last_used_at': item.last_used_at} for item in credentials],
+        })
+
+    def post(self, request):
+        if request.data.get('action') != 'register':
+            return Response({'detail': 'Use action=register with a WebAuthn credential.'}, status=400)
+        if not request.session.get('passkey_registration_challenge'):
+            return Response({'detail': 'Registration challenge expired. Request passkey options again.'}, status=400)
+        # The project deliberately does not persist client-provided public keys. A
+        # WebAuthn verifier must validate origin, RP ID, challenge and signature.
+        return Response({'detail': 'WebAuthn verification is not configured on this deployment.'}, status=501)
+
+
+class SSOProviderStartView(APIView):
+    """Create a short-lived PKCE state without pretending to complete OAuth."""
+
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, provider):
+        provider = str(provider).strip().lower()
+        item = get_object_or_404(SSOProvider, provider=provider, is_enabled=True)
+        state = secrets.token_urlsafe(32)
+        verifier = secrets.token_urlsafe(48)
+        request.session[f'sso_state_{state}'] = {'provider': provider, 'verifier': verifier}
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b'=').decode()
+        return Response({
+            'provider': provider,
+            'state': state,
+            'code_challenge': challenge,
+            'code_challenge_method': 'S256',
+            'discovery_url': item.discovery_url,
+            'detail': 'Complete the provider authorization redirect and callback exchange on the configured SSO adapter.',
         })
 
 
