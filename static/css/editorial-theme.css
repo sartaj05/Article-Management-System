@@ -231,6 +231,25 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .article-trust-panel li a { color: var(--brand); }
 .article-trust-panel li small { display: block; margin-top: 2px; }
 .article-trust-panel__disclosure { margin: 0; color: var(--muted); font-size: .82rem; }
+.article-comments { display: grid; gap: 16px; margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--line); }
+.article-comments__heading { display: flex; justify-content: space-between; gap: 14px; align-items: end; }
+.article-comments__heading h2 { margin: 5px 0 0; font-size: 1.3rem; }
+.article-comments__heading > span { color: var(--muted); font-size: .8rem; }
+.public-comments-list, .comment-report-list { display: grid; gap: 10px; }
+.public-comment, .comment-report { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.public-comment { position: relative; }
+.public-comment strong { color: var(--ink); font-size: .86rem; }
+.public-comment time { margin-left: 8px; color: var(--muted); font-size: .74rem; }
+.public-comment p { margin: 7px 0; color: var(--ink); font-size: .88rem; white-space: pre-wrap; }
+.public-comment button { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: .75rem; text-decoration: underline; }
+.public-comment-form { display: grid; gap: 8px; }
+.public-comment-form label { color: var(--muted); font-size: .8rem; font-weight: 700; }
+.public-comment-form textarea { min-height: 100px; padding: 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); resize: vertical; }
+.comment-report { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.comment-report h2 { margin: 8px 0 4px; color: var(--ink); font-size: .98rem; }
+.comment-report p { margin: 0; color: var(--muted); font-size: .82rem; }
+.comment-report__actions { display: flex; flex-wrap: wrap; gap: 7px; }
+@media (max-width: 680px) { .article-comments__heading, .comment-report { align-items: stretch; flex-direction: column; } }
 .block-editor-toolbar { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .block-editor-toolbar button { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--brand); background: var(--surface); font-size: .78rem; font-weight: 700; }
 .block-editor-toolbar button:hover { border-color: var(--brand); background: #eaf1ef; }

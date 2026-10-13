@@ -64,5 +64,6 @@ def public_article(request, slug):
         'article_fact_checks': article.fact_checks.select_related('checked_by').all(),
         'article_corrections': article.corrections.filter(status='published'),
         'article_provenance': getattr(article, 'provenance', None),
+        'article_comments': article.comments.filter(moderation_status='visible').select_related('author')[:30],
     }
     return render(request, 'articles/public_article.html', context)
