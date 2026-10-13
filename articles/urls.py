@@ -4,7 +4,7 @@ from .distribution import public_article
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
-    ArticleAnalyticsView,
+    ArticleAnalyticsView, BackupOperationsView,
     ArticleWorkflowTimelineView,
     CurrentUserCapabilitiesView,
     ArticleExportView,
@@ -107,6 +107,7 @@ urlpatterns = [
     path('workspace/notifications/', views.notification_center, name='notification-center-page'),
     path('workspace/analytics/', views.analytics_dashboard, name='analytics-dashboard-page'),
     path('workspace/monitoring/', views.monitoring_dashboard, name='monitoring-dashboard-page'),
+    path('workspace/backups/', views.backup_center, name='backup-center-page'),
     path('workspace/comments/', views.comment_moderation, name='comment-moderation-page'),
     path('workspace/translations/', views.translation_workspace, name='translation-workspace-page'),
     path('workspace/integrations/', views.integration_hub, name='integration-hub-page'),
@@ -173,6 +174,7 @@ urlpatterns = [
     path('api/v2/notifications/', NotificationListView.as_view(), name='notifications'),
     path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
     path('api/v2/audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
+    path('api/v2/operations/backups/', BackupOperationsView.as_view(), name='backup-operations'),
     path('api/v2/trash/', ArticleTrashView.as_view(), name='article-trash'),
     path('api/v2/categories/', CategoryListCreateView.as_view(), name='category-list'),
     path('api/v2/categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),

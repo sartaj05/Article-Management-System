@@ -94,6 +94,11 @@ def compliance_center(request):
 
 
 @role_required('Admin')
+def backup_center(request):
+    return render(request, 'articles/backup_center.html')
+
+
+@role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
 from django.conf import settings

@@ -587,6 +587,23 @@ class AuditLog(models.Model):
         ordering = ['-created_at']
 
 
+class BackupRecord(models.Model):
+    STATUS_CHOICES = [('running', 'Running'), ('completed', 'Completed'), ('failed', 'Failed')]
+    KIND_CHOICES = [('database', 'Database'), ('media_manifest', 'Media manifest')]
+    kind = models.CharField(max_length=30, choices=KIND_CHOICES, default='database')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='running')
+    path = models.CharField(max_length=500, blank=True)
+    checksum = models.CharField(max_length=64, blank=True)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    error = models.CharField(max_length=500, blank=True)
+    initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='backups_initiated')
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class ArticleAssignment(models.Model):
     STATUS_CHOICES = [
         ('queued', 'Queued'),

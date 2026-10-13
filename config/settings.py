@@ -199,6 +199,8 @@ EMAIL_BACKEND = (
 STATIC_URL = '/static/'
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_MAX_UPLOAD_BYTES = int(os.getenv('MEDIA_MAX_UPLOAD_BYTES', str(10 * 1024 * 1024)))
+BACKUP_ROOT = os.getenv('BACKUP_ROOT', str(BASE_DIR / 'backups'))
+BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', '30'))
 
 
 # Static files (CSS, JavaScript, images)
