@@ -932,7 +932,8 @@ class ArticleAutocompleteView(generics.ListAPIView):
         return Article.objects.filter(
             workflow_status='published',
             is_visible=True,
-            title__icontains=query,
+        ).filter(
+            Q(title__icontains=query) | Q(summary__icontains=query) | Q(category__icontains=query) | Q(tags__icontains=query),
         ).select_related('author').order_by('title')[:10]
 
 
@@ -973,6 +974,34 @@ class SemanticArticleSearchView(APIView):
         for item, (score, _) in zip(data, ranked[:20]):
             item['semantic_score'] = score
         return Response({'query': query, 'results': data, 'count': len(data), 'engine': 'local-token-similarity-v1'})
+
+
+class HybridArticleSearchView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = str(request.query_params.get('q', '')).strip()
+        if len(query) < 2:
+            return Response({'detail': 'q must contain at least 2 characters.'}, status=400)
+        lexical = Article.objects.filter(workflow_status='published', is_visible=True).filter(
+            Q(title__icontains=query) | Q(summary__icontains=query) | Q(content__icontains=query) |
+            Q(category__icontains=query) | Q(tags__icontains=query)
+        ).select_related('author')
+        if not has_active_membership(request.user):
+            lexical = lexical.filter(is_premium=False)
+        query_tokens = _semantic_tokens(query)
+        ranked = []
+        for article in lexical[:100]:
+            lexical_score = 100 if query.lower() in (article.title or '').lower() else 55
+            semantic_score = _article_similarity(article, article) if query.lower() == (article.title or '').lower() else round(
+                len(query_tokens & _semantic_tokens(f'{article.title} {article.summary} {article.content} {article.tags}')) / max(len(query_tokens), 1) * 100, 2
+            )
+            ranked.append((round(lexical_score * 0.65 + semantic_score * 0.35, 2), article))
+        ranked.sort(key=lambda item: item[0], reverse=True)
+        data = ArticleWorkflowSerializer([item[1] for item in ranked[:20]], many=True, context={'request': request}).data
+        for item, (score, _) in zip(data, ranked[:20]):
+            item['hybrid_score'] = score
+        return Response({'query': query, 'engine': 'lexical-plus-token-v1', 'count': len(data), 'results': data})
 
 
 class ArticleDuplicateCheckView(APIView):
