@@ -115,6 +115,7 @@ class Article(models.Model):
             models.Index(fields=['workflow_status', '-updated_at'], name='article_workflow_updated_idx'),
             models.Index(fields=['is_visible', '-publish_date'], name='article_visible_publish_idx'),
             models.Index(fields=['author', 'workflow_status'], name='article_author_workflow_idx'),
+            models.Index(fields=['category', 'workflow_status', '-publish_date'], name='article_search_filters_idx'),
         ]
 
     def clean(self):

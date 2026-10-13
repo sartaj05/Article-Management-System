@@ -9,6 +9,8 @@ from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
 from django.db import connection
 from django.conf import settings
 from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.core.files.storage import default_storage
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -879,13 +881,14 @@ class ArticleSearchViewV2(ArticleQuerySetMixin, generics.ListAPIView):
         return queryset.order_by('-relevance', '-created_at')
 
 
+@method_decorator(cache_page(60), name='dispatch')
 class ArticleAutocompleteView(generics.ListAPIView):
     serializer_class = ArticleWorkflowSerializer
     permission_classes = [AllowAny]
     pagination_class = None
 
     def get_queryset(self):
-        query = self.request.query_params.get('q', '').strip()
+        query = self.request.query_params.get('q', '').strip()[:80]
         if len(query) < 2:
             return Article.objects.none()
         return Article.objects.filter(
