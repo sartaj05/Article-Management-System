@@ -29,11 +29,18 @@ class ArticleCollaborationConsumer(AsyncJsonWebsocketConsumer):
         if not isinstance(payload, dict):
             await self.send_json({'type': 'error', 'detail': 'payload must be an object.'})
             return
+        if content['type'] == 'content_changed' and payload.get('base_updated_at'):
+            current_version = await self.article_version()
+            if current_version and payload.get('base_updated_at') != current_version:
+                await self.send_json({'type': 'conflict', 'article_id': self.article_id, 'server_updated_at': current_version, 'detail': 'This article changed after your editor loaded it. Reload before saving.'})
+                return
         presence = await self.update_presence(content)
         event = None if content['type'] == 'presence' else await self.create_event(content['type'], payload)
-        await self.channel_layer.group_send(self.group_name, {'type': 'collaboration.message', 'presence': presence, 'event': event})
+        await self.channel_layer.group_send(self.group_name, {'type': 'collaboration.message', 'presence': presence, 'event': event, 'sender': self.channel_name})
 
     async def collaboration_message(self, event):
+        if event.get('sender') == self.channel_name:
+            return
         await self.send_json({'type': 'collaboration', 'presence': event['presence'], 'event': event['event']})
 
     @database_sync_to_async
@@ -41,6 +48,11 @@ class ArticleCollaborationConsumer(AsyncJsonWebsocketConsumer):
         user = self.scope.get('user')
         article = Article.objects.filter(pk=self.article_id).first()
         return bool(user and user.is_authenticated and article and (article.author_id == user.id or user.role in {'Editor', 'Admin'}))
+
+    @database_sync_to_async
+    def article_version(self):
+        article = Article.objects.filter(pk=self.article_id).only('updated_at').first()
+        return article.updated_at.isoformat() if article else None
 
     @database_sync_to_async
     def update_presence(self, content):

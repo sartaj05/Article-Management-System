@@ -76,6 +76,7 @@
   }
 
   const scheduleSave = () => {
+    if (socketReady) socket.send(JSON.stringify({ type: "content_changed", payload: { content: content.value, base_updated_at: lastSavedAt } }));
     window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(saveDraft, 900);
   };
@@ -127,6 +128,7 @@
         updateCollaborators([person]);
         if (person.username !== currentUser) setStatus(`${person.username} is editing this article.`, "is-saving");
       }
+      if (data.type === "conflict") setStatus(data.detail || "This article changed elsewhere. Reload before saving.", "is-conflict");
     });
     socket.addEventListener("close", () => {
       socketReady = false;
