@@ -4,6 +4,7 @@
   const articleId = document.body.dataset.articleId;
   const token = window.localStorage.getItem("access_token");
   const status = document.getElementById("collaboration-status");
+  const collaboratorCount = document.getElementById("collaborator-count");
   const title = document.getElementById("title");
   const subtitle = document.getElementById("subtitle");
   const content = document.getElementById("content");
@@ -20,6 +21,13 @@
   const setStatus = (text, className = "") => {
     status.textContent = text;
     status.className = `collaboration-status${className ? ` ${className}` : ""}`;
+  };
+
+  const updateCollaborators = (people) => {
+    if (!collaboratorCount) return;
+    const currentUser = JSON.parse(window.localStorage.getItem("user") || "{}").username;
+    const names = [...new Map((people || []).filter((person) => person.username !== currentUser).map((person) => [person.user_id, person.username])).values()];
+    collaboratorCount.textContent = names.length ? `${names.length} collaborator${names.length > 1 ? "s" : ""}: ${names.join(", ")}` : "Only you";
   };
 
   async function saveDraft() {
@@ -80,6 +88,7 @@
       const data = await response.json();
       const currentUser = JSON.parse(window.localStorage.getItem("user") || "{}").username;
       const others = (data.presence || []).filter((person) => person.username !== currentUser);
+      updateCollaborators(data.presence || []);
       if (others.length) setStatus(`${others.map((person) => person.username).join(", ")} is editing this article.`, "is-saving");
       if (data.events?.length) since = data.events[data.events.length - 1].created_at;
     } catch (_) {}
@@ -98,7 +107,10 @@
       const data = JSON.parse(event.data || "{}");
       const person = data.presence;
       const currentUser = JSON.parse(window.localStorage.getItem("user") || "{}").username;
-      if (person && person.username !== currentUser) setStatus(`${person.username} is editing this article.`, "is-saving");
+      if (person) {
+        updateCollaborators([person]);
+        if (person.username !== currentUser) setStatus(`${person.username} is editing this article.`, "is-saving");
+      }
     });
     socket.addEventListener("close", () => {
       socketReady = false;
