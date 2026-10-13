@@ -15,6 +15,32 @@
     </header>
 
     <div class="account-page__grid">
+        <section class="account-panel account-panel--wide" id="following" aria-labelledby="following-title">
+            <div class="account-panel__heading">
+                <div>
+                    <span class="feature-eyebrow">Reader profile</span>
+                    <h2 id="following-title">Follow the stories you care about</h2>
+                    <p class="account-panel__description">Follow categories, topics, or authors to personalize your newsroom feed.</p>
+                </div>
+                <i class="fa-solid fa-bookmark" aria-hidden="true"></i>
+            </div>
+            <form id="reader-interest-form" class="interest-form">
+                <label>Follow type
+                    <select name="interest_type">
+                        <option value="category">Category</option>
+                        <option value="tag">Topic or tag</option>
+                        <option value="author">Author username</option>
+                    </select>
+                </label>
+                <label>What would you like to follow?
+                    <input name="value" maxlength="150" required placeholder="e.g. technology or demo_journalist">
+                </label>
+                <button class="button" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i> Follow</button>
+            </form>
+            <p id="interest-status" class="account-status" role="status" aria-live="polite"></p>
+            <div id="reader-interests" class="interest-list" aria-live="polite"></div>
+        </section>
+
         <section class="account-panel" id="privacy" aria-labelledby="privacy-title">
             <div class="account-panel__heading">
                 <div>

@@ -5,6 +5,9 @@
   const securityStatus = document.getElementById("security-status");
   const sessions = document.getElementById("security-sessions");
   const events = document.getElementById("security-events");
+  const interestForm = document.getElementById("reader-interest-form");
+  const interestList = document.getElementById("reader-interests");
+  const interestStatus = document.getElementById("interest-status");
 
   if (!privacyForm || !sessions || !events) return;
 
@@ -24,6 +27,30 @@
   };
   const formatDate = (value) => value ? new Date(value).toLocaleString() : "Not available";
   const setStatus = (element, message, error = false) => { element.textContent = message; element.classList.toggle("is-error", error); };
+
+  const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[character]));
+
+  function renderInterests(items) {
+    if (!interestList) return;
+    interestList.innerHTML = items.length ? items.map((item) => `
+      <span class="interest-chip"><span><strong>${escapeHtml(item.value)}</strong><small>${escapeHtml(item.interest_type)}</small></span>
+      <button type="button" aria-label="Stop following ${escapeHtml(item.value)}" data-remove-interest-type="${escapeHtml(item.interest_type)}" data-remove-interest-value="${escapeHtml(item.value)}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </span>`).join("") : '<p class="account-empty">You are not following anything yet.</p>';
+    interestList.querySelectorAll("[data-remove-interest-type]").forEach((button) => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        await request("/reader/interests/", { method: "DELETE", body: JSON.stringify({ interest_type: button.dataset.removeInterestType, value: button.dataset.removeInterestValue }) });
+        await loadInterests();
+        setStatus(interestStatus, "Follow removed.");
+      } catch (error) { button.disabled = false; setStatus(interestStatus, error.message, true); }
+    }));
+  }
+
+  async function loadInterests() {
+    if (!interestList) return;
+    try { renderInterests(await request("/reader/interests/")); }
+    catch (error) { setStatus(interestStatus, error.message, true); }
+  }
 
   function renderSessions(items) {
     sessions.innerHTML = items.length ? items.map((item) => `
@@ -75,6 +102,21 @@
     finally { button.disabled = false; }
   });
 
+  interestForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = interestForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    try {
+      const formData = new FormData(interestForm);
+      await request("/reader/interests/", { method: "POST", body: JSON.stringify(Object.fromEntries(formData.entries())) });
+      interestForm.elements.value.value = "";
+      await loadInterests();
+      setStatus(interestStatus, "Follow preference saved.");
+    } catch (error) { setStatus(interestStatus, error.message, true); }
+    finally { button.disabled = false; }
+  });
+
   loadPrivacy();
   loadSecurity();
+  loadInterests();
 })();
