@@ -625,6 +625,23 @@ class BackupRecord(models.Model):
         ordering = ['-created_at']
 
 
+class DistributionJob(models.Model):
+    CHANNEL_CHOICES = [('rss', 'RSS'), ('newsletter', 'Newsletter'), ('webhook', 'Webhook'), ('social', 'Social')]
+    STATUS_CHOICES = [('queued', 'Queued'), ('processing', 'Processing'), ('delivered', 'Delivered'), ('failed', 'Failed'), ('awaiting_provider', 'Awaiting provider')]
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='distribution_jobs')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='distribution_jobs_requested')
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES)
+    status = models.CharField(max_length=24, choices=STATUS_CHOICES, default='queued')
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.CharField(max_length=500, blank=True)
+    scheduled_for = models.DateTimeField(null=True, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class ArticleAssignment(models.Model):
     STATUS_CHOICES = [
         ('queued', 'Queued'),

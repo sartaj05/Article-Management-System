@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -1999,6 +1999,37 @@ class WorkspaceContentMigrationView(APIView):
                     media_qs.update(workspace=workspace)
                 record_audit_event(actor=request.user, action='workspace_content_migrated', details={'workspace': workspace.slug, **counts})
         return Response({'workspace': workspace.slug, 'dry_run': dry_run, 'migrated': counts})
+
+
+class DistributionJobView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = DistributionJob.objects.select_related('article', 'requested_by')
+        if request.user.role not in {'Editor', 'Admin'}:
+            queryset = queryset.filter(requested_by=request.user)
+        return Response([{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'scheduled_for': job.scheduled_for, 'delivered_at': job.delivered_at} for job in queryset[:100]])
+
+    def post(self, request):
+        article = get_object_or_404(Article, pk=request.data.get('article_id'))
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can distribute this article.'}, status=403)
+        channel = str(request.data.get('channel', '')).strip().lower()
+        if channel not in dict(DistributionJob.CHANNEL_CHOICES):
+            return Response({'detail': 'Choose rss, newsletter, webhook, or social.'}, status=400)
+        job = DistributionJob.objects.create(article=article, requested_by=request.user, channel=channel, scheduled_for=parse_datetime(str(request.data.get('scheduled_for'))) if request.data.get('scheduled_for') else None)
+        return Response({'id': job.id, 'channel': job.channel, 'status': job.status}, status=201)
+
+    def patch(self, request, pk):
+        job = get_object_or_404(DistributionJob, pk=pk)
+        if job.requested_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot retry this distribution job.'}, status=403)
+        if job.status not in {'failed', 'awaiting_provider'}:
+            return Response({'detail': 'Only failed or waiting jobs can be retried.'}, status=400)
+        job.status = 'queued'
+        job.last_error = ''
+        job.save(update_fields=['status', 'last_error'])
+        return Response({'id': job.id, 'status': job.status})
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
