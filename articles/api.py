@@ -1408,6 +1408,30 @@ class AssignmentBoardView(APIView):
         })
 
 
+class EditorialCalendarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can manage the editorial calendar.'}, status=403)
+        articles = Article.objects.filter(scheduled_publish_at__isnull=False).select_related('author').order_by('scheduled_publish_at')
+        return Response([{'id': article.id, 'title': article.title, 'author': article.author.username, 'workflow_status': article.workflow_status, 'scheduled_publish_at': article.scheduled_publish_at} for article in articles])
+
+    def patch(self, request, article_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can reschedule articles.'}, status=403)
+        article = get_object_or_404(Article, pk=article_id)
+        scheduled_at = parse_datetime(str(request.data.get('scheduled_publish_at', '')))
+        if not scheduled_at or scheduled_at <= timezone.now():
+            return Response({'detail': 'Choose a future publication time.'}, status=400)
+        if article.workflow_status not in {'approved', 'published'}:
+            return Response({'detail': 'Only approved articles can be scheduled.'}, status=400)
+        article.scheduled_publish_at = scheduled_at
+        article.save(update_fields=['scheduled_publish_at', 'updated_at'])
+        record_audit_event(actor=request.user, action='article_rescheduled', article=article, details={'scheduled_publish_at': scheduled_at.isoformat()})
+        return Response({'id': article.id, 'scheduled_publish_at': article.scheduled_publish_at})
+
+
 class ArticleFeatureView(APIView):
     permission_classes = [IsAuthenticated]
 

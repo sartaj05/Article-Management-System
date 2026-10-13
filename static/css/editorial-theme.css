@@ -270,6 +270,13 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .integration-item strong { color: var(--ink); font-size: .8rem; overflow-wrap: anywhere; }
 .integration-item small { color: var(--muted); font-size: .7rem; overflow-wrap: anywhere; }
 .integration-panel__heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; }
+.calendar-list { display: grid; gap: 12px; }
+.calendar-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .5fr) auto; align-items: center; gap: 16px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
+.calendar-card h2 { margin: 8px 0 2px; color: var(--ink); font-size: 1rem; }
+.calendar-card p { margin: 0; color: var(--muted); font-size: .8rem; }
+.calendar-card label { display: grid; gap: 5px; color: var(--muted); font-size: .74rem; font-weight: 700; }
+.calendar-card input { min-height: 38px; padding: 7px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface-soft); }
+@media (max-width: 720px) { .calendar-card { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .integration-grid { grid-template-columns: 1fr; } .integration-panel__heading { flex-direction: column; } }
 .article-media-list { display: grid; gap: 16px; margin: 32px 0; }
 .article-media-list > h2 { margin: 0; color: var(--ink); font-size: 1.35rem; }

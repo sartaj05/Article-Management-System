@@ -78,6 +78,11 @@ def integration_hub(request):
     return render(request, 'articles/integration_hub.html')
 
 
+@role_required('Editor', 'Admin')
+def editorial_calendar(request):
+    return render(request, 'articles/editorial_calendar.html')
+
+
 @role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')

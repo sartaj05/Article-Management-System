@@ -34,7 +34,7 @@ from .api import (
     PlagiarismCheckView,
     ModerationView,
     ArticleTranslationListView,
-    ArticleTranslationDetailView, ArticleTranslationReviewView,
+    ArticleTranslationDetailView, ArticleTranslationReviewView, EditorialCalendarView,
     ArticleAutosaveView,
     ArticleSEOView,
     ReportExportView,
@@ -109,6 +109,7 @@ urlpatterns = [
     path('workspace/comments/', views.comment_moderation, name='comment-moderation-page'),
     path('workspace/translations/', views.translation_workspace, name='translation-workspace-page'),
     path('workspace/integrations/', views.integration_hub, name='integration-hub-page'),
+    path('workspace/calendar/', views.editorial_calendar, name='editorial-calendar-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
@@ -176,6 +177,8 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/restore/', ArticleTrashView.as_view(), {'action': 'restore'}, name='article-restore-action'),
     path('api/v2/articles/<int:article_id>/assignments/', ArticleAssignmentView.as_view(), name='article-assignments'),
     path('api/v2/assignments/board/', AssignmentBoardView.as_view(), name='assignment-board'),
+    path('api/v2/calendar/', EditorialCalendarView.as_view(), name='editorial-calendar'),
+    path('api/v2/calendar/<int:article_id>/', EditorialCalendarView.as_view(), name='editorial-calendar-detail'),
     path('api/v2/articles/<int:article_id>/featured/', ArticleFeatureView.as_view(), name='article-featured'),
     path('api/v2/articles/<int:article_id>/gallery/', ArticleGalleryView.as_view(), name='article-gallery'),
     path('api/v2/articles/<int:article_id>/autosave/', ArticleAutosaveView.as_view(), name='article-autosave'),
