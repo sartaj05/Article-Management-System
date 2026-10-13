@@ -663,8 +663,7 @@ class ReaderInterestView(APIView):
 class AccessibilityPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccessibilityPreference
-        fields = ['high_contrast', 'reduce_motion', 'large_text', 'updated_at']
-        read_only_fields = ['updated_at']
+        fields = ['high_contrast', 'reduce_motion', 'large_text']
 
 
 class AccessibilityPreferenceView(APIView):
