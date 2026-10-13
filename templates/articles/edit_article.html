@@ -69,6 +69,14 @@
 
                     <!-- Content with min length -->
                     <label for="content">Content:</label>
+                    <div class="block-editor-toolbar" role="toolbar" aria-label="Insert article block">
+                        <button type="button" data-block="heading">Heading</button>
+                        <button type="button" data-block="quote">Quote</button>
+                        <button type="button" data-block="pullquote">Pull quote</button>
+                        <button type="button" data-block="list">List</button>
+                        <button type="button" data-block="image">Image</button>
+                        <button type="button" data-block="embed">Embed</button>
+                    </div>
                     <textarea
                       id="content"
                       name="content"
@@ -136,6 +144,7 @@
     <script src="{% static 'js/workspace-ui.js' %}"></script>
     <script src="{% static 'js/collaboration.js' %}"></script>
     <script src="{% static 'js/article-revisions.js' %}"></script>
+    <script src="{% static 'js/rich-block-editor.js' %}" defer></script>
     <script src="{% static 'js/quality-gate.js' %}" defer></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 

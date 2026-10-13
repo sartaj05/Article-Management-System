@@ -231,6 +231,10 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .article-trust-panel li a { color: var(--brand); }
 .article-trust-panel li small { display: block; margin-top: 2px; }
 .article-trust-panel__disclosure { margin: 0; color: var(--muted); font-size: .82rem; }
+.block-editor-toolbar { display: flex; flex-wrap: wrap; gap: 7px; margin: 4px 0 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.block-editor-toolbar button { padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; color: var(--brand); background: var(--surface); font-size: .78rem; font-weight: 700; }
+.block-editor-toolbar button:hover { border-color: var(--brand); background: #eaf1ef; }
+.pull-quote { margin: 18px 0; padding: 14px 18px; border-left: 4px solid var(--accent); color: var(--brand); font-size: 1.15rem; font-weight: 750; }
 @media (max-width: 520px) { .article-trust-panel__grid { grid-template-columns: 1fr; } }
 html.theme-dark .quality-gate__heading > strong { background: #294344; }
 @media (max-width: 760px) { .quality-gate__heading { flex-direction: column; } .quality-gate__checks { grid-template-columns: 1fr 1fr; } }
