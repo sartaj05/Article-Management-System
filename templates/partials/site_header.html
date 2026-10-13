@@ -1,8 +1,8 @@
-<header class="site-header">
+<header class="site-header"{% if active_workspace %} style="--workspace-primary: {{ active_workspace.primary_color }}; --workspace-accent: {{ active_workspace.accent_color }}"{% endif %}>
     <div class="container site-header__inner">
         <a class="brand" href="{% url 'home' %}" aria-label="Article Studio home">
-            <span class="brand-mark"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></span>
-            <span class="brand-copy">Article Studio<small>Editorial workspace</small></span>
+            <span class="brand-mark">{% if active_workspace.logo_url %}<img src="{{ active_workspace.logo_url }}" alt="" loading="lazy">{% else %}<i class="fa-solid fa-feather-pointed" aria-hidden="true"></i>{% endif %}</span>
+            <span class="brand-copy">{% if active_workspace %}{{ active_workspace.name }}{% else %}Article Studio{% endif %}<small>Editorial workspace</small></span>
         </a>
         <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="Open navigation">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>

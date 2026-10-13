@@ -1,4 +1,5 @@
 import hashlib
+import re
 import hmac
 import json
 import secrets
@@ -1045,7 +1046,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ['id', 'name', 'slug', 'description', 'owner', 'owner_username', 'member_count', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'owner', 'owner_username', 'member_count', 'plan', 'seat_limit', 'logo_url', 'primary_color', 'accent_color', 'custom_domain', 'email_from_name', 'created_at', 'updated_at']
         read_only_fields = ['id', 'owner', 'owner_username', 'member_count', 'created_at', 'updated_at']
 
 
@@ -1142,9 +1143,17 @@ class WorkspaceBillingView(APIView):
             return Response({'detail': 'seat_limit must be a positive integer.'}, status=400)
         if seat_limit < workspace.memberships.count():
             return Response({'detail': 'Seat limit cannot be lower than current membership count.'}, status=400)
+        for color_field in ('primary_color', 'accent_color'):
+            color = str(request.data.get(color_field, getattr(workspace, color_field))).strip()
+            if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+                return Response({'detail': f'{color_field} must be a six-digit hex color.'}, status=400)
+            setattr(workspace, color_field, color)
+        for text_field in ('logo_url', 'custom_domain', 'email_from_name'):
+            if text_field in request.data:
+                setattr(workspace, text_field, str(request.data.get(text_field, '')).strip()[:255])
         workspace.plan = plan
         workspace.seat_limit = seat_limit
-        workspace.save(update_fields=['plan', 'seat_limit', 'updated_at'])
+        workspace.save(update_fields=['plan', 'seat_limit', 'primary_color', 'accent_color', 'logo_url', 'custom_domain', 'email_from_name', 'updated_at'])
         return self.get(request, slug)
 
 

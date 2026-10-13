@@ -12,6 +12,11 @@
   --shadow-lg: 0 22px 60px rgba(62, 48, 36, .14);
 }
 
+.site-header[style*="--workspace-primary"] .brand-mark,
+.site-header[style*="--workspace-primary"] .nav-cta { background: var(--workspace-primary); }
+.site-header[style*="--workspace-primary"] .nav-cta:hover { background: var(--workspace-accent); }
+.site-header .brand-mark img { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; }
+
 body.site-shell,
 body.dashboard-shell,
 body.auth-shell { background: var(--surface-soft); color: var(--ink); }
