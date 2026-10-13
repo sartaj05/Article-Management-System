@@ -1895,6 +1895,42 @@ class BackupOperationsView(APIView):
         return Response(payload, status=201 if record.status == 'completed' else 503)
 
 
+class WorkspaceContentMigrationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can inspect workspace migration.'}, status=403)
+        return Response({
+            'unassigned_articles': Article.objects.filter(workspace__isnull=True).count(),
+            'unassigned_media_assets': MediaAsset.objects.filter(workspace__isnull=True).count(),
+        })
+
+    def post(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can migrate workspace content.'}, status=403)
+        workspace = get_object_or_404(Workspace, slug=request.data.get('workspace_slug'), is_active=True)
+        kinds = set(request.data.get('kinds') or ['articles', 'media'])
+        dry_run = bool(request.data.get('dry_run', False))
+        article_qs = Article.objects.filter(workspace__isnull=True)
+        media_qs = MediaAsset.objects.filter(workspace__isnull=True)
+        article_ids = request.data.get('article_ids')
+        if article_ids:
+            article_qs = article_qs.filter(pk__in=article_ids)
+        media_ids = request.data.get('media_ids')
+        if media_ids:
+            media_qs = media_qs.filter(pk__in=media_ids)
+        counts = {'articles': article_qs.count() if 'articles' in kinds else 0, 'media': media_qs.count() if 'media' in kinds else 0}
+        if not dry_run:
+            with transaction.atomic():
+                if 'articles' in kinds:
+                    article_qs.update(workspace=workspace)
+                if 'media' in kinds:
+                    media_qs.update(workspace=workspace)
+                record_audit_event(actor=request.user, action='workspace_content_migrated', details={'workspace': workspace.slug, **counts})
+        return Response({'workspace': workspace.slug, 'dry_run': dry_run, 'migrated': counts})
+
+
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.order_by('name')
     serializer_class = CategorySerializer
