@@ -89,6 +89,11 @@ def permission_manager(request):
 
 
 @role_required('Admin')
+def compliance_center(request):
+    return render(request, 'articles/compliance_center.html')
+
+
+@role_required('Admin')
 def admin_dashboard(request):
     return render(request, 'articles/admin_dashboard.html')
 from django.conf import settings

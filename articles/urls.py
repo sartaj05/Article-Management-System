@@ -111,6 +111,7 @@ urlpatterns = [
     path('workspace/integrations/', views.integration_hub, name='integration-hub-page'),
     path('workspace/calendar/', views.editorial_calendar, name='editorial-calendar-page'),
     path('workspace/permissions/', views.permission_manager, name='permission-manager-page'),
+    path('workspace/compliance/', views.compliance_center, name='compliance-center-page'),
 
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),

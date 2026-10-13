@@ -843,6 +843,28 @@ class PrivacyRequestView(APIView):
         ])
 
 
+class PrivacyComplianceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can review privacy requests.'}, status=status.HTTP_403_FORBIDDEN)
+        requests = PrivacyRequest.objects.select_related('user').all()[:100]
+        return Response([
+            {
+                'id': item.id,
+                'username': item.user.username,
+                'email': item.user.email,
+                'request_type': item.request_type,
+                'status': item.status,
+                'created_at': item.created_at,
+                'completed_at': item.completed_at,
+            }
+            for item in requests
+        ])
+
+
 class PrivacyExportView(PrivacyRequestView):
     def post(self, request):
         privacy_request = PrivacyRequest.objects.create(

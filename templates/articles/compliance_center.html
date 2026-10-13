@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compliance center</title>
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
+    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261013-editorial-1">
+</head>
+<body class="dashboard-shell">
+    <header class="workspace-topbar">
+        <a class="workspace-topbar__brand" href="{% url 'admin-dashboard' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Compliance center</small></span></a>
+        <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a class="is-active" href="{% url 'compliance-center-page' %}">Compliance</a><a href="{% url 'integration-hub-page' %}">Integrations</a></nav>
+    </header>
+    <main class="feature-page compliance-page">
+        <header class="feature-page__heading"><div><span class="feature-eyebrow">Governance</span><h1>Compliance & audit center</h1><p>Review account privacy requests and maintain a searchable record of editorial activity.</p></div><a class="button button--secondary button--small" href="/articles/api/v2/reports/audit/">Export audit CSV</a></header>
+        <section class="audit-panel"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Accountability</span><h2>Audit activity</h2></div><label>Filter action<input id="compliance-audit-filter" type="search" placeholder="article_published"></label></div><p class="feature-status" id="compliance-audit-status" role="status" aria-live="polite">Loading audit events…</p><div class="audit-list" id="compliance-audit-list"></div></section>
+        <section class="audit-panel compliance-privacy-panel"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Privacy operations</span><h2>Data requests</h2></div><button class="button button--secondary button--small" id="refresh-compliance" type="button">Refresh</button></div><p class="feature-status" id="compliance-privacy-status" role="status" aria-live="polite">Loading privacy requests…</p><div class="compliance-request-list" id="compliance-request-list"></div></section>
+    </main>
+    <script src="{% static 'js/compliance-center.js' %}" defer></script>
+</body>
+</html>

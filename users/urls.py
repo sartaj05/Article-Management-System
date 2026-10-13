@@ -12,7 +12,7 @@ from .api import (
     AccessibilityPreferenceView, AlertRuleView, MembershipCancelView, MembershipCheckoutView, MembershipWebhookView,
     MembershipMeView, MembershipPlanView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
-    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
+    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceInvitationAcceptView, SavedSearchView, RoleCapabilityView, TwoFactorView,
 )
 urlpatterns = [
@@ -77,6 +77,7 @@ path('', views.home, name='home'),
     path('privacy/preferences/', PrivacyPreferenceView.as_view(), name='privacy-preferences'),
     path('privacy/consents/', PrivacyConsentView.as_view(), name='privacy-consents'),
     path('privacy/requests/', PrivacyRequestView.as_view(), name='privacy-requests'),
+    path('privacy/compliance/', PrivacyComplianceView.as_view(), name='privacy-compliance'),
     path('privacy/export/', PrivacyExportView.as_view(), name='privacy-export'),
     path('privacy/delete/', PrivacyDeletionRequestView.as_view(), name='privacy-delete-request'),
     path('workspaces/', WorkspaceListCreateView.as_view(), name='workspace-list-create'),

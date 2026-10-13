@@ -91,6 +91,13 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .membership-plan-card .button { margin-top: auto; }
 .membership-plan-card .button:disabled { cursor: default; opacity: .7; }
 .scope-option { display: flex; align-items: center; gap: 8px; margin: 10px 0; color: var(--muted); font-size: .9rem; }
+.compliance-request-list { display: grid; gap: 10px; }
+.compliance-request { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.compliance-request div { display: grid; gap: 4px; min-width: 0; }
+.compliance-request strong { color: var(--ink); text-transform: capitalize; }
+.compliance-request span, .compliance-request time { color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
+.compliance-request__status { padding: 5px 9px; border-radius: 999px; color: var(--brand) !important; background: #eaf1ef; text-transform: capitalize; }
+@media (max-width: 700px) { .compliance-request { grid-template-columns: 1fr; gap: 8px; } }
 
 .dashboard-shell .main-content > header h1,
 .dashboard-shell .content > header h1,
