@@ -175,6 +175,40 @@ class NewsletterPreviewView(APIView):
         })
 
 
+class NewsletterEditionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsletterEdition
+        fields = ['id', 'frequency', 'subject', 'body', 'article_ids', 'status', 'recipient_count', 'sent_at', 'created_at']
+        read_only_fields = ['id', 'status', 'recipient_count', 'sent_at', 'created_at']
+
+
+class NewsletterEditionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def allowed(self, request):
+        return request.user.role in {'Editor', 'Admin'}
+
+    def get(self, request):
+        if not self.allowed(request): return Response({'detail': 'Editor access is required.'}, status=403)
+        editions = NewsletterEdition.objects.all()[:50]
+        return Response([{'id': item.id, 'frequency': item.frequency, 'subject': item.subject, 'body': item.body, 'status': item.status, 'recipient_count': item.recipient_count, 'sent_at': item.sent_at, 'created_at': item.created_at} for item in editions])
+
+    def post(self, request):
+        if not self.allowed(request): return Response({'detail': 'Editor access is required.'}, status=403)
+        action = str(request.data.get('action', 'draft')).lower()
+        if action == 'send':
+            edition = get_object_or_404(NewsletterEdition, pk=request.data.get('id'), status='draft')
+            recipients = list(NewsletterSubscription.objects.filter(is_active=True, frequency=edition.frequency).values_list('email', flat=True))
+            send_mail(edition.subject, edition.body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=True)
+            edition.status = 'sent'; edition.recipient_count = len(recipients); edition.sent_at = timezone.now(); edition.save(update_fields=['status', 'recipient_count', 'sent_at'])
+            return Response({'id': edition.id, 'status': edition.status, 'recipient_count': edition.recipient_count, 'sent_at': edition.sent_at})
+        serializer = NewsletterEditionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        edition = serializer.save(status='draft')
+        return Response({'id': edition.id, 'frequency': edition.frequency, 'subject': edition.subject, 'body': edition.body, 'status': edition.status, 'recipient_count': edition.recipient_count}, status=201)
+
+
 class PushSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PushSubscription

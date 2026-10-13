@@ -285,6 +285,14 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .two-factor-setup label, #two-factor-disable label { display: grid; gap: 5px; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .two-factor-setup input, #two-factor-disable input { min-height: 38px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--surface-soft); }
 .two-factor-setup code { color: var(--brand); overflow-wrap: anywhere; }
+.newsletter-form { display: grid; gap: 14px; max-width: 760px; }
+.newsletter-form label { display: grid; gap: 6px; color: var(--muted); font-size: .8rem; font-weight: 700; }
+.newsletter-form input, .newsletter-form select, .newsletter-form textarea { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface-soft); }
+.newsletter-edition-list { display: grid; gap: 10px; margin-top: 16px; }
+.newsletter-edition { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.newsletter-edition div { display: grid; gap: 3px; }
+.newsletter-edition strong { color: var(--ink); font-size: .86rem; }
+.newsletter-edition span { color: var(--muted); font-size: .75rem; text-transform: capitalize; }
 @media (max-width: 680px) { .permission-matrix { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .calendar-card { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .integration-grid { grid-template-columns: 1fr; } .integration-panel__heading { flex-direction: column; } }

@@ -183,6 +183,11 @@ def logout_template(request):
 def account_settings(request):
     return render(request, 'users/account_settings.html')
 
+
+@role_required('Editor', 'Admin')
+def newsletter_campaigns(request):
+    return render(request, 'users/newsletter_campaigns.html')
+
 # Logout View
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
