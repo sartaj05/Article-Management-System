@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -647,6 +647,55 @@ class ArticleLiveUpdateDetailView(APIView):
         return Response(status=204)
 
 
+class WorkflowRuleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _payload(self, rule):
+        return {'id': rule.id, 'workspace_id': rule.workspace_id, 'name': rule.name, 'from_status': rule.from_status, 'to_status': rule.to_status, 'required_role': rule.required_role, 'require_sources': rule.require_sources, 'require_fact_check': rule.require_fact_check, 'is_active': rule.is_active}
+
+    def get(self, request):
+        queryset = WorkflowRule.objects.all()
+        if request.user.role != 'Admin':
+            queryset = queryset.filter(workspace__memberships__user=request.user)
+        return Response([self._payload(rule) for rule in queryset])
+
+    def post(self, request):
+        if request.user.role not in {'Admin', 'Editor'}:
+            return Response({'detail': 'Only editors and admins can configure workflow rules.'}, status=403)
+        workspace = get_object_or_404(Workspace, slug=request.data.get('workspace_slug'), memberships__user=request.user, is_active=True)
+        if request.user.role == 'Editor' and not WorkspaceMembership.objects.filter(workspace=workspace, user=request.user, role__in=['owner', 'admin', 'editor']).exists():
+            return Response({'detail': 'Workspace editor access is required.'}, status=403)
+        rule = WorkflowRule.objects.create(workspace=workspace, name=str(request.data.get('name', 'Editorial rule'))[:120], from_status=request.data.get('from_status'), to_status=request.data.get('to_status'), required_role=str(request.data.get('required_role', ''))[:20], require_sources=bool(request.data.get('require_sources', False)), require_fact_check=bool(request.data.get('require_fact_check', False)), is_active=bool(request.data.get('is_active', True)))
+        return Response(self._payload(rule), status=201)
+
+    def patch(self, request, pk):
+        if request.user.role not in {'Admin', 'Editor'}:
+            return Response({'detail': 'Only editors and admins can configure workflow rules.'}, status=403)
+        rule = get_object_or_404(WorkflowRule, pk=pk, workspace__memberships__user=request.user)
+        for field in ('name', 'from_status', 'to_status', 'required_role'):
+            if field in request.data:
+                setattr(rule, field, str(request.data[field])[:120])
+        for field in ('require_sources', 'require_fact_check', 'is_active'):
+            if field in request.data:
+                setattr(rule, field, bool(request.data[field]))
+        rule.save()
+        return Response(self._payload(rule))
+
+
+def _workflow_rule_errors(article, from_status, to_status, user):
+    if not article.workspace_id:
+        return []
+    errors = []
+    for rule in WorkflowRule.objects.filter(workspace_id=article.workspace_id, from_status=from_status, to_status=to_status, is_active=True):
+        if rule.required_role and user.role.lower() != rule.required_role.lower():
+            errors.append(f'{rule.name}: role {rule.required_role} is required.')
+        if rule.require_sources and not article.sources.exists():
+            errors.append(f'{rule.name}: at least one source is required.')
+        if rule.require_fact_check and not article.fact_checks.exists():
+            errors.append(f'{rule.name}: a fact check is required.')
+    return errors
+
+
 class ArticleWorkflowActionView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
@@ -656,6 +705,9 @@ class ArticleWorkflowActionView(APIView):
         now = timezone.now()
 
         if action == 'submit':
+            rule_errors = _workflow_rule_errors(article, article.workflow_status, 'submitted', request.user)
+            if rule_errors:
+                return Response({'detail': 'Workflow rules blocked submission.', 'rules': rule_errors}, status=400)
             if article.author_id != request.user.id and request.user.role not in {'Admin'}:
                 return Response({'detail': 'Only the author can submit this article.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status not in {'draft', 'rejected'}:
@@ -690,6 +742,9 @@ class ArticleWorkflowActionView(APIView):
             return Response(ArticleWorkflowSerializer(article).data, status=status.HTTP_200_OK)
 
         if action == 'publish':
+            rule_errors = _workflow_rule_errors(article, article.workflow_status, 'published', request.user)
+            if rule_errors:
+                return Response({'detail': 'Workflow rules blocked publishing.', 'rules': rule_errors}, status=400)
             if request.user.role not in {'Editor', 'Admin'} or not editor_has_capability(request.user, article, 'publish'):
                 return Response({'detail': 'Only editors and admins can publish articles.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status != 'approved':

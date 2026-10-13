@@ -643,6 +643,22 @@ class ArticleAssignment(models.Model):
         ]
 
 
+class WorkflowRule(models.Model):
+    STATUS_CHOICES = Article.WORKFLOW_STATUS_CHOICES
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.CASCADE, related_name='workflow_rules')
+    name = models.CharField(max_length=120)
+    from_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    to_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    required_role = models.CharField(max_length=20, blank=True)
+    require_sources = models.BooleanField(default=False)
+    require_fact_check = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['from_status', 'to_status', 'name']
+
+
 def create_notification(*, recipient, notification_type, message, article=None):
     return Notification.objects.create(
         recipient=recipient,
