@@ -152,7 +152,7 @@ class ArticleSourceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ArticleSource
-        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'added_by', 'added_by_name', 'created_at']
+        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'verification_status', 'accessed_at', 'citation_key', 'added_by', 'added_by_name', 'created_at']
         read_only_fields = ['id', 'article', 'added_by', 'added_by_name', 'created_at']
 
 

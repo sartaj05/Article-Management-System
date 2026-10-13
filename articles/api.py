@@ -348,6 +348,21 @@ class ArticleSourceView(APIView):
         return Response(ArticleSourceSerializer(source).data, status=201)
 
 
+class ArticleSourceDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        source = get_object_or_404(ArticleSource.objects.select_related('article'), pk=pk)
+        if request.user.role not in {'Editor', 'Admin'} and source.article.author_id != request.user.id:
+            return Response({'detail': 'Only the author, editors, or admins can verify sources.'}, status=403)
+        serializer = ArticleSourceSerializer(source, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        source = serializer.save(accessed_at=timezone.now() if serializer.validated_data.get('verification_status') == 'verified' else source.accessed_at)
+        record_audit_event(actor=request.user, action='article_source_verified', article=source.article, details={'source_id': source.id, 'status': source.verification_status})
+        return Response(ArticleSourceSerializer(source).data)
+
+
 class ArticleFactCheckView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [AllowAny]

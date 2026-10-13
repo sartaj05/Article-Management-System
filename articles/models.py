@@ -348,6 +348,7 @@ class ArticleLiveUpdate(models.Model):
 
 class ArticleSource(models.Model):
     SOURCE_TYPES = [('primary', 'Primary source'), ('secondary', 'Secondary source'), ('reference', 'Reference')]
+    VERIFICATION_CHOICES = [('pending', 'Pending'), ('verified', 'Verified'), ('unverified', 'Unverified')]
 
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='sources')
     url = models.URLField()
@@ -355,6 +356,9 @@ class ArticleSource(models.Model):
     publisher = models.CharField(max_length=150, blank=True)
     source_type = models.CharField(max_length=20, choices=SOURCE_TYPES, default='reference')
     notes = models.TextField(blank=True)
+    verification_status = models.CharField(max_length=20, choices=VERIFICATION_CHOICES, default='pending')
+    accessed_at = models.DateTimeField(null=True, blank=True)
+    citation_key = models.SlugField(max_length=80, blank=True)
     added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='article_sources_added')
     created_at = models.DateTimeField(auto_now_add=True)
 
