@@ -29,7 +29,17 @@
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.subtitle %}<p class="article-subtitle">{{ article.subtitle }}</p>{% endif %}
     <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>
-    <aside class="article-trust-panel" aria-labelledby="article-trust-title">
+    {% if article.is_premium and not has_article_access %}
+    <section class="premium-article-gate" aria-labelledby="premium-gate-title">
+        <span class="feature-eyebrow">Premium story</span>
+        <h2 id="premium-gate-title">Continue reading with Article Studio membership</h2>
+        <p>{{ article.summary|default:"This story is reserved for members. Join the newsroom to read the complete article, sources, media and community discussion." }}</p>
+        <div class="premium-article-gate__actions">
+            {% if request.user.is_authenticated %}<a class="button" href="{% url 'membership-plans-page' %}">View membership plans</a>{% else %}<a class="button" href="{% url 'user-login-template' %}?next={{ request.path|urlencode }}">Log in to continue</a><a class="button button--secondary" href="{% url 'user-register-template' %}">Create an account</a>{% endif %}
+        </div>
+    </section>
+    {% endif %}
+    {% if has_article_access %}<aside class="article-trust-panel" aria-labelledby="article-trust-title">
         <div class="article-trust-panel__header"><div><span class="feature-eyebrow">Editorial transparency</span><h2 id="article-trust-title">How this story was checked</h2></div><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
         <div class="article-trust-panel__grid">
             <div><strong>{{ article_sources|length }}</strong><span>Sources reviewed</span></div>
@@ -49,7 +59,7 @@
         <div class="article-comments__heading"><div><span class="feature-eyebrow">Community</span><h2 id="comments-title">Join the conversation</h2></div><span>{{ article_comments|length }} visible comments</span></div>
         <div id="public-comments-list" class="public-comments-list">{% for comment in article_comments %}<article class="public-comment"><strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong><time datetime="{{ comment.created_at|date:'c' }}">{{ comment.created_at|date:'M d, Y' }}</time><p>{{ comment.content }}</p><button type="button" data-report-comment="{{ comment.id }}">Report</button></article>{% empty %}<p class="account-empty">Be the first to share a thoughtful comment.</p>{% endfor %}</div>
         {% if request.user.is_authenticated %}<form id="public-comment-form" class="public-comment-form"><label for="comment-content">Comment</label><textarea id="comment-content" name="content" maxlength="1000" required placeholder="Share a thoughtful response…"></textarea><button class="button" type="submit">Post comment</button><p id="comment-status" class="account-status" role="status" aria-live="polite"></p></form>{% else %}<p class="article-comments__signin"><a href="{% url 'user-login-template' %}">Sign in</a> to join the conversation.</p>{% endif %}
-    </section>
+    </section>{% endif %}
 </article>
 {% if request.user.is_authenticated %}<script src="{% static 'js/public-comments.js' %}" defer></script>{% endif %}
 {% endblock %}

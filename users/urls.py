@@ -29,6 +29,7 @@ path('', views.home, name='home'),
     path('forgot-password/', views.password_reset_request_template, name='forgot-password-template'),  # For the forgot-password page
     path('account/settings/', views.account_settings, name='account-settings'),
     path('newsletter/campaigns/', views.newsletter_campaigns, name='newsletter-campaigns'),
+    path('membership/', views.membership_plans, name='membership-plans-page'),
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
     path('editor/dashboard/', views.editor_dashboard, name='editor-dashboard'),
     path('adminMain/dashboard/', views.admin_dashboard, name='admin-dashboard'),

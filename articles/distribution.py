@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
 from .models import Article
+from users.models import has_active_membership
 
 
 def published_articles():
@@ -55,15 +56,16 @@ def robots_txt(request):
     return HttpResponse(f'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nSitemap: {sitemap_url}\n', content_type='text/plain')
 
 
-@cache_page(300)
 def public_article(request, slug):
     article = get_object_or_404(published_articles(), slug=slug)
+    has_article_access = not article.is_premium or has_active_membership(request.user)
     context = {
         'article': article,
-        'article_sources': article.sources.all(),
-        'article_fact_checks': article.fact_checks.select_related('checked_by').all(),
-        'article_corrections': article.corrections.filter(status='published'),
-        'article_provenance': getattr(article, 'provenance', None),
-        'article_comments': article.comments.filter(moderation_status='visible').select_related('author')[:30],
+        'has_article_access': has_article_access,
+        'article_sources': article.sources.all() if has_article_access else [],
+        'article_fact_checks': article.fact_checks.select_related('checked_by').all() if has_article_access else [],
+        'article_corrections': article.corrections.filter(status='published') if has_article_access else [],
+        'article_provenance': getattr(article, 'provenance', None) if has_article_access else None,
+        'article_comments': article.comments.filter(moderation_status='visible').select_related('author')[:30] if has_article_access else [],
     }
     return render(request, 'articles/public_article.html', context)

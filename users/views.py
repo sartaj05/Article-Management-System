@@ -188,6 +188,11 @@ def account_settings(request):
 def newsletter_campaigns(request):
     return render(request, 'users/newsletter_campaigns.html')
 
+
+@login_required
+def membership_plans(request):
+    return render(request, 'users/membership_plans.html')
+
 # Logout View
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

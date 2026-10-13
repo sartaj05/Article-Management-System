@@ -1,0 +1,21 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Membership plans | Article Studio{% endblock %}
+
+{% block content %}
+<section class="account-page membership-page">
+    <div class="account-page__header">
+        <div>
+            <span class="feature-eyebrow">Reader membership</span>
+            <h1>Read more of the newsroom</h1>
+            <p>Choose a plan to unlock premium articles and support independent publishing.</p>
+        </div>
+    </div>
+    <div id="membership-status" class="account-status" role="status" aria-live="polite"></div>
+    <div id="membership-plans" class="membership-plans" aria-live="polite">
+        <p class="account-empty">Loading membership plans…</p>
+    </div>
+</section>
+<script src="{% static 'js/membership-plans.js' %}" defer></script>
+{% endblock %}
