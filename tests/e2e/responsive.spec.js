@@ -82,6 +82,24 @@ test.describe('responsive public and authentication shells', () => {
   }
 });
 
+test('public feed only shows load more when another page exists', async ({ page }) => {
+  const feedResponse = page.waitForResponse((response) => (
+    response.url().includes('/articles/api/v2/discover/') && response.request().method() === 'GET'
+  ));
+
+  await page.goto('/');
+  const response = await feedResponse;
+  const payload = await response.json();
+  const loadMore = page.locator('#load-more');
+
+  await expect(page.locator('#articles-container .article-card, #articles-container .empty-state').first()).toBeVisible();
+  if (payload.next) {
+    await expect(loadMore).toBeVisible();
+  } else {
+    await expect(loadMore).toBeHidden();
+  }
+});
+
 test.describe('responsive authenticated workspaces', () => {
   for (const [role, account] of Object.entries(roles)) {
     test(`${role} workspace shell stays inside the viewport`, async ({ page }) => {

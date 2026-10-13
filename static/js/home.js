@@ -47,6 +47,7 @@
     if (!container || state.loading || (!url && !state.next)) return;
     state.loading = true;
     if (!append) container.innerHTML = `<div class="loading-state">Loading the newsroom...</div>`;
+    if (loadMore && !append) loadMore.hidden = true;
     if (loadMore) loadMore.disabled = true;
     setStatus(append ? "Loading more stories..." : "");
     try {

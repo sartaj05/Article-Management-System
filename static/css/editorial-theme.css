@@ -74,6 +74,7 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .footer-social > div a { border-color: #496a6a; color: #f4eee5 !important; }
 .footer-social > div a:hover { border-color: #d28b70; background: #2b4a4d; }
 .site-footer__bottom { border-color: #3c595a; color: #a7bab4; }
+.feed-actions #load-more[hidden] { display: none; }
 
 .dashboard-shell .main-content > header h1,
 .dashboard-shell .content > header h1,
