@@ -192,3 +192,42 @@ html.theme-dark {
   --brand-dark: #d8e8df;
   --accent: #efaa8c;
 }
+
+html.theme-dark .site-nav .nav-cta,
+html.theme-dark .dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active {
+  color: #203639;
+  background: #a8d0c5;
+}
+html.theme-dark .site-nav .nav-cta:hover,
+html.theme-dark .dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active:hover {
+  color: #203639;
+  background: #d8e8df;
+}
+html.theme-dark .button--light {
+  color: #203639 !important;
+  background: #fffaf2;
+}
+html.theme-dark .button--light:hover {
+  color: #203639 !important;
+  background: #f6e6d7;
+}
+html.theme-dark .button--secondary {
+  color: #d8e8df;
+  border-color: #527270;
+  background: #29484a;
+}
+html.theme-dark .feed-switcher {
+  border-color: #456264;
+  background: #223b3d;
+}
+html.theme-dark .feed-switcher button { color: #d8e8df; }
+html.theme-dark .feed-switcher button[aria-pressed="true"] {
+  color: #203639;
+  background: #fffaf2;
+}
+html.theme-dark .search-field,
+html.theme-dark .select-field {
+  border-color: #456264;
+  background: #263c3e;
+}
+html.theme-dark .search-field input::placeholder { color: #b8c5bd; opacity: 1; }

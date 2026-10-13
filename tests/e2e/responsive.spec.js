@@ -100,6 +100,26 @@ test('public feed only shows load more when another page exists', async ({ page 
   }
 });
 
+test('dark theme keeps public controls readable', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('.theme-toggle').click();
+  await page.locator('[data-feed-mode="trending"]').click();
+
+  const colors = await page.locator('.hero .button--light').evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return { color: styles.color, background: styles.backgroundColor };
+  });
+  const activeFeedColors = await page.locator('[data-feed-mode="trending"]').evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return { color: styles.color, background: styles.backgroundColor };
+  });
+
+  expect(colors.color).toBe('rgb(32, 54, 57)');
+  expect(colors.background).toBe('rgb(255, 250, 242)');
+  expect(activeFeedColors.color).toBe('rgb(32, 54, 57)');
+  expect(activeFeedColors.background).toBe('rgb(255, 250, 242)');
+});
+
 test.describe('responsive authenticated workspaces', () => {
   for (const [role, account] of Object.entries(roles)) {
     test(`${role} workspace shell stays inside the viewport`, async ({ page }) => {
