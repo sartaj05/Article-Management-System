@@ -1,4 +1,4 @@
-const CACHE_NAME = "article-studio-v2";
+const CACHE_NAME = "article-studio-v4";
 const APP_SHELL = [
   "/",
   "/static/manifest.webmanifest",

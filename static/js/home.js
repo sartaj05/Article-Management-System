@@ -26,7 +26,8 @@
     const summary = escapeHTML(article.summary || article.subtitle || "A new story from the Article Studio community.");
     const author = escapeHTML(article.author_name || article.author || "Article Studio");
     const category = escapeHTML(article.category || "General");
-    const image = article.image ? `<img src="${escapeHTML(article.image)}" alt="" loading="lazy" decoding="async">` : `<div class="article-cover--placeholder"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i></div>`;
+    const initial = escapeHTML(Array.from(String(article.title || "A"))[0].toUpperCase());
+    const image = article.image ? `<img src="${escapeHTML(article.image)}" alt="" loading="lazy" decoding="async">` : `<div class="article-cover--placeholder" aria-hidden="true"><span class="cover-label">THE STUDIO / ${category}</span><span class="cover-letter">${initial}</span><span class="cover-caption"><span>✳</span> A perspective worth exploring.</span></div>`;
     return `<article class="article-card"><div class="article-cover">${image}</div><div class="article-info"><div class="article-meta"><span class="meta-pill"><i class="fa-regular fa-folder" aria-hidden="true"></i>${category}</span><span class="meta-pill"><i class="fa-regular fa-calendar" aria-hidden="true"></i>${formatDate(article.published_at || article.publish_date)}</span></div><h3>${title}</h3><p class="article-summary">${summary}</p><div class="article-meta"><span><i class="fa-regular fa-user" aria-hidden="true"></i> ${author}</span><span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(article.views_count || 0)}</span></div><a class="article-link" href="${articleLink(article)}">Read article <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></article>`;
   }
   function setStatus(message, isError) { if (!status) return; status.textContent = message || ""; status.classList.toggle("is-error", Boolean(isError)); }
