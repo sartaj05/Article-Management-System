@@ -386,6 +386,24 @@ class MembershipSubscription(models.Model):
         return f'{self.user.username}: {self.plan.name} ({self.status})'
 
 
+class PaymentTransaction(models.Model):
+    STATUS_CHOICES = [('pending', 'Pending'), ('succeeded', 'Succeeded'), ('failed', 'Failed'), ('refunded', 'Refunded')]
+    PROVIDER_CHOICES = [('manual', 'Manual'), ('stripe', 'Stripe'), ('razorpay', 'Razorpay')]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payment_transactions')
+    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name='payment_transactions')
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='manual')
+    checkout_token = models.CharField(max_length=80, unique=True)
+    provider_reference = models.CharField(max_length=160, blank=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class MembershipWebhookEvent(models.Model):
     provider = models.CharField(max_length=30, default='payment')
     event_id = models.CharField(max_length=160, unique=True)

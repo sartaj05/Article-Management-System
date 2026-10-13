@@ -21,7 +21,7 @@ from decimal import Decimal
 
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
-    MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
+    MembershipSubscription, MembershipWebhookEvent, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
@@ -546,7 +546,8 @@ class MembershipMeView(APIView):
 
     def get(self, request):
         subscriptions = MembershipSubscription.objects.filter(user=request.user).select_related('plan')
-        return Response({'active': has_active_membership(request.user), 'subscriptions': MembershipSubscriptionSerializer(subscriptions, many=True).data})
+        transactions = PaymentTransaction.objects.filter(user=request.user).select_related('plan')[:20]
+        return Response({'active': has_active_membership(request.user), 'subscriptions': MembershipSubscriptionSerializer(subscriptions, many=True).data, 'transactions': [{'id': item.id, 'plan': item.plan.name, 'provider': item.provider, 'amount': item.amount, 'currency': item.currency, 'status': item.status, 'provider_reference': item.provider_reference, 'created_at': item.created_at} for item in transactions]})
 
 
 class MembershipCheckoutView(APIView):
@@ -555,13 +556,26 @@ class MembershipCheckoutView(APIView):
 
     def post(self, request):
         plan = get_object_or_404(MembershipPlan, pk=request.data.get('plan_id'), is_active=True)
+        provider = str(request.data.get('provider', getattr(settings, 'PAYMENT_PROVIDER', 'manual'))).strip().lower()
+        if provider not in {'manual', 'stripe', 'razorpay'}:
+            return Response({'detail': 'Choose manual, stripe, or razorpay.'}, status=400)
         subscription, _ = MembershipSubscription.objects.update_or_create(
             user=request.user, plan=plan, status__in=['pending', 'canceled'],
-            defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': 'manual', 'started_at': timezone.now() if plan.price == 0 else None},
+            defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': provider, 'started_at': timezone.now() if plan.price == 0 else None},
         )
         if plan.price > 0:
-            return Response({'detail': 'Payment provider is not configured yet.', 'checkout_required': True, 'plan': MembershipPlanSerializer(plan).data}, status=402)
+            transaction = PaymentTransaction.objects.create(user=request.user, plan=plan, provider=provider, checkout_token=secrets.token_urlsafe(40), amount=plan.price, currency=plan.currency)
+            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'transaction_id': transaction.id, 'plan': MembershipPlanSerializer(plan).data}, status=202)
         return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
+
+
+class PaymentTransactionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        transactions = PaymentTransaction.objects.filter(user=request.user).select_related('plan')[:50]
+        return Response([{'id': item.id, 'plan': item.plan.name, 'provider': item.provider, 'amount': item.amount, 'currency': item.currency, 'status': item.status, 'provider_reference': item.provider_reference, 'created_at': item.created_at} for item in transactions])
 
 
 class MembershipCancelView(APIView):
