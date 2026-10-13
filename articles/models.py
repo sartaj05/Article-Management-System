@@ -160,6 +160,7 @@ class Comment(models.Model):
     author = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE)  # Correct reference
     content = models.TextField()
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='comments')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     is_editorial = models.BooleanField(default=False)
     moderation_status = models.CharField(max_length=20, choices=MODERATION_STATUS_CHOICES, default='visible')
     moderation_reason = models.CharField(max_length=255, blank=True)

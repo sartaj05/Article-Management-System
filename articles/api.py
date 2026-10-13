@@ -1066,6 +1066,9 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         article = get_object_or_404(Article, pk=self.kwargs['article_id'])
+        parent = serializer.validated_data.get('parent')
+        if parent and parent.article_id != article.id:
+            raise ValidationError({'parent': 'Parent comment must belong to the same article.'})
         comment = serializer.save(
             article=article,
             author=self.request.user,

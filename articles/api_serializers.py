@@ -6,10 +6,11 @@ from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, A
 
 class CommentSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.username', read_only=True)
+    replies_count = serializers.IntegerField(source='replies.count', read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['id', 'article', 'author', 'author_name', 'content', 'is_editorial', 'moderation_status', 'moderation_reason', 'created_at', 'updated_at']
+        fields = ['id', 'article', 'parent', 'author', 'author_name', 'content', 'is_editorial', 'moderation_status', 'moderation_reason', 'replies_count', 'created_at', 'updated_at']
         read_only_fields = ['id', 'article', 'author', 'author_name', 'is_editorial', 'moderation_status', 'moderation_reason', 'created_at', 'updated_at']
 
 
