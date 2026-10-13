@@ -41,6 +41,25 @@
             <div id="reader-interests" class="interest-list" aria-live="polite"></div>
         </section>
 
+        <section class="account-panel account-panel--wide" id="saved-searches" aria-labelledby="saved-searches-title">
+            <div class="account-panel__heading">
+                <div>
+                    <span class="feature-eyebrow">Smart alerts</span>
+                    <h2 id="saved-searches-title">Save a search and get updates</h2>
+                    <p class="account-panel__description">Choose a query and how often you want matching article alerts.</p>
+                </div>
+                <i class="fa-solid fa-bell" aria-hidden="true"></i>
+            </div>
+            <form id="saved-search-form" class="interest-form">
+                <label>Search name<input name="name" maxlength="100" required placeholder="Climate reporting"></label>
+                <label>Search query<input name="query" maxlength="150" required placeholder="climate policy"></label>
+                <label>Delivery<select name="frequency"><option value="instant">Instant</option><option value="daily" selected>Daily digest</option><option value="weekly">Weekly digest</option></select></label>
+                <button class="button" type="submit"><i class="fa-solid fa-bell" aria-hidden="true"></i> Save alert</button>
+            </form>
+            <p id="saved-search-status" class="account-status" role="status" aria-live="polite"></p>
+            <div id="saved-searches-list" class="saved-search-list" aria-live="polite"></div>
+        </section>
+
         <section class="account-panel" id="privacy" aria-labelledby="privacy-title">
             <div class="account-panel__heading">
                 <div>

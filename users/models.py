@@ -235,6 +235,25 @@ class AlertRule(models.Model):
         return f'{self.user.username}: {self.rule_type}={self.value}'
 
 
+class SavedSearch(models.Model):
+    FREQUENCY_CHOICES = [('instant', 'Instant'), ('daily', 'Daily'), ('weekly', 'Weekly')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_searches')
+    name = models.CharField(max_length=100)
+    query = models.CharField(max_length=150)
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES, default='daily')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [models.UniqueConstraint(fields=['user', 'query'], name='unique_user_saved_search')]
+
+    def __str__(self):
+        return f'{self.user.username}: {self.name}'
+
+
 class ReaderInterest(models.Model):
     INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
 

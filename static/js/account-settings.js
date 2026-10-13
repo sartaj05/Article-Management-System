@@ -8,6 +8,9 @@
   const interestForm = document.getElementById("reader-interest-form");
   const interestList = document.getElementById("reader-interests");
   const interestStatus = document.getElementById("interest-status");
+  const savedSearchForm = document.getElementById("saved-search-form");
+  const savedSearchList = document.getElementById("saved-searches-list");
+  const savedSearchStatus = document.getElementById("saved-search-status");
 
   if (!privacyForm || !sessions || !events) return;
 
@@ -50,6 +53,24 @@
     if (!interestList) return;
     try { renderInterests(await request("/reader/interests/")); }
     catch (error) { setStatus(interestStatus, error.message, true); }
+  }
+
+  function renderSavedSearches(items) {
+    if (!savedSearchList) return;
+    savedSearchList.innerHTML = items.length ? items.map((item) => `
+      <article class="saved-search-item"><div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.query)} · ${escapeHtml(item.frequency)}</span></div>
+      <button class="button button--secondary button--small" type="button" data-remove-search="${item.id}">Remove</button></article>`).join("") : '<p class="account-empty">No saved searches yet.</p>';
+    savedSearchList.querySelectorAll("[data-remove-search]").forEach((button) => button.addEventListener("click", async () => {
+      button.disabled = true;
+      try { await request(`/alerts/saved-searches/${button.dataset.removeSearch}/`, { method: "DELETE" }); await loadSavedSearches(); setStatus(savedSearchStatus, "Saved search removed."); }
+      catch (error) { button.disabled = false; setStatus(savedSearchStatus, error.message, true); }
+    }));
+  }
+
+  async function loadSavedSearches() {
+    if (!savedSearchList) return;
+    try { renderSavedSearches(await request("/alerts/saved-searches/")); }
+    catch (error) { setStatus(savedSearchStatus, error.message, true); }
   }
 
   function renderSessions(items) {
@@ -116,7 +137,17 @@
     finally { button.disabled = false; }
   });
 
+  savedSearchForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = savedSearchForm.querySelector("button[type='submit']");
+    button.disabled = true;
+    try { await request("/alerts/saved-searches/", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(savedSearchForm).entries())) }); savedSearchForm.reset(); await loadSavedSearches(); setStatus(savedSearchStatus, "Smart alert saved."); }
+    catch (error) { setStatus(savedSearchStatus, error.message, true); }
+    finally { button.disabled = false; }
+  });
+
   loadPrivacy();
   loadSecurity();
   loadInterests();
+  loadSavedSearches();
 })();

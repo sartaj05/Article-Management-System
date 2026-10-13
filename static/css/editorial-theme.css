@@ -199,6 +199,12 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .interest-chip small { color: var(--muted); font-size: .68rem; text-transform: capitalize; }
 .interest-chip button { display: grid; place-items: center; width: 25px; height: 25px; border: 0; border-radius: 50%; color: var(--muted); background: transparent; }
 .interest-chip button:hover { color: #a84d3a; background: #fff0ea; }
+.saved-search-list { display: grid; gap: 10px; margin-top: 10px; }
+.saved-search-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.saved-search-item div { display: grid; gap: 3px; min-width: 0; }
+.saved-search-item strong { color: var(--ink); font-size: .88rem; }
+.saved-search-item span { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; text-transform: capitalize; }
+@media (max-width: 760px) { .saved-search-item { align-items: stretch; flex-direction: column; } }
 .account-panel { min-width: 0; padding: clamp(22px, 4vw, 34px); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-sm); }
 .account-panel__heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; margin-bottom: 24px; }
 .account-panel__heading h2 { margin: 7px 0 0; color: var(--ink); font-size: 1.3rem; letter-spacing: -.03em; }

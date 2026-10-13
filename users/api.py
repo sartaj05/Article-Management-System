@@ -21,7 +21,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, SavedSearch, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -252,6 +252,52 @@ class AlertRuleView(APIView):
                 value=request.data.get('value') or request.query_params.get('value', ''),
             ).delete()
         return Response({'removed': bool(deleted)})
+
+
+class SavedSearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedSearch
+        fields = ['id', 'name', 'query', 'frequency', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_query(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Enter a search query.')
+        return value
+
+
+class SavedSearchView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self, request):
+        return SavedSearch.objects.filter(user=request.user)
+
+    def get(self, request):
+        return Response(SavedSearchSerializer(self.get_queryset(request), many=True).data)
+
+    def post(self, request):
+        serializer = SavedSearchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        saved_search, _ = SavedSearch.objects.update_or_create(
+            user=request.user,
+            query=serializer.validated_data['query'],
+            defaults=serializer.validated_data,
+        )
+        return Response(SavedSearchSerializer(saved_search).data, status=status.HTTP_201_CREATED)
+
+    def patch(self, request, pk):
+        saved_search = get_object_or_404(self.get_queryset(request), pk=pk)
+        serializer = SavedSearchSerializer(saved_search, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk=None):
+        saved_search = get_object_or_404(self.get_queryset(request), pk=pk)
+        saved_search.delete()
+        return Response({'removed': True})
 
 
 class ReaderInterestSerializer(serializers.ModelSerializer):
