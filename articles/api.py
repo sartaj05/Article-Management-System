@@ -3,6 +3,7 @@ import hashlib
 import difflib
 import json
 import time
+import re
 from datetime import timedelta
 
 from django.db import transaction
@@ -897,6 +898,57 @@ class ArticleAutocompleteView(generics.ListAPIView):
             is_visible=True,
             title__icontains=query,
         ).select_related('author').order_by('title')[:10]
+
+
+def _semantic_tokens(value):
+    return {token for token in re.findall(r'[a-z0-9]{3,}', (value or '').lower()) if token not in {'the', 'and', 'for', 'with', 'from', 'this', 'that'}}
+
+
+def _article_similarity(left, right):
+    left_tokens = _semantic_tokens(f'{left.title} {left.summary} {left.content} {left.tags}')
+    right_tokens = _semantic_tokens(f'{right.title} {right.summary} {right.content} {right.tags}')
+    overlap = len(left_tokens & right_tokens) / max(len(left_tokens | right_tokens), 1)
+    title_score = difflib.SequenceMatcher(None, (left.title or '').lower(), (right.title or '').lower()).ratio()
+    return round((overlap * 0.7 + title_score * 0.3) * 100, 2)
+
+
+class SemanticArticleSearchView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = str(request.query_params.get('q', '')).strip()
+        if len(query) < 3:
+            return Response({'detail': 'q must contain at least 3 characters.'}, status=400)
+        query_tokens = _semantic_tokens(query)
+        queryset = Article.objects.filter(workflow_status='published', is_visible=True).select_related('author')
+        if not has_active_membership(request.user):
+            queryset = queryset.filter(is_premium=False)
+        ranked = []
+        for article in queryset[:500]:
+            article_tokens = _semantic_tokens(f'{article.title} {article.summary} {article.content} {article.tags}')
+            overlap = len(query_tokens & article_tokens) / max(len(query_tokens), 1)
+            title_score = difflib.SequenceMatcher(None, query.lower(), (article.title or '').lower()).ratio()
+            score = round((overlap * 0.75 + title_score * 0.25) * 100, 2)
+            if score >= 5:
+                ranked.append((score, article))
+        ranked.sort(key=lambda item: (item[0], item[1].published_at or item[1].created_at), reverse=True)
+        articles = [article for _, article in ranked[:20]]
+        data = ArticleWorkflowSerializer(articles, many=True, context={'request': request}).data
+        for item, (score, _) in zip(data, ranked[:20]):
+            item['semantic_score'] = score
+        return Response({'query': query, 'results': data, 'count': len(data), 'engine': 'local-token-similarity-v1'})
+
+
+class ArticleDuplicateCheckView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot check duplicates for this article.'}, status=403)
+        candidates = Article.objects.exclude(pk=article.id).filter(author=article.author).order_by('-updated_at')[:100]
+        matches = sorted(((_article_similarity(article, candidate), candidate) for candidate in candidates), key=lambda item: item[0], reverse=True)[:5]
+        return Response({'article_id': article.id, 'matches': [{'article_id': candidate.id, 'title': candidate.title, 'similarity': score, 'review_required': score >= 55} for score, candidate in matches]})
 
 
 class RevisionListView(generics.ListAPIView):

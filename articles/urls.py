@@ -11,6 +11,7 @@ from .api import (
     ArticleReviewView,
     ArticleSearchViewV2,
     ArticleAutocompleteView,
+    SemanticArticleSearchView, ArticleDuplicateCheckView,
     ArticleWorkflowActionView,
     ArticleWorkflowView,
     ArticleImportView,
@@ -116,6 +117,8 @@ urlpatterns = [
     # Versioned API for the updated article-management workflow.
     path('api/v2/articles/search/', ArticleSearchViewV2.as_view(), name='article-search-v2'),
     path('api/v2/articles/autocomplete/', ArticleAutocompleteView.as_view(), name='article-autocomplete'),
+    path('api/v2/articles/semantic-search/', SemanticArticleSearchView.as_view(), name='semantic-article-search'),
+    path('api/v2/articles/<int:article_id>/duplicate-check/', ArticleDuplicateCheckView.as_view(), name='article-duplicate-check'),
     path('api/v2/articles/<int:article_id>/', ArticleWorkflowView.as_view(), name='article-detail-v2'),
     path('api/v2/articles/<int:article_id>/export/', ArticleExportView.as_view(), name='article-export'),
     path('api/v2/import/', ArticleImportView.as_view(), name='article-import'),
