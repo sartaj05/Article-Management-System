@@ -1864,6 +1864,12 @@ class ArticleAnalyticsView(APIView):
 
         if request.user.role not in {'Editor', 'Admin'}:
             queryset = queryset.filter(author=request.user)
+        window_start = timezone.now() - timedelta(days=7)
+        event_queryset = ArticleEngagementEvent.objects.filter(article__in=queryset, created_at__gte=window_start)
+        active_readers = event_queryset.exclude(user__isnull=True).values('user_id').distinct().count()
+        returning_readers = event_queryset.exclude(user__isnull=True).filter(user_id__in=ArticleEngagementEvent.objects.filter(article__in=queryset, created_at__lt=window_start).values('user_id')).values('user_id').distinct().count()
+        funnel = {event_type: event_queryset.filter(event_type=event_type).count() for event_type, _ in ArticleEngagementEvent.EVENT_CHOICES}
+        category_performance = list(queryset.values('category').annotate(views=Count('views'), articles=Count('id')).order_by('-views', '-articles')[:5])
         top_authors = list(
             queryset.values('author__username')
             .annotate(article_count=Count('id'))
@@ -1883,6 +1889,10 @@ class ArticleAnalyticsView(APIView):
             'total_shares': ArticleEngagementEvent.objects.filter(
                 article__in=queryset, event_type='share',
             ).count(),
+            'active_readers_7d': active_readers,
+            'returning_readers_7d': returning_readers,
+            'funnel': funnel,
+            'category_performance': category_performance,
             'top_authors': [
                 {'username': item['author__username'], 'article_count': item['article_count']}
                 for item in top_authors

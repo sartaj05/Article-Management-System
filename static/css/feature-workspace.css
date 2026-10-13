@@ -48,6 +48,12 @@
 .analytics-stat span { color: var(--muted); font-size: .76rem; font-weight: 750; text-transform: uppercase; }
 .analytics-stat strong { color: var(--ink); font-size: 1.8rem; letter-spacing: -.04em; }
 .analytics-panel { max-width: 820px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.analytics-panel--wide { max-width: none; margin-top: 16px; }
+.analytics-funnel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.analytics-funnel__item { display: grid; gap: 6px; padding: 14px; border-radius: 11px; background: var(--surface-soft); }
+.analytics-funnel__item span { color: var(--muted); font-size: .8rem; }
+.analytics-funnel__item strong { color: var(--ink); font-size: 1.25rem; }
+@media (max-width: 680px) { .analytics-funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .analytics-panel h2 { margin: 0 0 13px; color: var(--ink); font-size: 1rem; }
 .analytics-authors { display: grid; gap: 8px; }
 .analytics-author { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; background: var(--surface-soft); }
