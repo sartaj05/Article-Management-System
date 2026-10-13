@@ -24,7 +24,7 @@ from decimal import Decimal
 
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
-    MembershipSubscription, MembershipWebhookEvent, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
+    MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
@@ -733,7 +733,8 @@ class MembershipCheckoutView(APIView):
         )
         if plan.price > 0:
             transaction = PaymentTransaction.objects.create(user=request.user, plan=plan, provider=provider, checkout_token=secrets.token_urlsafe(40), amount=plan.price, currency=plan.currency)
-            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'transaction_id': transaction.id, 'plan': MembershipPlanSerializer(plan).data}, status=202)
+            invoice = MembershipInvoice.objects.create(invoice_number=f'AS-{timezone.now().strftime("%Y%m%d")}-{transaction.id:06d}', user=request.user, plan=plan, transaction=transaction, amount=plan.price, currency=plan.currency, status='issued', due_at=timezone.now() + timedelta(days=7))
+            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
         return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
 
 
@@ -744,6 +745,20 @@ class PaymentTransactionView(APIView):
     def get(self, request):
         transactions = PaymentTransaction.objects.filter(user=request.user).select_related('plan')[:50]
         return Response([{'id': item.id, 'plan': item.plan.name, 'provider': item.provider, 'amount': item.amount, 'currency': item.currency, 'status': item.status, 'provider_reference': item.provider_reference, 'created_at': item.created_at} for item in transactions])
+
+
+class RevenueEntitlementView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        subscriptions = MembershipSubscription.objects.filter(user=request.user).select_related('plan').order_by('-created_at')
+        invoices = MembershipInvoice.objects.filter(user=request.user).select_related('plan').order_by('-created_at')[:50]
+        return Response({
+            'active': has_active_membership(request.user),
+            'entitlements': [{'plan': item.plan.slug, 'features': item.plan.features, 'status': item.status, 'expires_at': item.expires_at} for item in subscriptions if item.status in {'active', 'past_due'}],
+            'invoices': [{'invoice_number': item.invoice_number, 'plan': item.plan.name, 'amount': item.amount, 'currency': item.currency, 'status': item.status, 'due_at': item.due_at, 'paid_at': item.paid_at} for item in invoices],
+        })
 
 
 class MembershipCancelView(APIView):

@@ -433,6 +433,20 @@ class PaymentTransaction(models.Model):
         ordering = ['-created_at']
 
 
+class MembershipInvoice(models.Model):
+    STATUS_CHOICES = [('issued', 'Issued'), ('paid', 'Paid'), ('void', 'Void'), ('refunded', 'Refunded')]
+    invoice_number = models.CharField(max_length=40, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='membership_invoices')
+    plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name='invoices')
+    transaction = models.OneToOneField(PaymentTransaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoice')
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    currency = models.CharField(max_length=3, default='INR')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='issued')
+    due_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class MembershipWebhookEvent(models.Model):
     provider = models.CharField(max_length=30, default='payment')
     event_id = models.CharField(max_length=160, unique=True)
