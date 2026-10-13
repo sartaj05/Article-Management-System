@@ -34,10 +34,13 @@ class CustomUser(AbstractUser):
 
 class Workspace(models.Model):
     """A newsroom organization that owns editorial work and memberships."""
+    PLAN_CHOICES = [('starter', 'Starter'), ('team', 'Team'), ('enterprise', 'Enterprise')]
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='owned_workspaces')
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default='starter')
+    seat_limit = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

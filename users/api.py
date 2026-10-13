@@ -1042,12 +1042,48 @@ class WorkspaceMembersView(APIView):
         return Response(WorkspaceMembershipSerializer(members, many=True).data)
 
 
+class WorkspaceBillingView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        member_count = workspace.memberships.count()
+        return Response({
+            'workspace': workspace.slug,
+            'plan': workspace.plan,
+            'seat_limit': workspace.seat_limit,
+            'members': member_count,
+            'seats_available': max(workspace.seat_limit - member_count, 0),
+            'billing_status': 'active' if workspace.is_active else 'inactive',
+        })
+
+    def patch(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        plan = str(request.data.get('plan', workspace.plan)).strip().lower()
+        seat_limit = request.data.get('seat_limit', workspace.seat_limit)
+        if plan not in dict(Workspace.PLAN_CHOICES):
+            return Response({'detail': 'Choose starter, team, or enterprise.'}, status=400)
+        try:
+            seat_limit = int(seat_limit)
+        except (TypeError, ValueError):
+            return Response({'detail': 'seat_limit must be a positive integer.'}, status=400)
+        if seat_limit < workspace.memberships.count():
+            return Response({'detail': 'Seat limit cannot be lower than current membership count.'}, status=400)
+        workspace.plan = plan
+        workspace.seat_limit = seat_limit
+        workspace.save(update_fields=['plan', 'seat_limit', 'updated_at'])
+        return self.get(request, slug)
+
+
 class WorkspaceInviteView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, slug):
         workspace = _workspace_admin(request, slug)
+        if workspace.memberships.count() >= workspace.seat_limit:
+            return Response({'detail': 'This workspace has reached its seat limit.'}, status=409)
         email = str(request.data.get('email', '')).strip().lower()
         role = str(request.data.get('role', 'writer')).strip().lower()
         allowed_roles = {choice[0] for choice in WorkspaceMembership.ROLE_CHOICES if choice[0] != 'owner'}
