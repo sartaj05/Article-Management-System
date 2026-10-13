@@ -101,6 +101,12 @@ body.auth-shell { background: var(--surface-soft); color: var(--ink); }
 .health-metadata { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .health-metadata span { display: inline-flex; gap: 5px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface-soft); font-size: .76rem; }
 .health-metadata strong { color: var(--ink); }
+.sla-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.sla-summary article { display: grid; gap: 6px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.sla-summary span { color: var(--muted); font-size: .76rem; font-weight: 750; text-transform: uppercase; }
+.sla-summary strong { color: var(--ink); font-size: 1.45rem; }
+@media (max-width: 720px) { .sla-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 430px) { .sla-summary { grid-template-columns: 1fr; } }
 
 .dashboard-shell .main-content > header h1,
 .dashboard-shell .content > header h1,

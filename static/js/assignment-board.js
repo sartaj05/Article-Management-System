@@ -40,6 +40,16 @@
     }
   }
 
+  async function loadSLA() {
+    const summary = document.getElementById('sla-summary');
+    try {
+      const response = await fetch('/articles/api/v2/assignments/sla/', { headers: headers(), credentials: 'same-origin' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || 'Unable to load SLA metrics.');
+      summary.innerHTML = `<article><span>Overdue</span><strong>${payload.overdue_count}</strong></article><article><span>Due in 48 hours</span><strong>${payload.upcoming_deadline_count}</strong></article><article><span>Average review</span><strong>${payload.average_review_hours == null ? '—' : `${payload.average_review_hours}h`}</strong></article><article><span>Editors tracked</span><strong>${payload.workload.length}</strong></article>`;
+    } catch (error) { summary.innerHTML = `<p class="feature-empty">${escapeHtml(error.message)}</p>`; }
+  }
+
   function renderBoard(data) {
     board.innerHTML = columns.map(([key, label]) => {
       const cards = data[key] || [];
@@ -118,4 +128,5 @@
   timelineModal.addEventListener('click', (event) => { if (event.target === timelineModal) timelineModal.hidden = true; });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') timelineModal.hidden = true; });
   loadBoard();
+  loadSLA();
 })();

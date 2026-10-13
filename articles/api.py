@@ -1470,6 +1470,35 @@ class AssignmentBoardView(APIView):
         })
 
 
+class EditorialSLADashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view editorial SLA metrics.'}, status=403)
+        now = timezone.now()
+        assignments = ArticleAssignment.objects.select_related('article', 'editor').all()
+        overdue = assignments.filter(due_at__lt=now).exclude(status='done')
+        upcoming = assignments.filter(due_at__gte=now, due_at__lte=now + timedelta(hours=48)).exclude(status='done')
+        workload = {}
+        for item in assignments.exclude(status='done'):
+            bucket = workload.setdefault(item.editor_id, {'editor_id': item.editor_id, 'editor': item.editor.username, 'open_assignments': 0, 'urgent': 0})
+            bucket['open_assignments'] += 1
+            bucket['urgent'] += int(item.priority == 'urgent')
+        turnaround = []
+        for article in Article.objects.filter(submitted_at__isnull=False, reviewed_at__isnull=False).only('submitted_at', 'reviewed_at')[:500]:
+            turnaround.append((article.reviewed_at - article.submitted_at).total_seconds() / 3600)
+        average_hours = round(sum(turnaround) / len(turnaround), 2) if turnaround else None
+        return Response({
+            'overdue_count': overdue.count(),
+            'upcoming_deadline_count': upcoming.count(),
+            'average_review_hours': average_hours,
+            'workload': sorted(workload.values(), key=lambda item: (-item['open_assignments'], item['editor'])),
+            'overdue': [{'id': item.id, 'article': item.article.title, 'editor': item.editor.username, 'due_at': item.due_at, 'priority': item.priority} for item in overdue[:30]],
+            'upcoming': [{'id': item.id, 'article': item.article.title, 'editor': item.editor.username, 'due_at': item.due_at, 'priority': item.priority} for item in upcoming[:30]],
+        })
+
+
 class EditorialCalendarView(APIView):
     permission_classes = [IsAuthenticated]
 
