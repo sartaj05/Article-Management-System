@@ -625,6 +625,17 @@ class BackupRecord(models.Model):
         ordering = ['-created_at']
 
 
+class RecoveryDrill(models.Model):
+    STATUS_CHOICES = [('passed', 'Passed'), ('failed', 'Failed'), ('unsupported', 'Unsupported')]
+    backup = models.ForeignKey(BackupRecord, on_delete=models.CASCADE, related_name='recovery_drills')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    details = models.CharField(max_length=500, blank=True)
+    checked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-checked_at']
+
+
 class DistributionJob(models.Model):
     CHANNEL_CHOICES = [('rss', 'RSS'), ('newsletter', 'Newsletter'), ('webhook', 'Webhook'), ('social', 'Social')]
     STATUS_CHOICES = [('queued', 'Queued'), ('processing', 'Processing'), ('delivered', 'Delivered'), ('failed', 'Failed'), ('awaiting_provider', 'Awaiting provider')]

@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -1963,6 +1963,24 @@ class BackupOperationsView(APIView):
         record = create_database_backup(request.user)
         payload = {'id': record.id, 'status': record.status, 'path': record.path, 'checksum': record.checksum, 'size_bytes': record.size_bytes, 'error': record.error}
         return Response(payload, status=201 if record.status == 'completed' else 503)
+
+
+class RecoveryDrillView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can view recovery drills.'}, status=403)
+        return Response([{'id': drill.id, 'backup_id': drill.backup_id, 'status': drill.status, 'details': drill.details, 'checked_at': drill.checked_at} for drill in RecoveryDrill.objects.select_related('backup')[:50]])
+
+    def post(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can run recovery drills.'}, status=403)
+        from .backup import run_recovery_drill
+        drill = run_recovery_drill(request.user)
+        if not drill:
+            return Response({'detail': 'Create a completed backup before running a recovery drill.'}, status=409)
+        return Response({'id': drill.id, 'backup_id': drill.backup_id, 'status': drill.status, 'details': drill.details}, status=201 if drill.status == 'passed' else 503)
 
 
 class WorkspaceContentMigrationView(APIView):

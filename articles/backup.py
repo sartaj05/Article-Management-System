@@ -1,12 +1,13 @@
 import hashlib
 import shutil
+import sqlite3
 from pathlib import Path
 
 from django.conf import settings
 from django.db import connection
 from django.utils import timezone
 
-from .models import BackupRecord
+from .models import BackupRecord, RecoveryDrill
 
 
 def create_database_backup(actor=None):
@@ -41,3 +42,20 @@ def verify_database_backup(record):
     if record.status != 'completed' or not path.exists():
         return False
     return hashlib.sha256(path.read_bytes()).hexdigest() == record.checksum
+
+
+def run_recovery_drill(actor=None):
+    record = BackupRecord.objects.filter(kind='database', status='completed').order_by('-created_at').first()
+    if not record:
+        return None
+    if connection.vendor != 'sqlite':
+        return RecoveryDrill.objects.create(backup=record, status='unsupported', details='Configure a PostgreSQL restore target for production recovery drills.')
+    if not verify_database_backup(record):
+        return RecoveryDrill.objects.create(backup=record, status='failed', details='Backup checksum verification failed.')
+    try:
+        database = sqlite3.connect(f'file:{record.path}?mode=ro', uri=True)
+        database.execute("SELECT name FROM sqlite_master LIMIT 1").fetchone()
+        database.close()
+        return RecoveryDrill.objects.create(backup=record, status='passed', details='Read-only SQLite restore verification passed.')
+    except (OSError, sqlite3.Error) as error:
+        return RecoveryDrill.objects.create(backup=record, status='failed', details=str(error)[:500])
