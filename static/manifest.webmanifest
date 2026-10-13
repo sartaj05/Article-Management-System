@@ -4,8 +4,8 @@
   "description": "A calm workspace for discovering and publishing thoughtful stories.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f6fb",
-  "theme_color": "#292553",
+  "background_color": "#f4efe8",
+  "theme_color": "#2f5d62",
   "icons": [
     { "src": "/static/favicon.ico", "sizes": "any", "type": "image/x-icon" }
   ]
