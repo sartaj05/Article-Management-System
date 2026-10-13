@@ -44,7 +44,18 @@ def capabilities_for_user(user):
 
     if not getattr(user, 'is_authenticated', False):
         return frozenset()
-    return ROLE_CAPABILITIES.get(getattr(user, 'role', ''), frozenset())
+    role = getattr(user, 'role', '')
+    capabilities = set(ROLE_CAPABILITIES.get(role, frozenset()))
+    try:
+        from users.models import RoleCapabilityOverride
+        for override in RoleCapabilityOverride.objects.filter(role=role):
+            if override.is_enabled:
+                capabilities.add(override.capability)
+            else:
+                capabilities.discard(override.capability)
+    except Exception:
+        pass
+    return frozenset(capabilities)
 
 
 def user_has_capability(user, capability):

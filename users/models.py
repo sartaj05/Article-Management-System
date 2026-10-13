@@ -254,6 +254,21 @@ class SavedSearch(models.Model):
         return f'{self.user.username}: {self.name}'
 
 
+class RoleCapabilityOverride(models.Model):
+    ROLE_CHOICES = [('Journalist', 'Journalist'), ('Editor', 'Editor'), ('Admin', 'Admin')]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    capability = models.CharField(max_length=100)
+    is_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['role', 'capability'], name='unique_role_capability_override')]
+        ordering = ['role', 'capability']
+
+    def __str__(self):
+        return f'{self.role}: {self.capability}={self.is_enabled}'
+
+
 class ReaderInterest(models.Model):
     INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
 

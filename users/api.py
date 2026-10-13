@@ -21,7 +21,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, SavedSearch, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -298,6 +298,29 @@ class SavedSearchView(APIView):
         saved_search = get_object_or_404(self.get_queryset(request), pk=pk)
         saved_search.delete()
         return Response({'removed': True})
+
+
+class RoleCapabilityView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage role permissions.'}, status=403)
+        from articles.permissions import ROLE_CAPABILITIES
+        capabilities = sorted({capability for values in ROLE_CAPABILITIES.values() for capability in values if capability != 'admin.*'})
+        overrides = {(item.role, item.capability): item.is_enabled for item in RoleCapabilityOverride.objects.all()}
+        return Response({'roles': {role: [{'capability': capability, 'enabled': overrides.get((role, capability), capability in ROLE_CAPABILITIES.get(role, set()))} for capability in capabilities] for role in ROLE_CAPABILITIES if role != 'Admin'}, 'capabilities': capabilities})
+
+    def patch(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage role permissions.'}, status=403)
+        role = str(request.data.get('role', '')).strip()
+        capability = str(request.data.get('capability', '')).strip()
+        if role not in {'Journalist', 'Editor'} or not capability or not isinstance(request.data.get('enabled'), bool):
+            return Response({'detail': 'Provide a valid role, capability, and boolean enabled value.'}, status=400)
+        override, _ = RoleCapabilityOverride.objects.update_or_create(role=role, capability=capability, defaults={'is_enabled': request.data['enabled']})
+        return Response({'role': override.role, 'capability': override.capability, 'enabled': override.is_enabled})
 
 
 class ReaderInterestSerializer(serializers.ModelSerializer):

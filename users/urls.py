@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceInvitationAcceptView, SavedSearchView,
+    WorkspaceMembersView, WorkspaceInvitationAcceptView, SavedSearchView, RoleCapabilityView,
 )
 urlpatterns = [
     
@@ -54,6 +54,7 @@ path('', views.home, name='home'),
     path('alerts/rules/<int:pk>/', AlertRuleView.as_view(), name='alert-rule-detail'),
     path('alerts/saved-searches/', SavedSearchView.as_view(), name='saved-search-list'),
     path('alerts/saved-searches/<int:pk>/', SavedSearchView.as_view(), name='saved-search-detail'),
+    path('role-capabilities/', RoleCapabilityView.as_view(), name='role-capabilities'),
     path('reader/interests/', ReaderInterestView.as_view(), name='reader-interests'),
     path('accessibility/preferences/', AccessibilityPreferenceView.as_view(), name='accessibility-preferences'),
     path('membership/plans/', MembershipPlanView.as_view(), name='membership-plans'),
