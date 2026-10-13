@@ -6,7 +6,7 @@ from PIL import Image, ImageOps
 
 
 def generate_image_variants(asset):
-    """Create responsive WebP derivatives and store their paths in metadata."""
+    """Create responsive WebP/AVIF derivatives when the image backend supports them."""
     if asset.media_type != 'image' or not asset.file:
         return asset
     with asset.file.open('rb') as source:
@@ -20,6 +20,13 @@ def generate_image_variants(asset):
             variant.save(output, format='WEBP', quality=84, method=6)
             path = f'media-library/variants/{asset.pk}/{label}.webp'
             variants[label] = default_storage.save(path, ContentFile(output.getvalue()))
+            try:
+                avif_output = BytesIO()
+                variant.save(avif_output, format='AVIF', quality=72)
+                avif_path = f'media-library/variants/{asset.pk}/{label}.avif'
+                variants[f'{label}_avif'] = default_storage.save(avif_path, ContentFile(avif_output.getvalue()))
+            except (OSError, ValueError):
+                pass
         asset.metadata = {
             **(asset.metadata or {}),
             'dimensions': {'width': original_width, 'height': original_height},

@@ -22,7 +22,8 @@
 
   function assetTemplate(asset) {
     const url = asset.file || asset.external_url || '';
-    const preview = asset.media_type === 'image' && url ? `<img src="${escapeHtml(url)}" alt="${escapeHtml(asset.alt_text || asset.title)}">` : `<span class="media-card__icon">${escapeHtml(asset.media_type)}</span>`;
+    const previewUrl = asset.variant_urls?.web || url;
+    const preview = asset.media_type === 'image' && previewUrl ? `<img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(asset.alt_text || asset.title)}" loading="lazy" decoding="async">` : `<span class="media-card__icon">${escapeHtml(asset.media_type)}</span>`;
     return `<article class="media-card">${preview}<div class="media-card__body"><span class="workspace-result__status">${escapeHtml(asset.media_type)}</span><h2>${escapeHtml(asset.title)}</h2><p>${escapeHtml(asset.alt_text || asset.caption || 'No accessibility description')}</p><small>${escapeHtml(asset.uploaded_by_name || 'You')} · ${new Date(asset.created_at).toLocaleDateString()}</small><button class="button button--secondary button--small" type="button" data-archive-id="${asset.id}">Archive</button></div></article>`;
   }
 

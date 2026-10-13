@@ -1,5 +1,6 @@
 from django.contrib.sitemaps import Sitemap
 from django.contrib.syndication.views import Feed
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -67,5 +68,7 @@ def public_article(request, slug):
         'article_corrections': article.corrections.filter(status='published') if has_article_access else [],
         'article_provenance': getattr(article, 'provenance', None) if has_article_access else None,
         'article_comments': article.comments.filter(moderation_status='visible').select_related('author')[:30] if has_article_access else [],
+        'article_assets': article.asset_links.select_related('asset').all() if has_article_access else [],
+        'media_url': settings.MEDIA_URL,
     }
     return render(request, 'articles/public_article.html', context)

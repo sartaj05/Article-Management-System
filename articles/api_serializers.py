@@ -290,10 +290,21 @@ class StorySeriesSerializer(serializers.ModelSerializer):
 
 class MediaAssetSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True, default=None)
+    variant_urls = serializers.SerializerMethodField()
+
+    def get_variant_urls(self, obj):
+        request = self.context.get('request')
+        variants = (obj.metadata or {}).get('variants', {})
+        media_url = getattr(settings, 'MEDIA_URL', '/media/')
+        urls = {}
+        for label, path in variants.items():
+            url = f'{media_url}{path}'
+            urls[label] = request.build_absolute_uri(url) if request else url
+        return urls
 
     class Meta:
         model = MediaAsset
-        fields = ['id', 'uploaded_by', 'uploaded_by_name', 'media_type', 'title', 'file', 'external_url', 'alt_text', 'caption', 'credit', 'license', 'license_expires_at', 'metadata', 'file_hash', 'is_archived', 'created_at', 'updated_at']
+        fields = ['id', 'uploaded_by', 'uploaded_by_name', 'media_type', 'title', 'file', 'external_url', 'alt_text', 'caption', 'credit', 'license', 'license_expires_at', 'metadata', 'variant_urls', 'file_hash', 'is_archived', 'created_at', 'updated_at']
         read_only_fields = ['id', 'uploaded_by', 'uploaded_by_name', 'file_hash', 'created_at', 'updated_at']
 
     def validate(self, attrs):

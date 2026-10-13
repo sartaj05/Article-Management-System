@@ -130,6 +130,11 @@ button { cursor: pointer; }
 .article-subtitle { margin: 0; color: var(--muted); font-size: 1.12rem; }
 .article-byline { margin: 22px 0 30px; color: var(--muted); font-size: .9rem; font-weight: 700; }
 .article-detail-image { display: block; width: 100%; max-height: 480px; margin-bottom: 30px; border-radius: 14px; object-fit: cover; }
+.article-asset-gallery { display: grid; gap: 18px; margin: 28px 0; }
+.article-asset-gallery figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+.article-asset-gallery img { display: block; width: 100%; height: auto; max-height: 720px; object-fit: contain; background: #efe9e0; }
+.article-asset-gallery figcaption { display: grid; gap: 4px; padding: 10px 14px 13px; color: var(--muted); font-size: .84rem; }
+.article-asset-gallery figcaption small { color: var(--muted); font-size: .74rem; }
 .article-content { color: var(--ink); font-size: 1.06rem; line-height: 1.82; }
 .article-media-list { margin-top: 34px; padding-top: 24px; border-top: 1px solid var(--line); }
 .article-media-list h2 { font-size: 1.35rem; }
