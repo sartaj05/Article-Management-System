@@ -9,6 +9,7 @@
   const nav = document.getElementById("site-nav");
   const themeToggle = document.querySelector(".theme-toggle");
   const params = new URLSearchParams(window.location.search);
+  let activeRequest;
   const state = { mode: params.get("mode") || "featured", query: params.get("q") || "", sort: params.get("sort") || "recent", next: null, loading: false };
   if (search) search.value = state.query;
   if (sort) sort.value = state.sort;
@@ -45,33 +46,50 @@
   }
 
   async function loadArticles(url, append) {
-    if (!container || state.loading || (!url && !state.next)) return;
+    if (!container || (append && state.loading) || (!url && !state.next)) return;
+    activeRequest?.abort();
+    const request = new AbortController();
+    activeRequest = request;
     state.loading = true;
+    container.setAttribute("aria-busy", "true");
     if (!append) container.innerHTML = `<div class="loading-state">Loading the newsroom...</div>`;
     if (loadMore && !append) loadMore.hidden = true;
     if (loadMore) loadMore.disabled = true;
     setStatus(append ? "Loading more stories..." : "");
     try {
-      const response = await fetch(url || state.next, { headers: { Accept: "application/json" } });
+      const response = await fetch(url || state.next, { headers: { Accept: "application/json" }, signal: request.signal });
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const payload = await response.json();
       const articles = Array.isArray(payload) ? payload : (payload.results || []);
       if (!append) container.innerHTML = "";
-      if (!articles.length && !append) container.innerHTML = `<div class="empty-state"><strong>No published articles yet.</strong><br>Try another search or check back soon.</div>`;
+      if (!articles.length && !append) container.innerHTML = `<div class="empty-state"><strong>${state.query ? "No stories match your search." : "Your reading room is waiting."}</strong><br>${state.query ? "Try a different keyword or select Featured to explore the newsroom." : "New perspectives will appear here as soon as they are published."}</div>`;
       else container.insertAdjacentHTML("beforeend", articles.map(renderCard).join(""));
       state.next = Array.isArray(payload) ? null : payload.next;
       if (loadMore) loadMore.hidden = !state.next;
-      setStatus(articles.length ? `${articles.length} ${articles.length === 1 ? "story" : "stories"} ready to read.` : "");
+      const count = container.querySelectorAll(".article-card").length;
+      setStatus(count ? `${count} ${count === 1 ? "story" : "stories"} ready to read.` : "");
     } catch (error) {
+      if (error.name === "AbortError") return;
       if (!append) container.innerHTML = `<div class="empty-state"><strong>We couldn't load the newsroom.</strong><br>Please refresh and try again.</div>`;
       setStatus("The article feed is temporarily unavailable.", true);
       if (loadMore) loadMore.hidden = true;
       console.error("Article feed error:", error);
-    } finally { state.loading = false; if (loadMore) loadMore.disabled = false; }
+    } finally {
+      if (activeRequest === request) {
+        state.loading = false;
+        container.setAttribute("aria-busy", "false");
+        if (loadMore) loadMore.disabled = false;
+      }
+    }
   }
-  function resetFeed() { state.next = endpoint(); loadArticles(state.next, false); }
+  function resetFeed() {
+    if (sort) sort.hidden = !state.query;
+    state.next = endpoint();
+    loadArticles(state.next, false);
+  }
 
   if (container) {
+    document.querySelectorAll("[data-feed-mode]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.feedMode === state.mode)));
     resetFeed();
     document.querySelectorAll("[data-feed-mode]").forEach((button) => button.addEventListener("click", () => {
       state.mode = button.dataset.feedMode; state.query = ""; if (search) search.value = "";
@@ -83,6 +101,18 @@
     loadMore?.addEventListener("click", () => loadArticles(state.next, true));
   }
   navToggle?.addEventListener("click", () => { const open = nav?.classList.toggle("is-open"); navToggle.setAttribute("aria-expanded", String(Boolean(open))); });
+  function closeNavigation() {
+    nav?.classList.remove("is-open");
+    navToggle?.setAttribute("aria-expanded", "false");
+  }
+  nav?.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeNavigation));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && nav?.classList.contains("is-open")) { closeNavigation(); navToggle?.focus(); }
+  });
+  nav?.querySelectorAll("a").forEach((link) => {
+    const target = new URL(link.href);
+    if (target.pathname === window.location.pathname && !target.hash) link.setAttribute("aria-current", "page");
+  });
   themeToggle?.addEventListener("click", () => { const dark = document.documentElement.classList.toggle("theme-dark"); window.localStorage.setItem("article-studio-theme", dark ? "dark" : "light"); });
   if (window.localStorage.getItem("article-studio-theme") === "dark") document.documentElement.classList.add("theme-dark");
 })();
