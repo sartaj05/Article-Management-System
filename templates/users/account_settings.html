@@ -90,6 +90,10 @@
             <h3>Recent security events</h3>
             <div id="security-events" class="account-event-list"></div>
         </section>
+        <section class="account-panel" id="two-factor" aria-labelledby="two-factor-title">
+            <div class="account-panel__heading"><div><span class="feature-eyebrow">Account protection</span><h2 id="two-factor-title">Two-factor authentication</h2><p class="account-panel__description">Protect login with an authenticator app and backup codes.</p></div><i class="fa-solid fa-key" aria-hidden="true"></i></div>
+            <p id="two-factor-state" class="account-status" role="status" aria-live="polite">Checking status…</p><button class="button button--secondary button--small" id="start-two-factor" type="button">Set up authenticator</button><div id="two-factor-setup" class="two-factor-setup" hidden><p>Secret: <code id="two-factor-secret"></code></p><label>Authenticator code<input id="two-factor-code" inputmode="numeric" maxlength="6" placeholder="123456"></label><button class="button button--small" id="confirm-two-factor" type="button">Enable 2FA</button><p id="two-factor-backup" class="account-status"></p></div><div id="two-factor-disable" hidden><label>Current authenticator code<input id="disable-two-factor-code" inputmode="numeric" maxlength="6"></label><button class="button button--secondary button--small" id="disable-two-factor-button" type="button">Disable 2FA</button></div>
+        </section>
     </div>
 </section>
 <script src="{% static 'js/account-settings.js' %}" defer></script>

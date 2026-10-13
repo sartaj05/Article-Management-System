@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,7 +30,7 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from users.models import CustomUser as User, SecurityEvent, SecuritySession
+from users.models import CustomUser as User, SecurityEvent, SecuritySession, TwoFactorAuth
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 from users.decorators import role_required
@@ -128,6 +131,20 @@ class UserLoginView(APIView):
             )
             raise
         user = serializer.validated_data['user']
+        two_factor = TwoFactorAuth.objects.filter(user=user).first()
+        if two_factor and two_factor.is_enabled:
+            code = str(request.data.get('otp') or request.data.get('backup_code') or '').strip()
+            from .two_factor import verify_totp
+            valid_otp = verify_totp(two_factor.secret, code) if code else False
+            valid_backup = False
+            for stored_code in two_factor.backup_codes:
+                if hmac.compare_digest(hashlib.sha256(code.encode()).hexdigest(), stored_code):
+                    valid_backup = True
+                    two_factor.backup_codes.remove(stored_code)
+                    two_factor.save(update_fields=['backup_codes', 'updated_at'])
+                    break
+            if not (valid_otp or valid_backup):
+                return Response({'detail': 'A valid authenticator code is required.', 'mfa_required': True}, status=status.HTTP_401_UNAUTHORIZED)
         # Keep the browser workspace protected by Django's session as well as JWT.
         login(request, user)
         token = get_tokens_for_user(user, request)

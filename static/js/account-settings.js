@@ -11,6 +11,9 @@
   const savedSearchForm = document.getElementById("saved-search-form");
   const savedSearchList = document.getElementById("saved-searches-list");
   const savedSearchStatus = document.getElementById("saved-search-status");
+  const twoFactorState = document.getElementById("two-factor-state");
+  const twoFactorSetup = document.getElementById("two-factor-setup");
+  const twoFactorDisable = document.getElementById("two-factor-disable");
 
   if (!privacyForm || !sessions || !events) return;
 
@@ -72,6 +75,8 @@
     try { renderSavedSearches(await request("/alerts/saved-searches/")); }
     catch (error) { setStatus(savedSearchStatus, error.message, true); }
   }
+
+  async function loadTwoFactor() { if (!twoFactorState) return; try { const data = await request("/two-factor/"); twoFactorState.textContent = data.enabled ? "2FA is enabled for this account." : "2FA is not enabled."; document.getElementById("start-two-factor").hidden = data.enabled; twoFactorDisable.hidden = !data.enabled; } catch (error) { setStatus(twoFactorState, error.message, true); } }
 
   function renderSessions(items) {
     sessions.innerHTML = items.length ? items.map((item) => `
@@ -145,9 +150,13 @@
     catch (error) { setStatus(savedSearchStatus, error.message, true); }
     finally { button.disabled = false; }
   });
+  document.getElementById("start-two-factor")?.addEventListener("click", async () => { try { const data = await request("/two-factor/", { method: "GET" }); const setup = document.getElementById("two-factor-setup"); setup.hidden = false; document.getElementById("two-factor-secret").textContent = data.secret || "Open the authenticator setup flow."; } catch (error) { setStatus(twoFactorState, error.message, true); } });
+  document.getElementById("confirm-two-factor")?.addEventListener("click", async () => { try { const data = await request("/two-factor/", { method: "POST", body: JSON.stringify({ code: document.getElementById("two-factor-code").value }) }); document.getElementById("two-factor-backup").textContent = `Save these backup codes: ${data.backup_codes.join(", ")}`; await loadTwoFactor(); } catch (error) { setStatus(twoFactorState, error.message, true); } });
+  document.getElementById("disable-two-factor-button")?.addEventListener("click", async () => { try { await request("/two-factor/", { method: "PUT", body: JSON.stringify({ code: document.getElementById("disable-two-factor-code").value }) }); await loadTwoFactor(); } catch (error) { setStatus(twoFactorState, error.message, true); } });
 
   loadPrivacy();
   loadSecurity();
   loadInterests();
   loadSavedSearches();
+  loadTwoFactor();
 })();

@@ -269,6 +269,15 @@ class RoleCapabilityOverride(models.Model):
         return f'{self.role}: {self.capability}={self.is_enabled}'
 
 
+class TwoFactorAuth(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='two_factor_auth')
+    secret = models.CharField(max_length=64)
+    backup_codes = models.JSONField(default=list, blank=True)
+    is_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class ReaderInterest(models.Model):
     INTEREST_TYPES = [('category', 'Category'), ('tag', 'Tag'), ('author', 'Author')]
 

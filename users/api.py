@@ -21,7 +21,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -321,6 +321,42 @@ class RoleCapabilityView(APIView):
             return Response({'detail': 'Provide a valid role, capability, and boolean enabled value.'}, status=400)
         override, _ = RoleCapabilityOverride.objects.update_or_create(role=role, capability=capability, defaults={'is_enabled': request.data['enabled']})
         return Response({'role': override.role, 'capability': override.capability, 'enabled': override.is_enabled})
+
+
+class TwoFactorView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .two_factor import generate_secret
+        factor, _ = TwoFactorAuth.objects.get_or_create(user=request.user, defaults={'secret': generate_secret()})
+        payload = {'enabled': factor.is_enabled}
+        if not factor.is_enabled:
+            payload.update({'secret': factor.secret, 'otp_uri': f'otpauth://totp/Article%20Studio:{request.user.username}?secret={factor.secret}&issuer=Article%20Studio'})
+        return Response(payload)
+
+    def post(self, request):
+        from .two_factor import generate_secret, verify_totp
+        factor, _ = TwoFactorAuth.objects.get_or_create(user=request.user, defaults={'secret': generate_secret()})
+        if not factor.is_enabled:
+            if not verify_totp(factor.secret, request.data.get('code', '')):
+                return Response({'detail': 'Enter the current code from your authenticator app to finish setup.'}, status=400)
+            import secrets, hashlib
+            codes = [secrets.token_hex(4) for _ in range(8)]
+            factor.backup_codes = [hashlib.sha256(code.encode()).hexdigest() for code in codes]
+            factor.is_enabled = True
+            factor.save(update_fields=['backup_codes', 'is_enabled', 'updated_at'])
+            return Response({'enabled': True, 'backup_codes': codes})
+        return Response({'enabled': True})
+
+    def put(self, request):
+        factor = get_object_or_404(TwoFactorAuth, user=request.user, is_enabled=True)
+        from .two_factor import verify_totp
+        if not verify_totp(factor.secret, request.data.get('code', '')):
+            return Response({'detail': 'Invalid authenticator code.'}, status=400)
+        factor.is_enabled = False
+        factor.save(update_fields=['is_enabled', 'updated_at'])
+        return Response({'enabled': False})
 
 
 class ReaderInterestSerializer(serializers.ModelSerializer):
