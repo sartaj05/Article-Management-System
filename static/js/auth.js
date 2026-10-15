@@ -15,9 +15,11 @@
     }
     return String(value);
   };
-  const setMessage = (text, type) => { if (!message) return; message.textContent = normalizeError(text || ""); message.className = `auth-message${type ? ` is-${type}` : ""}`; };
+  const setMessage = (text, type) => { if (!message) return; message.textContent = text ? normalizeError(text) : ""; message.className = `auth-message${type ? ` is-${type}` : ""}`; };
   const setBusy = (busy, label) => { if (!submit) return; submit.disabled = busy; submit.textContent = busy ? "Please wait..." : label; };
   const jsonRequest = async (url, options) => {
+    const csrfToken = document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
+    options.headers = { ...options.headers, ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}) };
     const response = await fetch(url, options);
     let data = {};
     try { data = await response.json(); } catch (_) {}
@@ -42,13 +44,20 @@
       if (username.length < 4 || password.length < 8) { setMessage("Please correct the highlighted fields.", "error"); return; }
       setBusy(true, "Log in");
       try {
-        const data = await jsonRequest("/api/login/", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ username, password }) });
+        const data = await jsonRequest("/api/login/", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ username, password, otp: form.otp.value.trim(), remember: form.remember.checked }) });
         localStorage.setItem("access_token", data.token.access); localStorage.setItem("refresh_token", data.token.refresh); localStorage.setItem("user", JSON.stringify(data.user));
         setMessage("Login successful. Opening your workspace...", "success");
         const requestedPath = new URLSearchParams(window.location.search).get("next");
-        const safeNext = requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : null;
+        const safeNext = requestedPath && requestedPath.startsWith("/") && !requestedPath.startsWith("//") && !requestedPath.includes('\\') ? requestedPath : null;
         window.setTimeout(() => { window.location.href = safeNext || data.dashboard_url || "/"; }, 450);
-      } catch (error) { setMessage(error.message || "Unable to log in. Check your details and try again.", "error"); setBusy(false, "Log in"); }
+      } catch (error) {
+        if (error.payload?.mfa_required) {
+          form.querySelector('[data-mfa-field]').hidden = false;
+          form.otp.required = true;
+          form.otp.focus();
+        }
+        setMessage(error.message || "Unable to log in. Check your details and try again.", "error"); setBusy(false, "Log in");
+      }
     });
   }
 

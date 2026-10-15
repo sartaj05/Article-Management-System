@@ -14,13 +14,10 @@
 </head>
 <body class="auth-shell">
     {% include 'partials/site_header.html' %}
-    <main class="auth-main"><section class="auth-card logout-state" aria-labelledby="logout-title"><div class="auth-intro__icon"><i class="fa-solid fa-check" aria-hidden="true"></i></div><span class="eyebrow">Session complete</span><h1 id="logout-title">You’re safely signed out.</h1><p>Your workspace is closed and your local session tokens have been cleared. Redirecting you to the newsroom...</p><a class="button" href="{% url 'home' %}"><i class="fa-solid fa-compass" aria-hidden="true"></i> Go to discover</a><div class="auth-links"><a href="{% url 'user-login-template' %}">Log in again</a></div></section></main>
+    <main class="auth-main"><section class="auth-card logout-state" aria-labelledby="logout-title">{% csrf_token %}<span class="eyebrow">Account access</span><h1 id="logout-title">Sign out of Article Studio</h1><p>End your browser session and return to the newsroom.</p><button class="button" type="button" data-dashboard-logout>Log out</button><div class="auth-links"><a href="{% url 'home' %}">Go to discover</a></div></section></main>
     {% include 'partials/site_footer.html' %}
-    <script>
-        ['access_token', 'refresh_token', 'user', 'lastActivePage'].forEach((key) => localStorage.removeItem(key));
-        window.setTimeout(() => window.location.replace("{% url 'home' %}"), 900);
-    </script>
+    <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1" defer></script>
     <script src="{% static 'js/home.js' %}?v=20261013-desk-2" defer></script>
-    <script src="{% static 'js/app-dialogs.js' %}" defer></script>
+    <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1" defer></script>
 </body>
 </html>

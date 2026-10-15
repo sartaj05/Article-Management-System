@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -155,6 +156,8 @@ class UserLoginView(APIView):
             trusted_device.save(update_fields=['last_used_at'])
         # Keep the browser workspace protected by Django's session as well as JWT.
         login(request, user)
+        if 'remember' in request.data:
+            request.session.set_expiry(settings.SESSION_COOKIE_AGE if request.data['remember'] is True else 0)
         token = get_tokens_for_user(user, request)
         SecurityEvent.objects.create(
             user=user, username=user.username, event_type='login_success',
@@ -202,6 +205,26 @@ def membership_plans(request):
     return render(request, 'users/membership_plans.html')
 
 # Logout View
+class AccessTokenRefreshView(APIView):
+    """Renew access without extending the original login session's lifetime."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            refresh = RefreshToken(request.data.get('refresh', ''))
+            user = User.objects.filter(pk=refresh['user_id'], is_active=True).first()
+            if not user or SecuritySession.objects.filter(
+                user=user, refresh_jti=str(refresh['jti']), revoked_at__isnull=False,
+            ).exists():
+                return Response({'detail': 'Please sign in again.'}, status=401)
+            SecuritySession.objects.filter(user=user, refresh_jti=str(refresh['jti'])).update(last_seen_at=timezone.now())
+            return Response({'access': str(refresh.access_token)})
+        except (TokenError, KeyError, TypeError):
+            return Response({'detail': 'Your session expired. Please sign in again.'}, status=401)
+
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -210,6 +233,8 @@ class LogoutView(APIView):
         if refresh_token:
             try:
                 refresh = RefreshToken(refresh_token)
+                if str(refresh['user_id']) != str(request.user.pk):
+                    return Response({'detail': 'This refresh token belongs to another user.'}, status=status.HTTP_403_FORBIDDEN)
                 refresh.blacklist()
                 SecuritySession.objects.filter(
                     user=request.user,
@@ -429,14 +454,14 @@ class RequestOTPView(APIView):
 # User Delete View
 class UserDeleteView(generics.DestroyAPIView):
     queryset = User.objects.all()
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdmin]
 
     def delete(self, request, *args, **kwargs):
         user_to_delete = self.get_object()
         if user_to_delete == request.user:
             return Response({"detail": "You cannot delete yourself."}, status=status.HTTP_400_BAD_REQUEST)
         user_to_delete.delete()
-        return Response({'message': 'User deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 # Validate Token View
 class ValidateTokenView(APIView):

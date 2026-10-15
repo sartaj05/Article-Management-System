@@ -24,7 +24,8 @@
                     {% csrf_token %}
                     <div class="auth-field"><label for="username">Username</label><input type="text" name="username" id="username" autocomplete="username" placeholder="e.g. sartaj05" required minlength="4"><div id="username-error" class="auth-error"></div></div>
                     <div class="auth-field"><label for="password">Password</label><input type="password" name="password" id="password" autocomplete="current-password" placeholder="Enter your password" required minlength="8"><div id="password-error" class="auth-error"></div></div>
-                    <div class="auth-options"><label class="auth-check"><input type="checkbox" name="remember"> <span>Remember this device</span></label><a href="{% url 'forgot-password-template' %}">Forgot password?</a></div>
+                    <div data-mfa-field hidden><label for="otp">Authenticator or backup code</label><input type="text" name="otp" id="otp" autocomplete="one-time-code"><p>Enter the code from your authenticator, or an unused backup code.</p></div>
+                    <div class="auth-options"><label class="auth-check"><input type="checkbox" name="remember"> <span>Keep me signed in</span></label><a href="{% url 'forgot-password-template' %}">Forgot password?</a></div>
                     <div class="auth-message" data-auth-message role="status" aria-live="polite"></div>
                     <button class="button auth-submit" type="submit">Log in</button>
                 </form>
@@ -34,7 +35,7 @@
     </main>
     {% include 'partials/site_footer.html' %}
     <script src="{% static 'js/home.js' %}?v=20261013-desk-2" defer></script>
-    <script src="{% static 'js/auth.js' %}" defer></script>
-    <script src="{% static 'js/app-dialogs.js' %}" defer></script>
+    <script src="{% static 'js/auth.js' %}?v=20261014-1" defer></script>
+    <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1" defer></script>
 </body>
 </html>
