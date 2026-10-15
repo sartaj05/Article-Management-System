@@ -158,6 +158,13 @@ test.describe('responsive authenticated workspaces', () => {
       await expectWithinViewport(page, '.support-chat__launcher');
       await expect(page).toHaveTitle(/Article Studio|Dashboard/i);
       expect(page.url()).toContain(account.path);
+      if (test.info().project.name === 'chromium') {
+        for (const width of [900, 1100]) {
+          await page.setViewportSize({ width, height: 900 });
+          await expectNoHorizontalOverflow(page);
+          await expectWithinViewport(page, 'header.workspace-topbar');
+        }
+      }
     });
   }
 });

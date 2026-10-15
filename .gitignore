@@ -26,6 +26,7 @@ staticfiles/
 staticfiles_build/
 node_modules/
 test-results/
+test-runtime/
 media/
 profile_pictures/
 backups/
