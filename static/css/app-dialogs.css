@@ -80,6 +80,9 @@
   margin-top: 22px;
 }
 
+[data-dialog-input-label]:not([hidden]) { display: grid; gap: 8px; margin-top: 16px; }
+[data-dialog-input] { width: 100%; padding: 10px; border: 1px solid var(--line, #dce1ea); border-radius: 8px; font: inherit; resize: vertical; }
+
 .app-dialog__button {
   min-height: 38px;
   padding: 9px 15px;

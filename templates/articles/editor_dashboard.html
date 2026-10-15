@@ -6,16 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editor Dashboard</title>
   <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
-  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005">
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261015-workflow-mobile-1">
   <link rel="stylesheet" href="{% static 'css/workflow.css' %}">
   <link rel="stylesheet" href="{% static 'css/support-chat.css' %}">
   <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}">
   <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261013-desk-2">
-  <script src="{% static 'js/app-dialogs.js' %}"></script>
+  <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="{% static 'js/workflow-ui.js' %}"></script>
-  <script src="{% static 'js/editor.js' %}"></script>
-  <script src="{% static 'js/workspace-ui.js' %}"></script>
+  <script src="{% static 'js/workflow-ui.js' %}?v=20261014-1"></script>
+  <script src="{% static 'js/editor.js' %}?v=20261014-1"></script>
+  <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
   <script src="{% static 'js/responsive-tables.js' %}"></script>
 </head>
 <body class="dashboard-shell">
@@ -162,7 +162,7 @@
       <!-- Notification Modal for Approval/Reject -->
 <div id="approval-rejection-modal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h3 id="modal-title"></h3>
+    <h3 id="review-result-title"></h3>
     <p id="modal-message"></p>
     <button id="modal-close-btn" class="btn">Close</button>
   </div>

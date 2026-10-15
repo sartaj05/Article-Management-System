@@ -31,6 +31,7 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 
 .workspace-topbar__brand {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 11px;
   color: var(--ink);
@@ -62,6 +63,8 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 
 .workspace-topbar__actions {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
@@ -168,7 +171,13 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 .dashboard-shell .form-page input:focus,
 .dashboard-shell .form-page select:focus,
 .dashboard-shell .form-page textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(91, 92, 226, .1); }
-.dashboard-shell .form-page textarea { min-height: 150px; resize: vertical; }
+  .dashboard-shell .form-page textarea { min-height: 150px; resize: vertical; }
+  .dashboard-shell .form-page .publication-terms { display: flex; align-items: center; gap: 10px; }
+  .dashboard-shell #article-form input[type="checkbox"] { width: 18px; min-height: 18px; height: 18px; flex: 0 0 auto; }
+  #workflow-edit-modal form { display: grid; gap: 14px; }
+  #workflow-edit-modal label { display: grid; gap: 6px; }
+  #workflow-edit-modal input, #workflow-edit-modal textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+  #workflow-edit-modal textarea { min-height: 160px; resize: vertical; }
 
 .dashboard-shell .form-page button,
 .dashboard-shell .btn,
@@ -477,6 +486,16 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 @media (max-width: 640px) {
   .dashboard-shell .article-table,
   .dashboard-shell .article-table--manage { overflow: visible; }
+  /* Journalist/editor tables carry the class on the table itself, so reset
+     the desktop 720px minimum when stacking their cells into mobile cards. */
+  .dashboard-shell table.article-table,
+  .dashboard-shell table.article-table--manage {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: visible;
+  }
   .dashboard-shell .article-table table,
   .dashboard-shell .article-table--manage table {
     display: block;

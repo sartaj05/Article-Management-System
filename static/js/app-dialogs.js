@@ -29,6 +29,7 @@
         </header>
         <div class="app-dialog__body">
           <p class="app-dialog__message" data-dialog-message></p>
+          <label data-dialog-input-label hidden>Reason<textarea data-dialog-input rows="3" required></textarea></label>
           <div class="app-dialog__actions">
             <button type="button" class="app-dialog__button app-dialog__button--cancel" data-dialog-cancel>Cancel</button>
             <button type="button" class="app-dialog__button app-dialog__button--confirm" data-dialog-confirm>Okay</button>
@@ -44,7 +45,11 @@
       finish(false);
     });
     dialog.querySelector("[data-dialog-confirm]").addEventListener("click", function () {
-      finish(true);
+      const input = dialog.querySelector('[data-dialog-input]');
+      if (dialog.dataset.prompt === 'true') {
+        if (!input.value.trim()) { input.focus(); return; }
+        finish(input.value.trim());
+      } else finish(true);
     });
     dialog.addEventListener("click", function (event) {
       if (event.target === dialog) finish(false);
@@ -72,6 +77,9 @@
 
     if (activeResolve) finish(false);
     const confirmMode = Boolean(options && options.confirm);
+    dialog.dataset.prompt = String(Boolean(options && options.prompt));
+    dialog.querySelector('[data-dialog-input-label]').hidden = !(options && options.prompt);
+    dialog.querySelector('[data-dialog-input]').value = '';
     const kind = options && options.kind ? options.kind : "info";
     dialog.dataset.dialogKind = kind;
     dialog.querySelector("[data-dialog-icon]").textContent = kind === "error" ? "!" : kind === "success" ? "✓" : confirmMode ? "?" : "i";
@@ -91,7 +99,7 @@
         return;
       }
       if (event.key !== "Tab") return;
-      const focusable = [...dialog.querySelectorAll("button:not([hidden])")];
+      const focusable = [...dialog.querySelectorAll("button, textarea")].filter(element => element.getClientRects().length);
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -115,6 +123,9 @@
   };
   window.appConfirm = function (message, options) {
     return openDialog(message, Object.assign({}, options || {}, { confirm: true }));
+  };
+  window.appPrompt = function (message, options) {
+    return openDialog(message, Object.assign({}, options || {}, { confirm: true, prompt: true }));
   };
 
   // Keep legacy call sites inside the application on the styled dialog.

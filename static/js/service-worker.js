@@ -1,4 +1,4 @@
-const CACHE_NAME = "article-studio-v4";
+const CACHE_NAME = "article-studio-v5";
 const APP_SHELL = [
   "/",
   "/static/manifest.webmanifest",
@@ -26,9 +26,14 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  if (request.destination === "document" || request.url.includes("/api/articles/")) {
+  // Workspace pages and API responses are user-specific and must stay fresh.
+  // Never persist sessions, article lists, or account data in the offline cache.
+  if (url.pathname !== '/' && !url.pathname.startsWith('/static/')) return;
+
+  if (request.destination === "document") {
     event.respondWith(
       fetch(request)
         .then((response) => {

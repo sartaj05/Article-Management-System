@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Article Management Journalist Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1" />
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261015-workflow-mobile-1" />
     <link rel="stylesheet" href="{% static 'css/workflow.css' %}" />
     <link rel="stylesheet" href="{% static 'css/support-chat.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}" />
@@ -69,7 +69,7 @@
     <!-- Create Article Page -->
     <div id="create-article-page" class="page">
       <h1>Create a New Article</h1>
-      <form id="article-form" enctype="multipart/form-data">
+      <form novalidate id="article-form" enctype="multipart/form-data">
           {% csrf_token %}
   
           <!-- Page 1: Article Details -->
@@ -84,13 +84,13 @@
                   name="title"
                   required
                   minlength="10"
-                  maxlength="51"
+                  maxlength="35"
               />
               <span id="title-error" class="error-message"></span>
   
               <!-- Subtitle with max length -->
               <label for="subtitle">Subtitle:</label>
-              <input type="text" id="subtitle" name="subtitle" minlength="10" maxlength="51" />
+              <input type="text" id="subtitle" name="subtitle" maxlength="50" />
               <span id="subtitle-error" class="error-message"></span>
   
               <!-- Content with min length -->
@@ -104,9 +104,10 @@
               <span id="content-error" class="error-message"></span>
   
               <!-- Email with pattern validation -->
-              <label for="email">Email Address:</label>
-              <input type="email" id="emailid" name="email">
+              <label for="emailid">Email Address:</label>
+              <input type="email" id="emailid" name="email" required>
               <span id="email-error" class="error-message"></span>
+<button type="button" id="next-to-page2">Next: additional details</button>
           </div>
   
           <!-- Page 2: Additional Details -->
@@ -115,7 +116,7 @@
   
               <!-- Tags with max length -->
               <label for="tags">Tags:</label>
-              <input type="text" id="tags" name="tags" required minlength="5" maxlength="30" />
+              <input type="text" id="tags" name="tags" maxlength="255" />
               <span id="tags-error" class="error-message"></span>
   
               <!-- Category with required attribute -->
@@ -124,7 +125,7 @@
                   <option value="" disabled selected>Select a category</option>
                   <option value="news">News</option>
                   <option value="opinion">Opinion</option>
-                  <option value="feature">Feature</option>
+                  <option value="features">Features</option>
               </select>
               <span id="category-error" class="error-message" style="display:none;"></span>
   
@@ -140,7 +141,7 @@
   
               <!-- Location -->
               <label for="location">Location:</label>
-              <div id="map" style="height: 300px; width: 50%;"></div>
+              <div id="map" style="height: 300px; width: 100%;"></div>
   
               <input type="text" id="latitude" name="latitude" readonly>
               <input type="text" id="longitude" name="longitude" readonly>
@@ -149,7 +150,8 @@
               <label for="location_name">Location Name:</label>
               <input type="text" id="location_name" name="location_name" readonly>
   
-              <button type="submit">Submit</button>
+              <label class="publication-terms"><input type="checkbox" name="agreed_to_terms" required> I agree to the publication terms.</label>
+<button type="submit">Save draft</button>
               <button type="button" id="prev-to-page1">Previous</button>
           </div>
       </form>
@@ -159,7 +161,7 @@
 <div id="success-modal" class="modal">
   <div class="modal-content">
     <h4>Article Created Successfully!</h4>
-    <p>Your article has been created and submitted successfully.</p>
+    <p>Your draft has been saved. Submit it for editorial review when it is ready.</p>
   </div>
 </div>
 
@@ -285,190 +287,52 @@
 
 
 
+<script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="{% static 'js/script.js' %}"></script>
-<script src="{% static 'js/workflow-ui.js' %}"></script>
-<script src="{% static 'js/workspace-ui.js' %}"></script>
+<script src="{% static 'js/script.js' %}?v=20261014-1"></script>
+<script src="{% static 'js/workflow-ui.js' %}?v=20261014-1"></script>
+<script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
 <script src="{% static 'js/responsive-tables.js' %}"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-
-  
-  document.addEventListener("DOMContentLoaded", function () {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('publish_date').setAttribute('min', today);
-  
-    // Initialize the map using Leaflet.js
-    var latitude = {{ article.latitude|default:0 }};
-    var longitude = {{ article.longitude|default:0 }};
-    
-    // Set the map view to the article's latitude and longitude (if available)
-    var map = L.map('map').setView([latitude, longitude], 13);
-  
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-  
-    // Add a marker at the article's location (if available)
-    var marker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
-  
-    // Reverse geocoding function to get the place name based on lat/lng
-    function getLocationName(lat, lng) {
-      var url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
-      $.get(url, function(data) {
-        // Update the location name input with the place name
-        if (data && data.display_name) {
-          document.getElementById('location_name').value = data.display_name;
-        } else {
-          document.getElementById('location_name').value = 'Location not found';
-        }
-      }).fail(function() {
-        console.error('Geocoding request failed');
-        document.getElementById('location_name').value = 'Location not found';
-      });
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('article-form');
+  const pages = [document.getElementById('page1'), document.getElementById('page2')];
+  function showStep(index) {
+    pages.forEach((page, i) => page.classList.toggle('active', i === index));
+    pages[index].querySelector('input, textarea, select').focus();
+    if (index === 1 && map) map.invalidateSize();
+  }
+  let map;
+  document.getElementById('next-to-page2').addEventListener('click', () => {
+    for (const field of pages[0].querySelectorAll('input, textarea')) {
+      if (!field.reportValidity()) return;
     }
-  
-    // Update latitude and longitude inputs when the marker is dragged
-    marker.on('dragend', function(e) {
-      var lat = e.target.getLatLng().lat;
-      var lng = e.target.getLatLng().lng;
+    showStep(1);
+  });
+  document.getElementById('prev-to-page1').addEventListener('click', () => showStep(0));
+  form.addEventListener('invalid', event => showStep(pages[0].contains(event.target) ? 0 : 1), true);
+  form.addEventListener('reset', () => showStep(0));
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  document.getElementById('publish_date').min = today.toISOString().slice(0, 10);
+  if (window.L) {
+    map = L.map('map').setView([20, 78], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    let marker;
+    map.on('click', event => {
+      const {lat, lng} = event.latlng;
+      if (marker) marker.setLatLng(event.latlng);
+      else marker = L.marker(event.latlng).addTo(map);
       document.getElementById('latitude').value = lat;
       document.getElementById('longitude').value = lng;
-      getLocationName(lat, lng); // Update the location name
+      document.getElementById('location_name').value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     });
-  
-    // Add click event to add a marker and update latitude/longitude
-    map.on('click', function(e) {
-      var lat = e.latlng.lat;
-      var lng = e.latlng.lng;
-      marker.setLatLng([lat, lng]);
-      document.getElementById('latitude').value = lat;
-      document.getElementById('longitude').value = lng;
-      getLocationName(lat, lng); // Update the location name
-    });
-  
-    // Get the initial location name for the article's coordinates (if available)
-    getLocationName(latitude, longitude);
-  
-    // Live validation for form fields
-    const titleInput = document.getElementById('title');
-    const subtitleInput = document.getElementById('subtitle');
-    const contentInput = document.getElementById('content');
-    const tagsInput = document.getElementById('tags');
-    const emailInput = document.getElementById('emailid');
-    const publishDateInput = document.getElementById('publish_date');
-  
-    // Validation for Title
-    titleInput.addEventListener('input', function() {
-      const titleError = document.getElementById('title-error');
-      if (titleInput.value.length < 10 || titleInput.value.length > 50) {
-        titleError.textContent = 'Title must be between 10 and 50 characters';
-      } else {
-        titleError.textContent = '';
-      }
-    });
-  
-    // Validation for Subtitle
-    subtitleInput.addEventListener('input', function() {
-      const subtitleError = document.getElementById('subtitle-error');
-      if ( subtitleInput.value.length < 10 || subtitleInput.value.length > 50) {
-        subtitleError.textContent = 'Subtitle must be between 10 and 50 characters';
-      } else {
-        subtitleError.textContent = '';
-      }
-    });
-  
-    // Validation for Content
-    contentInput.addEventListener('input', function() {
-      const contentError = document.getElementById('content-error');
-      if (contentInput.value.length < 10) {
-        contentError.textContent = 'Content must be at least 10 characters';
-      } else {
-        contentError.textContent = '';
-      }
-    });
-  
-    // Validation for Tags
-    tagsInput.addEventListener('input', function() {
-      const tagsError = document.getElementById('tags-error');
-      if (tagsInput.value.length < 5 || tagsInput.value.length > 30) {
-        tagsError.textContent = 'Tags must be between 5 and 30 characters';
-      } else {
-        tagsError.textContent = '';
-      }
-    });
-  
-    // Validation for Email
-emailInput.addEventListener('input', function() {
-  const emailError = document.getElementById('email-error');
-
-  // Regex pattern to strictly validate emails ending with .com
-  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/;
-
-  if (!emailPattern.test(emailInput.value)) {
-      emailError.textContent = 'Please enter a valid email address ending with .com';
-      emailInput.classList.add('error-input');
-  } else {
-      emailError.textContent = '';
-      emailInput.classList.remove('error-input');
   }
 });
-
-  
-    // Validation for Publish Date
-    publishDateInput.addEventListener('change', function() {
-      const publishDateError = document.getElementById('publish_date-error');
-      const todayDate = new Date().toISOString().split('T')[0];
-      if (publishDateInput.value < todayDate) {
-        publishDateError.textContent = 'Publish date cannot be in the past';
-      } else {
-        publishDateError.textContent = '';
-      }
-    });
-  });
-  document.addEventListener("DOMContentLoaded", function () {
-    // Elements
-    const page1 = document.getElementById("page1");
-    const page2 = document.getElementById("page2");
-    const nextButton = document.getElementById("next-to-page2");
-    const prevButton = document.getElementById("prev-to-page1");
-
-    // Show page1 initially, page2 is hidden
-    page1.classList.add("active");
-    page2.classList.remove("active");
-
-    // Function to validate Page 1 fields
-    function validatePage1() {
-        let isValid = true;
-        
-        // Title validation
-        const title = document.getElementById("title");
-        const titleError = document.getElementById("title-error");
-        if (title.value.length < 10 || title.value.length > 51) {
-            titleError.textContent = "Title must be between 10 and 51 characters.";
-            isValid = false;
-        } else {
-            titleError.textContent = "";
-        }
-
-        // Content validation
-        const content = document.getElementById("content");
-        const contentError = document.getElementById("content-error");
-        if (content.value.length < 10) {
-            contentError.textContent = "Content must be at least 10 characters long.";
-            isValid = false;
-        } else {
-            contentError.textContent = "";
-        }
-
-        return isValid;
-    }
-
-    
-});
-
 </script>
   {% include 'support/chat_widget.html' %}
   <script src="{% static 'js/support-chat.js' %}" defer></script>

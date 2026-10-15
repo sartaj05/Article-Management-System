@@ -1,539 +1,81 @@
 $(document).ready(function () {
-    const token = localStorage.getItem("access_token");
-    const $userName = $("#username");
-    const $userEmail = $("#email");
-    const $articleCount = $("#article-count");
-    const $userfullname = $("#userfullname");
-    const $userrole = $("#role");
-   
-
-    $(document).ready(function () {
-        const $logoutLink = $("#logout-btn");
-    
-        // Show the logout confirmation modal
-        $logoutLink.on("click", function () {
-            $("#logout-modal").css("display", "block");
-        });
-    
-        // Confirm logout: Show success modal and handle redirection
-        $("#confirm-logout").on("click", function () {
-            // Perform logout actions
-            ["access_token", "refresh_token", "user", "lastActivePage"].forEach((key) => localStorage.removeItem(key));
-    
-            // Hide the logout modal and show the success modal
-            $("#logout-modal").css("display", "none");
-            $("#success-modal").css("display", "block");
-    
-            // Automatically hide success modal and redirect to login
-            setTimeout(function () {
-                $("#success-modal").css("display", "none");
-                window.location.replace("/");
-            }, 1000);
-        });
-    
-        // Cancel logout modal
-        $("#cancel-logout").on("click", function () {
-            $("#logout-modal").css("display", "none");
-        });
-    
-        // Close success modal manually
-        $("#close-success-modal").on("click", function () {
-            $("#success-modal").css("display", "none");
-        });
-    
-        // Close logout modal manually
-        $("#close-logout-modal").on("click", function () {
-            $("#logout-modal").css("display", "none");
-        });
-    });
-    
-    // Fetch article count
-    function fetchArticleCount() {
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (!token) {
-            window.location.replace("/");
-            return;
-        }
-
-        $.ajax({
-            url: "/articles/api/articles/count/",
-            type: "GET",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                $articleCount.text(response.article_count || 0);
-                $userfullname.text(user.first_name + " " + user.last_name);
-                $userName.text(user.username);
-                $userrole.text(user.role);
-                $userEmail.text(user.email);
-            },
-            error: function () {
-                alert("Error fetching article count.");
-            },
-        });
+    const {escapeHtml: escape, request, allArticles, statusBadge, editArticle} = WorkflowUI;
+    let articles = [];
+    const tables = [
+        ['article-list', 'no-articles-message', null],
+        ['approve-article-list', 'no-approve-articles-message', 'approved'],
+        ['reject-article-list', 'no-reject-articles-message', 'rejected'],
+        ['published-article-list', 'no-published-articles-message', 'published'],
+    ];
+    function actions(article) {
+        const button = (name, label) => `<button type="button" class="${name}-btn" data-id="${article.id}">${label}</button>`;
+        let html = button('view', 'View') + button('edit', 'Edit');
+        if (article.available_actions?.includes('review')) html += button('approve', 'Approve') + button('reject', 'Reject');
+        if (article.available_actions?.includes('publish')) html += button('publish', 'Publish');
+        return `<div class="button-container">${html}</div>`;
     }
-
-    $(document).on("click", ".publish-btn", async function () {
-        const articleId = $(this).data("id");
-    
-        // Confirmation dialog
-        if (!(await window.appConfirm("Are you sure you want to publish this article?", { title: "Publish article" }))) {
-            return;
+    function render() {
+        for (const [id, empty, status] of tables) {
+            const rows = articles.filter(article => !status || article.workflow_status === status);
+            document.getElementById(id).innerHTML = rows.map((article, index) => {
+                const image = article.image ? `<img src="${escape(article.image)}" alt="${escape(article.title)}" width="50">` : '<span class="image-placeholder">No image</span>';
+                const badge = statusBadge(article.workflow_status);
+                const common = `<td>${index + 1}</td><td>${escape(article.title)}</td><td>${escape(article.category || '—')}</td><td>${escape(article.publish_date || '—')}</td>`;
+                const end = status === 'published' ? `<td>${badge}</td><td>${actions(article)}</td><td>${image}</td>` : status ? `<td>${image}</td><td>${badge}</td><td>${actions(article)}</td>` : `<td>${badge}</td><td>${image}</td><td>${actions(article)}</td>`;
+                return `<tr data-article-id="${article.id}">${common}${end}</tr>`;
+            }).join('');
+            document.getElementById(empty).style.display = rows.length ? 'none' : '';
         }
-    
-        $.ajax({
-            url: `/articles/publish/${articleId}/`,
-            type: "POST",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                if (response.status === "published") {
-                    alert(response.message || "Article published successfully!");
-    
-                    // Refresh published articles
-                    showSection("published-articles-page");
-                    fetchPublishedArticles();
-                } else {
-                    alert("Failed to publish the article. Please try again.");
-                }
-            },
-            error: function (xhr) {
-                if (xhr.status === 400 && xhr.responseJSON.error === "This article is already published.") {
-                    alert(xhr.responseJSON.error);
-                } else if (xhr.status === 403) {
-                    alert("You do not have permission to publish this article.");
-                } else {
-                    alert("An error occurred while publishing the article.");
-                    console.error("Error:", xhr.responseText);
-                }
-            },
-        });
-    });
-    
-
-
-   // Fetch published articles
-function fetchPublishedArticles() {
-    $.ajax({
-        url: "/articles/published/", // Adjust endpoint to fetch only published articles
-        type: "GET",
-        headers: { Authorization: "Bearer " + token },
-        success: function (response) {
-            // const articles = response.articles;
-            const articles = response.published_articles; // Adjust key if needed
-            const publishedArticleList = $("#published-article-list");
-            publishedArticleList.empty();
-            
-            if (articles.length === 0) {
-                $("#no-published-articles-message").show();
-            } else {
-                $("#no-published-articles-message").hide();
-                articles.forEach(function (article, index) {
-                    const articleRow = `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${article.title}</td>
-                            <td>${article.category}</td>
-                            <td>${new Date(article.publish_date).toLocaleDateString()}</td>
-                            <td>${article.status}</td>
-                            <td>
-                                <button class="view-btn" 
-                                    data-id="${article.id}" 
-                                    data-content='${article.content}' 
-                                    data-tags='${article.tags}' 
-                                    data-email='${article.email}' 
-                                    data-subtitle='${article.subtitle}' 
-                                    data-title="${article.title}" 
-                                    data-category="${article.category}" 
-                                    data-publish-date="${article.publishDate}" 
-                                    data-status="${article.status}" 
-                                    data-image="${article.image}">
-                                    View
-                                </button>
-                            </td>
-                            <td><img src="${article.image ||
-                                "/static/images/default.jpg"
-                                }" alt="Image" width="50"></td>
-                        </tr>
-                    `;
-                    publishedArticleList.append(articleRow);
-                });
-            }
-        },
-        error: function () {
-            alert("Error fetching published articles.");
-        },
-    });
-}
-
-    $(document).ready(function () {
-  // Generalized search function
-  function applySearch(searchInputId, tableBodyId, noResultsMessageId) {
-    $(`#${searchInputId}`).on("keyup", function () {
-      const searchTerm = $(this).val().toLowerCase();
-      let visibleRows = 0;
-
-      $(`#${tableBodyId} tr`).each(function () {
-        const rowText = $(this).text().toLowerCase();
-        if (rowText.includes(searchTerm)) {
-          $(this).show();
-          visibleRows++;
-        } else {
-          $(this).hide();
-        }
-      });
-
-      // Show or hide "no results" message
-      if (visibleRows === 0) {
-        $(`#${noResultsMessageId}`).show();
-      } else {
-        $(`#${noResultsMessageId}`).hide();
-      }
-    });
-  }
-
-  // Apply search for each section
-  applySearch("search-bar", "article-list", "no-articles-message");
-  applySearch("search-approve-bar", "approve-article-list", "no-approve-articles-message");
-  applySearch("search-reject-bar", "reject-article-list", "no-reject-articles-message");
-  applySearch("search-published-bar", "published-article-list", "no-published-articles-message");
-});
-
-
-    // Generic function  Manage Article table to fetch articles
-    function fetchArticles(
-        endpoint,
-        containerId,
-        emptyMessageId,
-        rowGeneratorCallback
-    ) {
-        $.ajax({
-            url: endpoint,
-            type: "GET",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                const articles = response.articles;
-                const $container = $(containerId);
-                $container.empty();
-
-                if (articles.length === 0) {
-                    $(emptyMessageId).show();
-                } else {
-                    $(emptyMessageId).hide();
-                    articles.forEach((article, index) => {
-                        const row = rowGeneratorCallback(article, index);
-                        $container.append(row);
-                    });
-                }
-            },
-            error: function () {
-                alert("Error fetching articles.");
-            },
-        });
+        $('.page input[type="text"]').trigger('input');
     }
-    function generateArticleRow(article, index) {
-        const workflowStatus = article.workflow_status || article.status;
-        const isPublished = workflowStatus === "published";
-        const isApproved = workflowStatus === "Approved" || workflowStatus === "approved";
-        const isRejected = article.status === "rejected";
-        // const isPending = article.status === "draft";
-    
-        return `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${article.title}</td>
-                <td>${article.category}</td>
-                <td>${new Date(article.publish_date).toLocaleDateString()}</td>
-                <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(workflowStatus) : workflowStatus}${article.rejection_reason ? `<span class="workflow-summary__reason">${WorkflowUI.escapeHtml(article.rejection_reason)}</span>` : ""}</div></td>
-                <td><img src="${article.image || "/static/images/default.jpg"}" alt="Image" width="50"></td>
-                <td>
-                    <div class="button-container">
-                        <button class="view-btn" 
-                            data-id="${article.id}" 
-                            data-content='${article.content}' 
-                            data-tags='${article.tags}' 
-                            data-email='${article.email}' 
-                            data-subtitle='${article.subtitle}' 
-                            data-title="${article.title}" 
-                            data-category="${article.category}" 
-                            data-publish-date="${article.publishDate}" 
-                            data-status="${article.status}" 
-                            data-image="${article.image}">
-                            View
-                        </button>
-                        <button class="edit-btn" 
-                            onclick="window.location.href='/articles/edit/${article.id}/'" 
-                            style="display: ${isPublished || isApproved ? "none" : "inline-block"};">
-                            Edit
-                        </button>
-                        <button class="approve-btn" 
-                            data-id="${article.id}" 
-                            style="display: ${isApproved || isPublished ? "none" : "inline-block"};">
-                            Approve
-                        </button>
-                        <button class="publish-btn" 
-                            data-id="${article.id}" 
-                            style="display: ${isApproved ? "inline-block" : "none"};">
-                            Publish
-                        </button>
-                        <button class="reject-btn" 
-                            data-id="${article.id}" 
-                            style="display: ${isPublished || isRejected ? "none" : "inline-block"};">
-                            Reject
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
+    async function refresh() {
+        try { articles = await allArticles(); render(); }
+        catch (error) { alert(error.message); }
     }
-    
-    
-    
-    
-
-    // Event listener for the "View" button click
-    $(document).on("click", ".view-btn", function () {
-        const article = $(this).data();
-        console.log(article)
-        $('#modal-id').text(`ID: ${article.id}`);
-        $('#modal-title').text(`Title: ${article.title}`);
-        $('#modal-subtitle').text(`SubTitle: ${article.subtitle}`);
-        $('#modal-email').text(`Email: ${article.email}`);
-        $('#modal-category').text(`Category: ${article.category}`);
-        $('#modal-tags').text(`Tags: ${article.tags}`);
-        $('#modal-publish-date').text(`Published Date: ${article.publishDate}`);
-        $('#modal-status').text(`Status: ${article.status}`);
-        $('#modal-image').attr('src', article.image);
-        $('#modal-content').text(`Content: ${article.content}`);
+    function showSection(id) {
+        $('#home-section, .page').hide(); $('#' + id).show();
+    }
+    const sections = {'home-btn':'home-section', 'manage-articles-btn':'article-list-page', 'approve-articles-btn':'approve-articles-page', 'reject-articles-btn':'reject-articles-page', 'published-articles-btn':'published-articles-page'};
+    for (const [link, section] of Object.entries(sections)) $('#' + link).on('click', function (event) {
+        event.preventDefault(); showSection(section); if (section !== 'home-section') refresh();
+    });
+    $('.page input[type="text"]').on('input', function () {
+        const query = this.value.toLowerCase();
+        $(this).closest('.page').find('tbody tr').each(function () { $(this).toggle($(this).text().toLowerCase().includes(query)); });
+    });
+    $(document).on('click', '.view-btn', function () {
+        const article = articles.find(item => item.id === Number(this.dataset.id));
+        if (!article) return;
+        for (const field of ['id','title','subtitle','email','category','tags','content']) $('#modal-' + field).text(`${field}: ${article[field] || '—'}`);
+        $('#modal-publish-date').text(article.publish_date || '—');
+        $('#modal-status').text(article.workflow_status);
+        $('#modal-image').attr('src', article.image || '').toggle(Boolean(article.image));
         $('#article-modal').show();
     });
-
-    // Event listener for the "Close" button click
-    $(document).on("click", "#close-modal", function () {
-        $('#article-modal').hide();
+    $(document).on('click', '#close-modal', () => $('#article-modal').hide());
+    $(document).on('click', '.edit-btn', function () { editArticle(this.dataset.id, refresh); });
+    $(document).on('click', '.approve-btn, .reject-btn, .publish-btn', async function () {
+        const id = this.dataset.id;
+        const decision = this.classList.contains('approve-btn') ? 'approve' : this.classList.contains('reject-btn') ? 'reject' : 'publish';
+        let reason;
+        if (decision === 'reject') {
+            reason = await window.appPrompt('Explain what the author should change before resubmitting.', {title:'Reject article'});
+            if (!reason) return;
+        } else if (!(await window.appConfirm(`Are you sure you want to ${decision} this article?`, {title: decision === 'approve' ? 'Approve article' : 'Publish article'}))) return;
+        this.disabled = true;
+        try {
+            await request(`/articles/api/v2/articles/${id}/${decision === 'publish' ? 'publish' : 'review'}/`, {
+                method: decision === 'publish' ? 'POST' : 'PATCH', body: JSON.stringify({decision, reason})
+            });
+            await refresh();
+            if (decision === 'publish') showSection('published-articles-page');
+            window.appAlert(decision === 'publish' ? 'Article published successfully.' : decision === 'approve' ? 'Article approved successfully.' : 'Article returned to the author with your feedback.', {kind:'success'});
+        } catch (error) { alert(error.message); }
+        finally { this.disabled = false; }
     });
-
-    // Approve article functionality
-    $(document).on("click", ".approve-btn", async function () {
-        const articleId = $(this).data("id");
-
-        const confirmApproval = await window.appConfirm("Are you sure you want to approve this article?", { title: "Approve article" });
-        if (!confirmApproval) {
-            return;
-        }
-
-        $.ajax({
-            url: `/articles/approve/${articleId}/`,
-            type: "PATCH", 
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                let message = "Article approved successfully!";
-                if (response.message === "This article is already approved.") {
-                    message = "This article has already been approved.";
-                }
-
-                $('#modal-title').text("Approval Status");
-                $('#modal-message').text(message);
-                $('#approval-rejection-modal').show();
-            },
-            error: function (xhr) {
-                const error = xhr.responseJSON.error;
-                let message = "An error occurred while approving the article.";
-                if (xhr.status === 400 && error === "This article is already approved.") {
-                    message = "This article has already been approved.";
-                }
-
-                $('#modal-title').text("Approval Failed");
-                $('#modal-message').text(message);
-                $('#approval-rejection-modal').show();
-            },
-        });
-    });
-
-    // Reject article functionality
-    $(document).on("click", ".reject-btn", async function () {
-        const articleId = $(this).data("id");
-
-        if (!(await window.appConfirm("Are you sure you want to reject this article?", { title: "Reject article" }))) {
-            return;
-        }
-
-        $.ajax({
-            url: `/articles/reject/${articleId}/`,
-            type: "PATCH",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                let message = response.message || "Article rejected successfully!";
-                $('#modal-title').text("Rejection Status");
-                $('#modal-message').text(message);
-                $('#approval-rejection-modal').show();
-                fetchArticlesToApprove(); 
-            },
-            error: function (xhr) {
-                const error = xhr.responseJSON.error;
-                let message = "An error occurred while rejecting the article.";
-                if (xhr.status === 400) {
-                    if (error === "This article has already been rejected.") {
-                        message = "This article is already rejected.";
-                    } else if (error === "This article has already been approved and cannot be rejected.") {
-                        message = "This article is approved and cannot be rejected.";
-                    }
-                }
-
-                $('#modal-title').text("Rejection Failed");
-                $('#modal-message').text(message);
-                $('#approval-rejection-modal').show();
-            },
-        });
-    });
-
-    // Close the modal when the close button is clicked
-    $(document).on('click', '#modal-close-btn', function () {
-        $('#approval-rejection-modal').hide();
-    });
-
-
-
-    // Fetch articles pending approval to approved article
-    function fetchArticlesToApprove() {
-        $.ajax({
-            url: "/articles/search/",
-            type: "GET",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                const articles = response.articles;
-                const approveArticleList = $("#approve-article-list");
-                approveArticleList.empty();
-                console.log(articles);
-                if (articles.length === 0) {
-                    $("#no-approve-articles-message").show();
-                } else {
-                    $("#no-approve-articles-message").hide();
-                    articles.forEach(function (article, index) {
-                        console.log(article);
-                        if (article.status == "Approved") {
-                            const articleRow = `
-                                <tr>
-                                    <td>${index + 1}</td>
-                                    <td>${article.title}</td>
-                                    <td>${article.category}</td>
-                                    
-                                    <td>${new Date(
-                                article.publish_date
-                            ).toLocaleDateString()}</td>
-                                    <td><img src="${article.image ||
-                                "/static/images/default.jpg"
-                                }" alt="Image" width="50"></td>
-                                <td>${article.status}</td>
-                                    <td>
-                                        <button class="publish-btn" data-id="${article.id
-                                }">Published</button>
-                                        <button class="reject-btn" data-id="${article.id
-                                }">Reject</button>
-                            <button class="view-btn" data-id="${article.id}" data-content='${article.content}' data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${article.title}" data-category="${article.category}" data-publish-date="${article.publishDate}" data-status="${article.status}" data-image="${article.image}">View</button>
-
-                                    </td>
-                                </tr>
-                            `;
-                            approveArticleList.append(articleRow);
-                        }
-                    });
-                }
-            },
-            error: function () {
-                alert("Error fetching articles for approval.");
-            },
-        });
-    }
-    // Fetch articles rejected
-    function fetchRejectedArticles() {
-        $.ajax({
-            url: "/articles/search/",
-            type: "GET",
-            headers: { Authorization: "Bearer " + token },
-            success: function (response) {
-                const articles = response.articles;
-                const rejectArticleList = $("#reject-article-list");
-                rejectArticleList.empty();
-                console.log(articles);
-                if (articles.length === 0) {
-                    $("#no-reject-articles-message").show();
-                } else {
-                    $("#no-reject-articles-message").hide();
-                    articles.forEach(function (article, index) {
-                        console.log(article);
-                        if (article.status == "rejected") {
-                            const articleRow = `
-                            <tr>
-                                <td>${index + 1}</td>
-                                <td>${article.title}</td>
-                                
-                                <td>${article.category}</td>
-                                <td>${new Date(
-                                article.publish_date
-                            ).toLocaleDateString()}</td>
-                                <td><img src="${article.image || "/static/images/default.jpg"
-                                }" alt="Image" width="50"></td>
-                                <td>${article.status}</td>
-                                <td> <button class="view-btn" data-id="${article.id}" data-content='${article.content}' data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${article.title}" data-category="${article.category}" data-publish-date="${article.publishDate}" data-status="${article.status}" data-image="${article.image}">View</button>
-                                
-                                </td>
-                            </tr>
-                        `;
-                            rejectArticleList.append(articleRow);
-                        }
-                    });
-                }
-            },
-            error: function () {
-                alert("Error fetching rejected articles.");
-            },
-        });
-    }
-
-    // Navigation event listeners
-    function showSection(sectionId) {
-        $(".page").hide();
-        $(`#${sectionId}`).show();
-    }
-    // Event listeners for navigation
-    $("#home-btn").click(function (e) {
-        e.preventDefault();
-        document.getElementById("home-section").style.display = "";
-        showSection("home-section");
-    });
-
-    $("#manage-articles-btn").click(function (e) {
-        e.preventDefault();
-        document.getElementById("home-section").style.display = "none";
-        showSection("article-list-page");
-        fetchArticles(
-            "/articles/search/",
-            "#article-list",
-            "#no-articles-message",
-            generateArticleRow
-        );
-    });
-
-    $("#approve-articles-btn").click(function (e) {
-        e.preventDefault();
-        document.getElementById("home-section").style.display = "none";
-        showSection("approve-articles-page");
-        fetchArticlesToApprove();
-    });
-
-    $("#reject-articles-btn").click(function (e) {
-        e.preventDefault();
-        document.getElementById("home-section").style.display = "none";
-        showSection("reject-articles-page");
-        fetchRejectedArticles();
-    });
-
-    $("#published-articles-btn").click(function (e) {
-        e.preventDefault();
-        document.getElementById("home-section").style.display = "none";
-        showSection("published-articles-page");
-        fetchPublishedArticles();
-    });
-
-    // Initialize
-    fetchArticleCount();
+    $(document).on('keydown', event => { if (event.key === 'Escape') $('.modal:visible').hide(); });
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    $('#username').text(user.username); $('#email').text(user.email); $('#role').text(user.role);
+    $('#userfullname').text([user.first_name, user.last_name].filter(Boolean).join(' ') || user.username);
+    request('/articles/api/articles/count/').then(data => $('#article-count').text(data.article_count)).catch(error => alert(error.message));
 });

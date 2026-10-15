@@ -1,153 +1,50 @@
 $(document).ready(function () {
-    const token = localStorage.getItem('access_token');
-
-    if (!token) {
-        window.location.replace('/');
-        return;
+    const {escapeHtml: escape, request, allArticles, statusBadge, editArticle} = WorkflowUI;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    async function fetchArticles() {
+        try {
+            const articles = await allArticles();
+            $('#articles-list').html(articles.map((article, index) => `<tr data-article-id="${article.id}">
+                <td>${index + 1}</td><td>${escape(article.title)}</td><td>${statusBadge(article.workflow_status)}</td>
+                <td>${escape(article.category || '—')}</td><td>${escape(article.publish_date || '—')}</td>
+                <td>${article.image ? `<img src="${escape(article.image)}" alt="${escape(article.title)}" width="50">` : 'No image'}</td>
+                <td><button class="edit-btn" data-id="${article.id}">Edit</button>
+                ${article.available_actions?.includes('review') ? `<button class="approve-btn" data-id="${article.id}">Approve</button>` : ''}
+                ${article.available_actions?.includes('publish') ? `<button class="publish-btn" data-id="${article.id}">Publish</button>` : ''}
+                <button class="delete-article-btn" data-id="${article.id}">Move to trash</button></td></tr>`).join(''));
+            $('#no-articles-message').toggle(!articles.length);
+        } catch (error) { alert(error.message); }
     }
-
-    // Common fetch function for articles
-    function fetchArticles(filter = {}) {
-        $.ajax({
-            url: '/articles/search/',
-            type: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token },
-            data: filter,
-            success: function (response) {
-                const articles = response.articles;
-                const articleList = $('#articles-list');
-                articleList.empty();
-
-                if (articles.length === 0) {
-                    $("#no-articles-message").show();
-                } else {
-                    $("#no-articles-message").hide();
-                    articles.forEach((article, index) => {
-                        const articleRow = `
-                            <tr>
-                                <td>${index + 1}</td>
-                                <td>${article.title}</td>
-                                <td>${article.status}</td>
-                                <td>${article.category}</td>
-                                <td>${new Date(article.publish_date).toLocaleDateString()}</td>
-                                <td><img src="${article.image || '/static/images/default.jpg'}" width="50"></td>
-                                <td>
-                                    <a href="/articles/edit/${article.id}/" class="edit-btn">Edit</a> |
-                                    <button class="approve-btn" data-id="${article.id}">Approve</button> |
-                                    <button class="delete-article-btn" data-id="${article.id}">Delete</button>
-                                </td>
-                            </tr>
-                        `;
-                        articleList.append(articleRow);
-                    });
-                }
-            },
-            error: function () {
-                alert("Error fetching articles.");
-            },
-        });
+    async function fetchUsers() {
+        try {
+            let url = '/api/user-list/'; const users = [];
+            while (url) { const data = await request(url); users.push(...(data.results || data)); url = data.next; }
+            $('#user-list').html(users.map(account => `<tr><td>${escape(account.username)}</td><td>${escape(account.email)}</td><td>${escape(account.role)}</td><td>${account.username === user.username ? 'Current account' : `<button class="delete-user-btn" data-id="${account.id}">Delete</button>`}</td></tr>`).join(''));
+            $('#no-users-message').toggle(!users.length);
+        } catch (error) { alert(error.message); }
     }
-
-    // Fetch and manage users
-    function fetchUsers() {
-        $.ajax({
-            url: '/users/',
-            type: 'GET',
-            headers: { 'Authorization': 'Bearer ' + token },
-            success: function (response) {
-                const users = response.users;
-                const userList = $('#user-list');
-                userList.empty();
-
-                users.forEach(user => {
-                    const userRow = `
-                        <tr>
-                            <td>${user.username}</td>
-                            <td>${user.email}</td>
-                            <td>${user.role}</td>
-                            <td>
-                                <a href="/users/edit/${user.id}/" class="edit-btn">Edit</a> |
-                                <button class="delete-user-btn" data-id="${user.id}">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                    userList.append(userRow);
-                });
-            },
-            error: function () {
-                alert("Error fetching users.");
-            },
-        });
-    }
-
-    // Approve, Reject, Publish Articles
-    function updateArticleStatus(articleId, status) {
-        const urlMap = {
-            approve: `/articles/approve/${articleId}/`,
-            reject: `/articles/reject/${articleId}/`,
-            publish: `/articles/published/${articleId}/`,
-        };
-
-        $.ajax({
-            url: urlMap[status],
-            type: 'PATCH',
-            headers: { 'Authorization': 'Bearer ' + token },
-            success: function () {
-                alert(`Article ${status}d successfully.`);
-                fetchArticles(); // Refresh the list
-            },
-            error: function () {
-                alert(`Error ${status}ing article.`);
-            },
-        });
-    }
-
-    // Delete User
-    function deleteUser(userId) {
-        $.ajax({
-            url: `/users/${userId}/delete/`,
-            type: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token },
-            success: function () {
-                alert("User deleted successfully.");
-                fetchUsers(); // Refresh users list
-            },
-            error: function () {
-                alert("Error deleting user.");
-            },
-        });
-    }
-
-    // Delete Article
-    function deleteArticle(articleId) {
-        $.ajax({
-            url: `/articles/${articleId}/delete/`,
-            type: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token },
-            success: function () {
-                alert("Article deleted successfully.");
-                fetchArticles(); // Refresh articles list
-            },
-            error: function () {
-                alert("Error deleting article.");
-            },
-        });
-    }
-
-    // Event Handlers
-    $(document).on('click', '.approve-btn', function () {
-        updateArticleStatus($(this).data('id'), 'approve');
+    $('.nav-link[data-page]').on('click', function (event) {
+        event.preventDefault(); const users = this.dataset.page === 'users';
+        $('#articles-section').toggle(!users); $('#users-section').toggle(users);
+        $('.nav-link[data-page]').removeAttr('aria-current');
+        $(`.nav-link[data-page="${this.dataset.page}"]`).attr('aria-current', 'page');
+        if (users) fetchUsers(); else fetchArticles();
     });
-
-    $(document).on('click', '.delete-user-btn', function () {
-        deleteUser($(this).data('id'));
+    $(document).on('click', '.edit-btn', function () { editArticle(this.dataset.id, fetchArticles); });
+    $(document).on('click', '.approve-btn, .publish-btn, .delete-article-btn, .delete-user-btn', async function () {
+        const id = this.dataset.id;
+        const deletingUser = this.classList.contains('delete-user-btn');
+        const trash = this.classList.contains('delete-article-btn');
+        const publish = this.classList.contains('publish-btn');
+        const message = deletingUser ? 'Delete this user and their articles? This cannot be undone.' : trash ? 'Move this article to the trash?' : publish ? 'Publish this approved article?' : 'Approve this submitted article?';
+        if (!(await window.appConfirm(message))) return;
+        this.disabled = true;
+        try {
+            const url = deletingUser ? `/api/users/${id}/delete/` : `/articles/api/v2/articles/${id}/${trash ? 'trash' : publish ? 'publish' : 'review'}/`;
+            await request(url, {method: deletingUser ? 'DELETE' : trash || publish ? 'POST' : 'PATCH', ...(deletingUser ? {} : {body: JSON.stringify({decision:'approve'})})});
+            if (deletingUser) await fetchUsers(); else await fetchArticles();
+        } catch (error) { alert(error.message); }
+        finally { this.disabled = false; }
     });
-
-    $(document).on('click', '.delete-article-btn', function () {
-        deleteArticle($(this).data('id'));
-    });
-
-    // Initialize admin dashboard
-    fetchArticles();
-    fetchUsers();
+    $('#articles-section').show(); fetchArticles();
 });

@@ -5,13 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <script src="{% static 'js/app-dialogs.js' %}"></script>
+    <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{% static 'js/admin.js' %}"></script>
-    <script src="{% static 'js/workspace-ui.js' %}"></script>
+    <script src="{% static 'js/workflow-ui.js' %}?v=20261014-1"></script>
+    <script src="{% static 'js/admin.js' %}?v=20261014-1"></script>
+    <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
     <script src="{% static 'js/responsive-tables.js' %}"></script>
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261015-workflow-mobile-1">
     <link rel="stylesheet" href="{% static 'css/support-chat.css' %}">
     <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}">
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261013-desk-2">
@@ -95,49 +96,7 @@
         <p>&copy; 2024 My Website. All rights reserved.</p>
     </footer>
 
-    <script>
-        $(document).ready(function () {
-            // Logout functionality
-            $('#logout-btn').click(function (e) {
-                e.preventDefault();
-    
-                // Show the success modal
-                $('#success-modal').fadeIn();
-    
-                // Remove token and redirect after 1 seconds
-                ['access_token', 'refresh_token', 'user', 'lastActivePage'].forEach(function (key) { localStorage.removeItem(key); });
-    
-                setTimeout(function () {
-                    window.location.replace('/');
-                }, 1000); // 1-second delay before redirecting to the login page
-            });
-    
-            // Close the success modal
-            $('#close-modal').click(function () {
-                $('#success-modal').fadeOut();
-            });
-    
-            // Navigation
-            $('.nav-link').click(function (e) {
-                e.preventDefault();
-                const page = $(this).data('page');
-    
-                if (page === 'articles') {
-                    $('#articles-section').show();
-                    $('#users-section').hide();
-                    fetchArticles();
-                } else if (page === 'users') {
-                    $('#users-section').show();
-                    $('#articles-section').hide();
-                    fetchUsers();
-                }
-            });
-    
-            // Initialize with articles section
-            $('#articles-section').show();
-            fetchArticles();
-        });
-    </script>
+
     
     {% include 'support/chat_widget.html' %}
     <script src="{% static 'js/support-chat.js' %}" defer></script>

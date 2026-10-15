@@ -33,11 +33,6 @@ $(document).ready(function () {
     fetchArticles(); // Fetch and display articles
   });
 
-  $logoutLink.click(function () {
-    ["access_token", "refresh_token", "user", "lastActivePage"].forEach((key) => localStorage.removeItem(key));
-    window.location.replace("/");
-  });
-
   // Helper function to show pages
   function showPage(pageId) {
     $(".page").removeClass("active");
@@ -76,6 +71,7 @@ $(document).ready(function () {
 
   // Activate the last active page on page load
   activateLastPage();
+  if (localStorage.getItem("lastActivePage") === "article-list-page") fetchArticles();
 
   // Fetch user details to display on the dashboard
   function fetchUserDetails() {
@@ -100,8 +96,10 @@ $(document).ready(function () {
   }
 
   // Fetch total number of articles
-  function fetchArticleCount() {
-    const token = localStorage.getItem("access_token");
+  async function fetchArticleCount() {
+    let token;
+    try { token = await WorkspaceUI.ensureAccess(); }
+    catch (error) { $articleCount.text("Sign in again"); return; }
     const user = JSON.parse(localStorage.getItem("user"));
     if (!token) {
       window.location.replace("/");
@@ -115,7 +113,7 @@ $(document).ready(function () {
       success: function (response) {
         // console.log(response);
         $articleCount.text(response.article_count || 0);
-        $userfullname.text(user.first_name + " " + user.last_name);
+        $userfullname.text([user.first_name, user.last_name].filter(Boolean).join(" ") || user.username);
         $userName.text(user.username);
         $userrole.text(user.role);
         $userEmail.text(user.email);
@@ -130,94 +128,26 @@ $(document).ready(function () {
       },
     });
   }
-  $articleForm.submit(function (e) {
+  $articleForm.submit(async function (e) {
     e.preventDefault();
 
-    // Get form field values
-    const title = $("#title").val();
-    const subtitle = $("#subtitle").val();
-    const content = $("#content").val();
-    const email = $("#email").val();
-    const tags = $("#tags").val();
-    const category = $("#category").val();
-    const publishDate = $("#publish_date").val();
-    const image = $("#image")[0].files[0];
-    const token = localStorage.getItem("access_token");
-
-    // Validation for the title field (min 5, max 50 characters)
-    if (!title || title.length < 5 || title.length > 50) {
-      alert("Title is required and must be between 5 and 50 characters.");
+    if (!this.reportValidity()) return;
+    let token;
+    try { token = await WorkspaceUI.ensureAccess(); }
+    catch (error) { alert(error.message); return; }
+    const image = $('#image')[0].files[0];
+    if (image && (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024)) {
+      alert('Choose an image smaller than 5 MB.');
       return;
     }
-
-    // Validation for the content field (min 10 characters)
-    if (!content || content.length < 10) {
-      alert("Content is required and must be at least 10 characters.");
-      return;
-    }
-
-    if (!email || !validateEmail(email)) {
-      $("#email-error").text("Please enter a valid email address");
-      isValid = false;
-    } else {
-      $("#email-error").text("");
-    }
-
-    // Validation for subtitle (max 80 characters)
-    if (subtitle.length > 80) {
-      alert("Subtitle must be less than 80 characters.");
-      return;
-    }
-
-    // Validation for tags (max 100 characters)
-    if (tags.length > 100) {
-      alert("Tags must be less than 100 characters.");
-      return;
-    }
-
-    // Validation for category (must be selected)
-    if (!category) {
-      alert("Please select a category.");
-      return;
-    }
-
-    // Validation for publish date (required and must be present or future date)
-    if (!publishDate) {
-      alert("Please select a publish date.");
-      return;
-    }
-
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Set to midnight for comparison
-    const selectedPublishDate = new Date(publishDate);
-
-    if (selectedPublishDate < currentDate) {
-      alert(
-        "The publish date cannot be in the past. Please select a present or future date."
-      );
-      return;
-    }
-
-    // Validation for image (optional, but check file type and size)
-    if (image && !image.type.startsWith("image/")) {
-      alert("Please upload a valid image file.");
-      return;
-    }
-
-    if (image && image.size > 5 * 1024 * 1024) {
-      // 5MB max size
-      alert("Image size must be less than 5MB.");
-      return;
-    }
-
-    // Check if user is logged in
-    if (!token) {
-      window.location.replace("/");
-      return;
-    }
-
-    // Create FormData object to send the data
     const formData = new FormData(this);
+    for (const field of ['latitude', 'longitude', 'image']) {
+      if (field === 'image' ? !image : !formData.get(field)) formData.delete(field);
+    }
+    formData.set('agreed_to_terms', 'true');
+    const submit = this.querySelector('[type="submit"]');
+    if (submit.disabled) return;
+    submit.disabled = true;
 
     // Send AJAX request to create the article
     $.ajax({
@@ -237,9 +167,10 @@ $(document).ready(function () {
         // Show Success Modal
         showSuccessModal();
       },
-      error: function () {
-        alert("Error creating article.");
+      error: function (xhr) {
+        alert(JSON.stringify(xhr.responseJSON || "Unable to save the draft."));
       },
+      complete: function () { submit.disabled = false; },
     });
   });
   function showSuccessModal() {
@@ -261,6 +192,7 @@ $(document).ready(function () {
 
 // Function to append the article to the table
 function appendArticle(article) {
+  article = Object.fromEntries(Object.entries(article).map(([key, value]) => [key, typeof value === "string" ? WorkflowUI.escapeHtml(value) : value]));
   const tableBody = $("#article-list");
   // Calculate Serial Number
   const srNo = tableBody.children("tr").length + 1;
@@ -284,12 +216,12 @@ function appendArticle(article) {
       <td>${title}</td>
       <td>${category}</td>
       <td>${publishDate}</td>
-      <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(status) : `<span class="status-badge status-badge--${statusKey}">${status}</span>`}${window.WorkflowUI ? WorkflowUI.timeline(article.workflow_steps) : ""}${article.rejection_reason ? `<span class="workflow-summary__reason">${window.WorkflowUI ? WorkflowUI.escapeHtml(article.rejection_reason) : article.rejection_reason}</span>` : ""}</div></td>
+      <td><div class="workflow-summary">${window.WorkflowUI ? WorkflowUI.statusBadge(status) : `<span class="status-badge status-badge--${statusKey}">${status}</span>`}${window.WorkflowUI ? WorkflowUI.timeline(article.workflow_steps) : ""}${article.rejection_reason ? `<span class="workflow-summary__reason">${article.rejection_reason}</span>` : ""}</div></td>
       <td>${imageMarkup}</td>
       <td class="table-actions">
        
  <button type="button" class="table-action table-action--view view-article" data-id="${article.id}" data-content='${article.content}'   data-id='${article.id}'data-tags='${article.tags}' data-email='${article.email}' data-subtitle='${article.subtitle}' data-title="${title}" data-category="${category}" data-publish-date="${publishDate}" data-status="${status}" data-image="${imageUrl}">View</button>
- <button type="button" class="table-action table-action--edit edit-article" data-id="${article.id}">Edit</button>
+ ${status === "published" ? "" : `<button type="button" class="table-action table-action--edit edit-article" data-id="${article.id}">Edit</button>`}
         <button type="button" class="table-action table-action--delete delete-article" data-id="${article.id}">Delete</button>
         ${window.WorkflowUI ? WorkflowUI.actionButtons(article.available_actions, article.id) : ""}
       </td>
@@ -351,36 +283,25 @@ $(document).on('keydown', function (event) {
 
   
 
-  // Fetch and display articles
-  function fetchArticles() {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      window.location.replace("/");
-      return;
-    }
-
-    $.ajax({
-      url: "/articles/search/", // Correct the URL if needed
-      type: "GET",
-      headers: { Authorization: "Bearer " + token },
-      success: function (response) {
-        const articles = response.articles || [];
-        $("#article-list").empty();
-        if (articles.length === 0) {
-          $("#no-articles-message").show();
-        } else {
-          $("#no-articles-message").hide();
-          articles.forEach(appendArticle);
-        }
-      },
-      error: function () {
-        alert("Error fetching articles.");
-      },
-    });
+  // Load every page so older drafts remain available in the dashboard.
+  async function fetchArticles() {
+    try {
+      const articles = await WorkflowUI.allArticles();
+      $('#article-list').empty();
+      articles.forEach(appendArticle);
+      $('#no-articles-message').toggle(!articles.length);
+      $('#search-bar').trigger('input');
+    } catch (error) { alert(error.message); }
   }
+  $('#search-bar').on('input', function () {
+    const query = this.value.trim().toLowerCase();
+    $('#article-list tr').each(function () {
+      $(this).toggle($(this).text().toLowerCase().includes(query));
+    });
+  });
 $(document).ready(function () {
     // Edit Article (Dynamic Content Event Delegation)
-    $(document).on('click', '.edit-article', function () {
+    $(document).on('click', '.edit-article', async function () {
       const articleId = $(this).data('id');
       
       if (!articleId) {
@@ -388,7 +309,9 @@ $(document).ready(function () {
         return;
       }
   
-      const token = localStorage.getItem('access_token');
+      let token;
+      try { token = await WorkspaceUI.ensureAccess(); }
+      catch (error) { alert(error.message); return; }
       if (!token) {
         alert("Please log in to edit the article.");
         return;
@@ -398,12 +321,12 @@ $(document).ready(function () {
   
       // Fetch the article details via AJAX
       $.ajax({
-        url: `/articles/edit/${articleId}/`, // Ensure the correct API URL
+        url: `/articles/api/v2/articles/${articleId}/`, // Ensure the correct API URL
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
         success: function (response) {
-          if (response.article) {
-            const article = response.article;
+          if (response.id) {
+            const article = response;
   
             // Populate the modal fields with article data
             $('#editTitle').val(article.title);
@@ -427,11 +350,13 @@ $(document).ready(function () {
     });
   
     // Save Edited Article (Submit Changes)
-    $('#edit-article-form').on('submit', function (e) {
+    $('#edit-article-form').on('submit', async function (e) {
       e.preventDefault();
   
       const articleId = $('#editArticleId').val();
-      const token = localStorage.getItem('access_token');
+      let token;
+      try { token = await WorkspaceUI.ensureAccess(); }
+      catch (error) { alert(error.message); return; }
       if (!token) {
         alert("Please log in to save the article.");
         return;
@@ -443,31 +368,19 @@ $(document).ready(function () {
         subtitle: $('#editSubtitle').val(),
         content: $('#editContent').val(),
         category: $('#editCategory').val(),
-        tags: $('#editTags').val().split(", "),  // Convert tags string to an array
+        tags: $('#editTags').val(),  // Convert tags string to an array
       };
   
       // Send the updated article data via AJAX
       $.ajax({
-        url: `/articles/edit/${articleId}/`,  // Ensure the update URL is correct
+        url: `/articles/api/v2/articles/${articleId}/`,  // Ensure the update URL is correct
         method: "PATCH",  // Method to update the article
         headers: { Authorization: `Bearer ${token}` },
         data: updatedArticle,
         success: function (response) {
-          if (response.success) {
-            // Show success modal
-            showSuccessModal();
-            $('#editArticleModal').show();
-
-            $('#editArticleModal').hide(); // Close the edit modal
-            
-            // Optionally reload the page to reflect changes
-            setTimeout(function () {
-              location.reload();
-            }, 1000);  // Close after 2 seconds or you can hide the modal manually
-          } else {
-            console.log(" Updating article successfully.");
-            $('#editArticleModal').hide();
-          }
+          $('#editArticleModal').hide();
+          fetchArticles();
+          $('#successModal').show();
         },
         error: function (err) {
           alert("Error updating article.");
@@ -492,8 +405,10 @@ $(document).on("click", ".delete-article", function () {
   $('#confirmation-modal').fadeIn();
   
   // When the "Yes" button is clicked
-  $('#confirm-delete').click(function () {
-    const token = localStorage.getItem("access_token");
+  $('#confirm-delete').off('click').on('click', async function () {
+    let token;
+    try { token = await WorkspaceUI.ensureAccess(); }
+    catch (error) { alert(error.message); return; }
     $.ajax({
       url: `/articles/delete/${articleId}/`,
       type: "DELETE",
@@ -510,7 +425,7 @@ $(document).on("click", ".delete-article", function () {
       },
     });
   });
-  $('#cancel-delete').click(function () {
+  $('#cancel-delete').off('click').on('click', function () {
     $('#confirmation-modal').fadeOut();  
   });
 });

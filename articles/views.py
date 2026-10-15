@@ -116,8 +116,13 @@ def user_profile(request):
     # Return user profile data
     return JsonResponse({'username': 'JohnDoe', 'email': 'john@example.com'})
 class ArticleCountAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        article_count = Article.objects.count()  # Get the count of articles
+        articles = Article.objects.all()
+        if request.user.role == 'Journalist':
+            articles = articles.filter(author=request.user)
+        article_count = articles.count()
         return Response({'article_count': article_count})
 
 class ArticlePagination(PageNumberPagination):
@@ -386,7 +391,7 @@ class ArticleDeleteView(APIView):
         # Delete the article
         article.delete()
 
-        return Response({'message': 'Article deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ArticleApproveView(APIView):

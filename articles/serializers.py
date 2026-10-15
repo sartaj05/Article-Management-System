@@ -14,8 +14,8 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'article', 'user', 'created_at']
 
 class ArticleSerializer(serializers.ModelSerializer):
-    tags = serializers.CharField(read_only=True)  # If tags is a string field; adjust if it's ManyToMany
-    category = serializers.CharField(read_only=True)  # Adjust if category is a ForeignKey
+    tags = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    category = serializers.ChoiceField(choices=Article.CATEGORY_CHOICES, required=False)
     comments = CommentSerializer(many=True, read_only=True)
     likes_count = serializers.IntegerField(source='likes.count', read_only=True)
     views_count = serializers.IntegerField(source='views.count', read_only=True)
