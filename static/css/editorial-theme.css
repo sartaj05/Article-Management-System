@@ -831,3 +831,17 @@ body.site-shell, body.auth-shell { background: var(--surface-soft); }
 .article-follow__signin { margin: 12px 0 22px; color: var(--muted); font-size: .82rem; }
 .article-follow__signin a { color: var(--brand); font-weight: 750; }
 @media (max-width: 560px) { .article-follow { align-items: stretch; } .article-follow__label, .article-follow__status { flex-basis: 100%; } .article-follow .button { flex: 1; } }
+.article-correction-history { margin: 24px 0; padding: clamp(20px, 3vw, 30px); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.article-correction-history__heading h2 { margin: 5px 0; color: var(--ink); font-size: 1.25rem; letter-spacing: -.03em; }
+.article-correction-history__heading p { margin: 0; color: var(--muted); font-size: .82rem; }
+.article-correction-history ol { display: grid; gap: 0; margin: 20px 0 0; padding: 0; list-style: none; }
+.article-correction-history li { position: relative; display: grid; gap: 8px; padding: 0 0 22px 20px; border-left: 1px solid var(--line); }
+.article-correction-history li:last-child { padding-bottom: 0; border-left-color: transparent; }
+.article-correction-history li::before { position: absolute; top: 4px; left: -5px; width: 9px; height: 9px; border: 2px solid var(--surface); border-radius: 50%; background: var(--accent); content: ""; }
+.article-correction-history time { color: var(--muted); font-size: .72rem; font-weight: 750; }
+.article-correction-history li > p { margin: 0; color: var(--ink); font-size: .9rem; line-height: 1.65; }
+.article-correction-history__change { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.article-correction-history__change > div { display: grid; gap: 5px; padding: 10px 12px; border-radius: 8px; background: var(--surface-soft); }
+.article-correction-history__change span { color: var(--muted); font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.article-correction-history__change del, .article-correction-history__change ins { color: var(--ink); font-size: .82rem; line-height: 1.6; text-decoration-thickness: 1px; }
+@media (max-width: 560px) { .article-correction-history__change { grid-template-columns: 1fr; } }
