@@ -1,1 +1,36 @@
-{% extends 'users/base.html' %}{% load static %}{% block title %}Newsletter campaigns | Article Studio{% endblock %}{% block content %}<section class="account-page container"><header class="account-page__header"><div><span class="eyebrow">Audience distribution</span><h1>Newsletter campaigns</h1><p>Create a draft newsletter, review the audience size, and send it when ready.</p></div></header><section class="account-panel"><form id="newsletter-form" class="newsletter-form"><label>Frequency<select name="frequency"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option></select></label><label>Subject<input name="subject" maxlength="200" required placeholder="This week in the newsroom"></label><label>Body<textarea name="body" rows="8" required placeholder="Write the newsletter content…"></textarea></label><button class="button" type="submit">Save draft</button></form><p id="newsletter-status" class="account-status" role="status" aria-live="polite"></p></section><section class="account-panel"><h2>Recent campaigns</h2><div id="newsletter-editions" class="newsletter-edition-list"></div></section></section><script src="{% static 'js/newsletter-campaigns.js' %}" defer></script>{% endblock %}
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Newsletter campaigns | Article Studio{% endblock %}
+
+{% block content %}
+<section class="account-page container">
+    <header class="account-page__header">
+        <div><span class="eyebrow">Audience distribution</span><h1>Newsletter campaigns</h1><p>Create a draft, send it to the selected audience, and see which campaigns lead to memberships.</p></div>
+    </header>
+
+    <section class="account-panel newsletter-analytics" aria-labelledby="newsletter-analytics-title">
+        <div class="account-panel__heading"><div><span class="feature-eyebrow">Campaign performance</span><h2 id="newsletter-analytics-title">Reach and membership conversions</h2><p class="account-panel__description">Unique campaign clicks, checkout starts, completed memberships, and recorded revenue.</p></div><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+        <p id="newsletter-analytics-status" class="account-status" role="status" aria-live="polite">Loading campaign results…</p>
+        <div id="newsletter-analytics-summary" class="newsletter-analytics__summary"></div>
+        <div id="newsletter-analytics-list" class="newsletter-analytics__list"></div>
+    </section>
+
+    <section class="account-panel">
+        <h2>Create a campaign</h2>
+        <form id="newsletter-form" class="newsletter-form">
+            <label>Frequency<select name="frequency"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option></select></label>
+            <label>Subject<input name="subject" maxlength="200" required placeholder="This week in the newsroom"></label>
+            <label>Body<textarea name="body" rows="8" required placeholder="Write the newsletter content…"></textarea></label>
+            <button class="button" type="submit">Save draft</button>
+        </form>
+        <p id="newsletter-status" class="account-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="account-panel">
+        <h2>Recent campaigns</h2>
+        <div id="newsletter-editions" class="newsletter-edition-list"></div>
+    </section>
+</section>
+<script src="{% static 'js/newsletter-campaigns.js' %}?v=20261021-2" defer></script>
+{% endblock %}

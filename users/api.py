@@ -24,7 +24,7 @@ from decimal import Decimal
 
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
-    MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
+    MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
@@ -204,13 +204,65 @@ class NewsletterEditionView(APIView):
         if action == 'send':
             edition = get_object_or_404(NewsletterEdition, pk=request.data.get('id'), status='draft')
             recipients = list(NewsletterSubscription.objects.filter(is_active=True, frequency=edition.frequency).values_list('email', flat=True))
-            send_mail(edition.subject, edition.body, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=True)
+            campaign_url = request.build_absolute_uri(f'/newsletter/campaign/{edition.id}/')
+            message = f'{edition.body}\n\nExplore member-only stories and support the newsroom:\n{campaign_url}'
+            send_mail(edition.subject, message, settings.DEFAULT_FROM_EMAIL, recipients, fail_silently=True)
             edition.status = 'sent'; edition.recipient_count = len(recipients); edition.sent_at = timezone.now(); edition.save(update_fields=['status', 'recipient_count', 'sent_at'])
             return Response({'id': edition.id, 'status': edition.status, 'recipient_count': edition.recipient_count, 'sent_at': edition.sent_at})
         serializer = NewsletterEditionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         edition = serializer.save(status='draft')
         return Response({'id': edition.id, 'frequency': edition.frequency, 'subject': edition.subject, 'body': edition.body, 'status': edition.status, 'recipient_count': edition.recipient_count}, status=201)
+
+
+class NewsletterConversionAnalyticsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        editions = NewsletterEdition.objects.filter(status='sent').order_by('-sent_at')[:50]
+        campaigns = []
+        totals = {'recipients': 0, 'clicks': 0, 'checkouts': 0, 'conversions': 0, 'revenue_by_currency': {}}
+        for edition in editions:
+            attributions = NewsletterCampaignAttribution.objects.filter(edition=edition)
+            clicks = attributions.count()
+            checkouts = attributions.filter(checkout_started_at__isnull=False).count()
+            conversions = attributions.filter(converted_at__isnull=False).count()
+            revenue_by_currency = list(PaymentTransaction.objects.filter(
+                newsletter_attributions__edition=edition,
+                status='succeeded',
+            ).values('currency').annotate(total=models.Sum('amount')).order_by('currency'))
+            for amount in revenue_by_currency:
+                amount['total'] = str(amount['total'])
+            campaigns.append({
+                'id': edition.id,
+                'subject': edition.subject,
+                'frequency': edition.frequency,
+                'sent_at': edition.sent_at,
+                'recipient_count': edition.recipient_count,
+                'clicks': clicks,
+                'checkouts': checkouts,
+                'conversions': conversions,
+                'conversion_rate': round(conversions * 100 / clicks, 1) if clicks else 0,
+                'revenue_by_currency': revenue_by_currency,
+            })
+            totals['recipients'] += edition.recipient_count
+            totals['clicks'] += clicks
+            totals['checkouts'] += checkouts
+            totals['conversions'] += conversions
+            for amount in revenue_by_currency:
+                currency = amount['currency']
+                totals['revenue_by_currency'][currency] = str(
+                    Decimal(totals['revenue_by_currency'].get(currency, '0.00')) + Decimal(amount['total'])
+                )
+        totals['conversion_rate'] = round(totals['conversions'] * 100 / totals['clicks'], 1) if totals['clicks'] else 0
+        totals['revenue_by_currency'] = [
+            {'currency': currency, 'total': total}
+            for currency, total in sorted(totals['revenue_by_currency'].items())
+        ]
+        return Response({'summary': totals, 'campaigns': campaigns})
 
 
 class PushSubscriptionSerializer(serializers.ModelSerializer):
@@ -726,6 +778,15 @@ class MembershipCheckoutView(APIView):
         provider = str(request.data.get('provider', getattr(settings, 'PAYMENT_PROVIDER', 'manual'))).strip().lower()
         if provider not in {'manual', 'stripe', 'razorpay'}:
             return Response({'detail': 'Choose manual, stripe, or razorpay.'}, status=400)
+        attribution = NewsletterCampaignAttribution.objects.filter(
+            pk=request.session.get('newsletter_attribution_id'),
+            clicked_at__gte=timezone.now() - timedelta(days=30),
+            converted_at__isnull=True,
+        ).first()
+        if attribution:
+            attribution.user = request.user
+            attribution.checkout_started_at = timezone.now()
+            attribution.save(update_fields=['user', 'checkout_started_at'])
         subscription, _ = MembershipSubscription.objects.update_or_create(
             user=request.user, plan=plan, status__in=['pending', 'canceled'],
             defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': provider, 'started_at': timezone.now() if plan.price == 0 else None},
@@ -733,7 +794,14 @@ class MembershipCheckoutView(APIView):
         if plan.price > 0:
             transaction = PaymentTransaction.objects.create(user=request.user, plan=plan, provider=provider, checkout_token=secrets.token_urlsafe(40), amount=plan.price, currency=plan.currency)
             invoice = MembershipInvoice.objects.create(invoice_number=f'AS-{timezone.now().strftime("%Y%m%d")}-{transaction.id:06d}', user=request.user, plan=plan, transaction=transaction, amount=plan.price, currency=plan.currency, status='issued', due_at=timezone.now() + timedelta(days=7))
+            if attribution:
+                attribution.transaction = transaction
+                attribution.save(update_fields=['transaction'])
             return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
+        if attribution:
+            attribution.subscription = subscription
+            attribution.converted_at = timezone.now()
+            attribution.save(update_fields=['subscription', 'converted_at'])
         return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
 
 
@@ -819,6 +887,29 @@ class MembershipWebhookView(APIView):
                 'auto_renew': event_type == 'subscription.active',
             },
         )
+        if event_type == 'subscription.active':
+            transaction_query = PaymentTransaction.objects.filter(user=user, plan=plan, status='pending')
+            if data.get('transaction_id'):
+                transaction_query = transaction_query.filter(pk=data['transaction_id'])
+            elif data.get('checkout_token'):
+                transaction_query = transaction_query.filter(checkout_token=data['checkout_token'])
+            payment = transaction_query.order_by('-created_at').first()
+            if payment:
+                payment.status = 'succeeded'
+                payment.provider_reference = str(data.get('provider_reference', payment.provider_reference))[:160]
+                payment.save(update_fields=['status', 'provider_reference', 'updated_at'])
+            attribution = NewsletterCampaignAttribution.objects.filter(transaction=payment).first() if payment else None
+            if attribution is None:
+                attribution = NewsletterCampaignAttribution.objects.filter(
+                    user=user,
+                    checkout_started_at__isnull=False,
+                    converted_at__isnull=True,
+                ).order_by('-checkout_started_at').first()
+            if attribution:
+                attribution.user = user
+                attribution.subscription = subscription
+                attribution.converted_at = timezone.now()
+                attribution.save(update_fields=['user', 'subscription', 'converted_at'])
         return Response({'processed': True, 'subscription_id': subscription.id})
 
 

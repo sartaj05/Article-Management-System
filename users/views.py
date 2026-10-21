@@ -10,7 +10,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.generics import ListAPIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.http import JsonResponse
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -31,7 +31,7 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from users.models import CustomUser as User, SecurityEvent, SecuritySession, TwoFactorAuth, TrustedDevice
+from users.models import CustomUser as User, NewsletterCampaignAttribution, NewsletterEdition, SecurityEvent, SecuritySession, TwoFactorAuth, TrustedDevice
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 from users.decorators import role_required
@@ -193,6 +193,22 @@ def logout_template(request):
 @login_required(login_url='/login-template/')
 def account_settings(request):
     return render(request, 'users/account_settings.html')
+
+
+def newsletter_campaign_landing(request, edition_id):
+    edition = get_object_or_404(NewsletterEdition, pk=edition_id, status='sent')
+    if not request.session.session_key:
+        request.session.create()
+    attribution, _ = NewsletterCampaignAttribution.objects.get_or_create(
+        edition=edition,
+        visitor_key=request.session.session_key,
+        defaults={'user': request.user if request.user.is_authenticated else None},
+    )
+    if request.user.is_authenticated and attribution.user_id is None:
+        attribution.user = request.user
+        attribution.save(update_fields=['user'])
+    request.session['newsletter_attribution_id'] = attribution.id
+    return redirect('membership-plans-page')
 
 
 @role_required('Editor', 'Admin')
