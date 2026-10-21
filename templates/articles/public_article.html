@@ -30,6 +30,16 @@
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.subtitle %}<p class="article-subtitle">{{ article.subtitle }}</p>{% endif %}
     <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>
+    {% if request.user.is_authenticated %}
+    <div class="article-follow" data-article-follow>
+        <span class="article-follow__label">Personalize your feed</span>
+        <button class="button button--secondary button--small" type="button" data-follow-type="author" data-follow-value="{{ article.author.username }}">Follow author</button>
+        {% if article.category %}<button class="button button--secondary button--small" type="button" data-follow-type="category" data-follow-value="{{ article.category }}">Follow {{ article.category }}</button>{% endif %}
+        <span class="article-follow__status" role="status" aria-live="polite"></span>
+    </div>
+    {% else %}
+    <p class="article-follow__signin"><a href="{% url 'user-login-template' %}?next={{ request.path|urlencode }}">Sign in</a> to follow this author and topic.</p>
+    {% endif %}
     {% if article.is_premium and not has_article_access %}
     <section class="premium-article-gate" aria-labelledby="premium-gate-title">
         <span class="feature-eyebrow">Premium story</span>
@@ -64,4 +74,5 @@
     </section>{% endif %}
 </article>
 {% if request.user.is_authenticated %}<script src="{% static 'js/public-comments.js' %}" defer></script>{% endif %}
+{% if request.user.is_authenticated %}<script src="{% static 'js/article-follows.js' %}?v=20261021-1" defer></script>{% endif %}
 {% endblock %}

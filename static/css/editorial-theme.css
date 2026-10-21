@@ -823,3 +823,11 @@ body.site-shell, body.auth-shell { background: var(--surface-soft); }
   .dashboard-shell .workspace-topbar__actions button, .button, .btn,
   .btn-primary, .btn-secondary, .btn-danger { transition: none; }
 }
+
+.article-follow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 24px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); }
+.article-follow__label { margin-right: 4px; color: var(--muted); font-size: .76rem; font-weight: 750; }
+.article-follow__status { flex-basis: 100%; min-height: 1em; color: var(--muted); font-size: .72rem; }
+.article-follow [aria-pressed="true"] { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 35%, var(--line)); background: var(--surface); }
+.article-follow__signin { margin: 12px 0 22px; color: var(--muted); font-size: .82rem; }
+.article-follow__signin a { color: var(--brand); font-weight: 750; }
+@media (max-width: 560px) { .article-follow { align-items: stretch; } .article-follow__label, .article-follow__status { flex-basis: 100%; } .article-follow .button { flex: 1; } }
