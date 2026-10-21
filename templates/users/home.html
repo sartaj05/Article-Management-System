@@ -4,26 +4,19 @@
 
 {% block content %}
 <div class="container reading-desk">
-    <aside class="reading-rail" aria-label="Explore the newsroom">
-        <div class="rail-heading"><span class="rail-monogram" aria-hidden="true">a.</span><span>YOUR DAILY<br>DOSE OF IDEAS</span></div>
-        <span class="eyebrow rail-label">Explore</span>
-        <div class="feed-switcher" role="group" aria-label="Article feed type">
-            <button type="button" data-feed-mode="featured" aria-pressed="true"><span aria-hidden="true">✳</span> Featured <span class="rail-arrow" aria-hidden="true">↗</span></button>
-            <button type="button" data-feed-mode="trending" aria-pressed="false"><span aria-hidden="true">↗</span> Trending <span class="rail-arrow" aria-hidden="true">↗</span></button>
-        </div>
-        <a class="rail-library" href="{% url 'home' %}#articles"><i class="fa-regular fa-newspaper" aria-hidden="true"></i> Reading room</a>
-        <div class="rail-note"><span class="eyebrow">From idea to impact</span><h2>Your voice belongs here.</h2><p>Give your next story a place to grow.</p><a href="{% url 'user-register-template' %}">Start writing <span aria-hidden="true">↗</span></a></div>
-        <a class="rail-signin" href="{% url 'user-login-template' %}">Already a writer? Log in →</a>
-    </aside>
     <div class="reading-content">
         <section class="hero desk-masthead" aria-labelledby="desk-title">
             <div class="desk-kicker"><span><span class="desk-dot" aria-hidden="true"></span> THE OPEN NOTEBOOK</span><span>READ. THINK. REPEAT.</span></div>
             <h1 id="desk-title">The newsroom<span>.</span></h1>
-            <div class="desk-intro"><p>Different voices. A wider perspective.<br> Find your next good read, right here.</p><a class="button button--light" href="#articles">Find a story <span aria-hidden="true">↓</span></a></div>
+            <div class="desk-intro"><p>Different voices. A wider perspective.<br>Find your next good read, right here.</p><a class="button button--light" href="#articles">Find a story <span aria-hidden="true">↓</span></a></div>
         </section>
         <section id="articles" class="feed-section" aria-labelledby="feed-title">
             <div class="section-heading"><div><span class="eyebrow">On the reading list</span><h2 id="feed-title">Worth your attention</h2></div><span class="desk-section-number" aria-hidden="true">01 / DISCOVER</span></div>
-            <div class="feed-toolbar">
+            <div class="feed-controls">
+                <div class="feed-switcher" role="group" aria-label="Article feed type">
+                    <button type="button" data-feed-mode="featured" aria-pressed="true"><span aria-hidden="true">✳</span> Featured</button>
+                    <button type="button" data-feed-mode="trending" aria-pressed="false"><span aria-hidden="true">↗</span> Trending</button>
+                </div>
                 <label class="search-field" for="article-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search articles</span><input id="article-search" type="search" placeholder="Find a story, topic, or idea…" autocomplete="off"></label>
                 <label class="sr-only" for="article-sort">Sort search results</label>
                 <select id="article-sort" class="select-field" aria-label="Sort search results" hidden><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="relevance">Most relevant</option></select>

@@ -644,3 +644,49 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
   .button:hover { transform: none; }
   .skeleton { animation: none; }
 }
+
+/* A quieter, single-column reading desk with the feed controls beside the search. */
+.reading-desk { display: block; padding-block: clamp(42px, 6vw, 76px) 18px; }
+.reading-content { width: min(100%, 1040px); margin-inline: auto; }
+.desk-masthead { padding-bottom: clamp(34px, 5vw, 56px); }
+.desk-masthead h1 { margin-block: clamp(26px, 4vw, 42px) 20px; font-size: clamp(3rem, 6.8vw, 5.5rem); }
+.desk-intro p { font-size: .98rem; line-height: 1.85; }
+.desk-masthead .button--light { padding: 14px 19px; }
+.reading-content .feed-section { padding-top: clamp(36px, 5vw, 54px); }
+.section-heading { margin-bottom: 26px; }
+.section-heading h2 { font-size: clamp(1.55rem, 2.5vw, 1.9rem); }
+.feed-controls { display: grid; grid-template-columns: auto minmax(220px, 1fr); align-items: center; gap: 18px; }
+.feed-controls .feed-switcher { display: flex; align-items: center; gap: 5px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); }
+.feed-controls .feed-switcher button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 8px 13px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); background: transparent; font-size: .8rem; font-weight: 650; cursor: pointer; }
+.feed-controls .feed-switcher button[aria-pressed="true"] { color: var(--ink); border-color: var(--line); background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.feed-controls .feed-switcher button span { font-size: .95rem; }
+.feed-controls .search-field { min-height: 48px; }
+.feed-status { margin-block: 18px 20px; }
+.reading-content .article-grid { gap: 24px; }
+.reading-content .article-card { grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); border-radius: 10px; }
+.reading-content .article-cover { min-height: 300px; }
+.reading-content .article-info { padding: clamp(26px, 3.5vw, 40px); }
+.article-info h3 { margin-block: 17px 13px; font-size: clamp(1.35rem, 2.5vw, 1.8rem); line-height: 1.25; }
+.article-summary { font-size: .86rem; line-height: 1.8; }
+.desk-endnote { margin-top: 18px; padding-block: 30px 24px; }
+
+@media (max-width: 850px) {
+  .reading-desk { padding-top: 34px; }
+}
+@media (max-width: 720px) {
+  .reading-desk { padding-block: 28px 10px; }
+  .desk-masthead h1 { font-size: clamp(2.6rem, 11vw, 4rem); }
+  .desk-kicker { font-size: .56rem; }
+  .feed-controls { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .feed-controls .feed-switcher { justify-self: start; }
+  .reading-content .article-cover { min-height: 0; }
+  .reading-content .article-info { padding: 24px; }
+}
+@media (max-width: 480px) {
+  .desk-kicker > span:last-child { display: none; }
+  .desk-intro { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .desk-intro p br { display: none; }
+  .desk-section-number { display: none; }
+  .feed-controls .feed-switcher { width: 100%; }
+  .feed-controls .feed-switcher button { flex: 1; }
+}
