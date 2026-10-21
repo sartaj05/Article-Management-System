@@ -45,7 +45,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
@@ -170,6 +170,10 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/bookmark/', BookmarkToggleView.as_view(), name='article-bookmark-toggle'),
     path('api/v2/articles/<int:article_id>/progress/', ReadingProgressView.as_view(), name='article-reading-progress'),
     path('api/v2/bookmarks/', BookmarkListView.as_view(), name='bookmarks'),
+    path('api/v2/reading-collections/', ReadingCollectionsView.as_view(), name='reading-collections'),
+    path('api/v2/reading-collections/<int:collection_id>/', ReadingCollectionDetailView.as_view(), name='reading-collection-detail'),
+    path('api/v2/reading-collections/<int:collection_id>/articles/', ReadingCollectionArticleView.as_view(), name='reading-collection-articles'),
+    path('api/v2/reading-collections/<int:collection_id>/articles/<int:article_id>/', ReadingCollectionArticleView.as_view(), name='reading-collection-article-detail'),
     path('api/v2/articles/<int:article_id>/reactions/', ArticleReactionView.as_view(), name='article-reactions'),
     path('api/v2/articles/<int:article_id>/plagiarism/', PlagiarismCheckView.as_view(), name='article-plagiarism'),
     path('api/v2/articles/<int:article_id>/moderation/', ModerationView.as_view(), name='article-moderation'),

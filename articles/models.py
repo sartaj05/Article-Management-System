@@ -230,6 +230,35 @@ class Bookmark(models.Model):
         ]
 
 
+class ReadingCollection(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reading_collections')
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', 'name']
+        constraints = [models.UniqueConstraint(fields=['user', 'name'], name='unique_reading_collection_name')]
+
+    def __str__(self):
+        return f'{self.user.username}: {self.name}'
+
+
+class ReadingCollectionArticle(models.Model):
+    collection = models.ForeignKey(ReadingCollection, on_delete=models.CASCADE, related_name='items')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reader_collections')
+    position = models.PositiveIntegerField(default=0)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['position', '-added_at']
+        constraints = [models.UniqueConstraint(fields=['collection', 'article'], name='unique_collection_article')]
+
+    def __str__(self):
+        return f'{self.collection.name}: {self.article.title}'
+
+
 class ReadingProgress(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reading_progress')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reading_progress')

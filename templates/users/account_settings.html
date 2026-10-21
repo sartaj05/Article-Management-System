@@ -41,6 +41,20 @@
             <div id="reader-interests" class="interest-list" aria-live="polite"></div>
         </section>
 
+        <section class="account-panel account-panel--wide" id="reading-collections" aria-labelledby="reading-collections-title">
+            <div class="account-panel__heading">
+                <div><span class="feature-eyebrow">Your library</span><h2 id="reading-collections-title">Reading collections</h2><p class="account-panel__description">Organize published stories into private lists you can return to later.</p></div>
+                <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+            </div>
+            <form id="reading-collection-form" class="interest-form">
+                <label>Collection name<input name="name" maxlength="80" required placeholder="Research for later"></label>
+                <label>Description <span class="muted">(optional)</span><input name="description" maxlength="240" placeholder="Stories to revisit"></label>
+                <button class="button" type="submit"><i class="fa-solid fa-plus" aria-hidden="true"></i> Create collection</button>
+            </form>
+            <p id="reading-collection-status" class="account-status" role="status" aria-live="polite"></p>
+            <div id="reading-collection-list" class="reading-collection-list" aria-live="polite"></div>
+        </section>
+
         <section class="account-panel account-panel--wide" id="saved-searches" aria-labelledby="saved-searches-title">
             <div class="account-panel__heading">
                 <div>
@@ -97,4 +111,5 @@
     </div>
 </section>
 <script src="{% static 'js/account-settings.js' %}" defer></script>
+<script src="{% static 'js/reading-collections.js' %}?v=20261021-1" defer></script>
 {% endblock %}

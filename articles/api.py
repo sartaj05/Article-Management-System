@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -1274,6 +1274,77 @@ class BookmarkToggleView(APIView):
         if not created:
             bookmark.delete()
         return Response({'article': article.id, 'bookmarked': created})
+
+
+class ReadingCollectionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def serialize_collection(self, collection):
+        items = []
+        for item in collection.items.select_related('article').all():
+            article = item.article
+            items.append({
+                'id': item.id,
+                'article_id': article.id,
+                'title': article.title,
+                'slug': article.slug,
+                'category': article.category,
+                'summary': article.summary,
+                'image': article.image.url if article.image else '',
+                'added_at': item.added_at,
+                'url': f'/articles/read/{article.slug}/',
+            })
+        return {
+            'id': collection.id,
+            'name': collection.name,
+            'description': collection.description,
+            'created_at': collection.created_at,
+            'updated_at': collection.updated_at,
+            'items': items,
+        }
+
+    def get(self, request):
+        collections = ReadingCollection.objects.filter(user=request.user).prefetch_related('items__article')
+        return Response([self.serialize_collection(collection) for collection in collections])
+
+    def post(self, request):
+        name = str(request.data.get('name', '')).strip()
+        description = str(request.data.get('description', '')).strip()
+        if not name or len(name) > 80:
+            return Response({'detail': 'Enter a collection name of 1 to 80 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(description) > 240:
+            return Response({'detail': 'Collection descriptions must be 240 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+        if ReadingCollection.objects.filter(user=request.user, name__iexact=name).exists():
+            return Response({'detail': 'You already have a collection with that name.'}, status=status.HTTP_409_CONFLICT)
+        collection = ReadingCollection.objects.create(user=request.user, name=name, description=description)
+        return Response(self.serialize_collection(collection), status=status.HTTP_201_CREATED)
+
+
+class ReadingCollectionDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, collection_id):
+        collection = get_object_or_404(ReadingCollection, pk=collection_id, user=request.user)
+        collection.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ReadingCollectionArticleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, collection_id):
+        collection = get_object_or_404(ReadingCollection, pk=collection_id, user=request.user)
+        article = get_object_or_404(Article, pk=request.data.get('article_id'), workflow_status='published', is_visible=True)
+        item, created = ReadingCollectionArticle.objects.get_or_create(collection=collection, article=article)
+        collection.save(update_fields=['updated_at'])
+        return Response({'id': item.id, 'collection_id': collection.id, 'article_id': article.id, 'added': created}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    def delete(self, request, collection_id, article_id):
+        collection = get_object_or_404(ReadingCollection, pk=collection_id, user=request.user)
+        item = get_object_or_404(ReadingCollectionArticle, collection=collection, article_id=article_id)
+        item.delete()
+        collection.save(update_fields=['updated_at'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ReadingProgressView(APIView):
