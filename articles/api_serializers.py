@@ -233,7 +233,7 @@ class ReadingProgressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReadingProgress
-        fields = ['id', 'article', 'article_title', 'progress_percent', 'position_seconds', 'completed', 'updated_at']
+        fields = ['id', 'article', 'article_title', 'media_key', 'progress_percent', 'position_seconds', 'completed', 'updated_at']
         read_only_fields = ['id', 'article', 'article_title', 'updated_at']
 
     def validate_progress_percent(self, value):

@@ -863,6 +863,8 @@ body.site-shell, body.auth-shell { background: var(--surface-soft); }
 .reading-collection li button { border: 0; color: var(--muted); background: transparent; font-size: .72rem; }
 .reading-collection li button:hover { color: #b42318; }
 .reading-collection__empty { margin: 14px 0 0; color: var(--muted); font-size: .78rem; }
+.article-audio-status { min-height: 1.2em; margin: 7px 0 0; color: var(--muted); font-size: .72rem; }
+.article-media audio { accent-color: var(--brand); }
 @media (max-width: 560px) {
   .article-collection-add > div { flex-direction: column; }
   .reading-collection > header { flex-direction: column; }

@@ -262,6 +262,7 @@ class ReadingCollectionArticle(models.Model):
 class ReadingProgress(models.Model):
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='reading_progress')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reading_progress')
+    media_key = models.CharField(max_length=255, blank=True, default='')
     progress_percent = models.PositiveSmallIntegerField(default=0)
     position_seconds = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
@@ -270,7 +271,7 @@ class ReadingProgress(models.Model):
     class Meta:
         ordering = ['-updated_at']
         constraints = [
-            models.UniqueConstraint(fields=['article', 'user'], name='unique_article_reading_progress'),
+            models.UniqueConstraint(fields=['article', 'user', 'media_key'], name='unique_article_media_reading_progress'),
         ]
 
 

@@ -1360,9 +1360,10 @@ class ReadingProgressView(APIView):
         article = self.get_article(request, article_id)
         if article is None:
             return Response({'detail': 'You cannot access this article progress.'}, status=status.HTTP_403_FORBIDDEN)
-        progress = ReadingProgress.objects.filter(article=article, user=request.user).first()
+        media_key = request.query_params.get('media_key', '')[:255]
+        progress = ReadingProgress.objects.filter(article=article, user=request.user, media_key=media_key).first()
         return Response(ReadingProgressSerializer(progress).data if progress else {
-            'article': article.id, 'article_title': article.title, 'progress_percent': 0,
+            'article': article.id, 'article_title': article.title, 'media_key': media_key, 'progress_percent': 0,
             'position_seconds': 0, 'completed': False,
         })
 
@@ -1379,10 +1380,11 @@ class ReadingProgressView(APIView):
         serializer = ReadingProgressSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         values = serializer.validated_data
+        media_key = values.pop('media_key', '')
         if values.get('progress_percent') == 100:
             values['completed'] = True
         progress, _ = ReadingProgress.objects.update_or_create(
-            article=article, user=request.user, defaults=values,
+            article=article, user=request.user, media_key=media_key, defaults=values,
         )
         return Response(ReadingProgressSerializer(progress).data)
 
