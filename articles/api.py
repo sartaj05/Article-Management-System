@@ -29,7 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, PersonalizationPreference, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
+from users.models import CustomUser, NewsletterCampaignAttribution, NewsletterEdition, PersonalizationPreference, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
 
@@ -2331,6 +2331,13 @@ class ArticleAnalyticsView(APIView):
             article = get_object_or_404(queryset, pk=article_id)
             if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
                 return Response({'detail': 'You cannot view these analytics.'}, status=status.HTTP_403_FORBIDDEN)
+            read_starts = article.engagement_events.filter(event_type='read_start').count()
+            completed_reads = article.engagement_events.filter(event_type='read_complete').count()
+            newsletter_conversions = sum(
+                edition.attributions.filter(converted_at__isnull=False).count()
+                for edition in NewsletterEdition.objects.filter(status='sent')
+                if str(article.id) in {str(article_id) for article_id in edition.article_ids}
+            )
             return Response({
                 'article_id': article.id,
                 'title': article.title,
@@ -2338,9 +2345,13 @@ class ArticleAnalyticsView(APIView):
                 'likes': article.likes.count(),
                 'comments': article.comments.count(),
                 'engagement_events': article.engagement_events.count(),
-                'completed_reads': article.engagement_events.filter(event_type='read_complete').count(),
+                'completed_reads': completed_reads,
                 'shares': article.engagement_events.filter(event_type='share').count(),
                 'average_read_progress': article.engagement_events.filter(event_type='read_progress').aggregate(avg=Avg('value'))['avg'] or 0,
+                'read_starts': read_starts,
+                'completion_rate': round(completed_reads * 100 / read_starts, 1) if read_starts else 0,
+                'engaged_readers': article.engagement_events.exclude(user__isnull=True).values('user_id').distinct().count(),
+                'newsletter_conversions': newsletter_conversions,
                 'workflow_status': article.workflow_status,
             })
 
@@ -2351,12 +2362,29 @@ class ArticleAnalyticsView(APIView):
         active_readers = event_queryset.exclude(user__isnull=True).values('user_id').distinct().count()
         returning_readers = event_queryset.exclude(user__isnull=True).filter(user_id__in=ArticleEngagementEvent.objects.filter(article__in=queryset, created_at__lt=window_start).values('user_id')).values('user_id').distinct().count()
         funnel = {event_type: event_queryset.filter(event_type=event_type).count() for event_type, _ in ArticleEngagementEvent.EVENT_CHOICES}
+        read_starts = funnel.get('read_start', 0)
+        completed_reads = funnel.get('read_complete', 0)
+        newsletter_conversions = 0
+        article_ids = {str(article_id) for article_id in queryset.values_list('id', flat=True)}
+        for edition in NewsletterEdition.objects.filter(status='sent'):
+            if article_ids.intersection(str(article_id) for article_id in edition.article_ids):
+                newsletter_conversions += edition.attributions.filter(converted_at__isnull=False).count()
         category_performance = list(queryset.values('category').annotate(views=Count('views'), articles=Count('id')).order_by('-views', '-articles')[:5])
-        top_authors = list(
-            queryset.values('author__username')
-            .annotate(article_count=Count('id'))
-            .order_by('-article_count', 'author__username')[:5]
-        )
+        author_ids = list(queryset.values_list('author_id', flat=True).distinct())
+        author_performance = []
+        for author_id in author_ids:
+            author_articles = queryset.filter(author_id=author_id)
+            author_events = ArticleEngagementEvent.objects.filter(article__in=author_articles, created_at__gte=window_start)
+            author_starts = author_events.filter(event_type='read_start').count()
+            author_completed = author_events.filter(event_type='read_complete').count()
+            author_performance.append({
+                'username': author_articles.first().author.username,
+                'article_count': author_articles.count(),
+                'views': sum(item.views.count() for item in author_articles),
+                'completed_reads': author_completed,
+                'completion_rate': round(author_completed * 100 / author_starts, 1) if author_starts else 0,
+            })
+        author_performance.sort(key=lambda item: (-item['views'], -item['completed_reads'], item['username']))
         return Response({
             'articles': queryset.count(),
             'published': queryset.filter(workflow_status='published').count(),
@@ -2371,14 +2399,15 @@ class ArticleAnalyticsView(APIView):
             'total_shares': ArticleEngagementEvent.objects.filter(
                 article__in=queryset, event_type='share',
             ).count(),
+            'total_read_starts': read_starts,
+            'read_completion_rate': round(completed_reads * 100 / read_starts, 1) if read_starts else 0,
+            'average_read_progress': event_queryset.filter(event_type='read_progress').aggregate(avg=Avg('value'))['avg'] or 0,
+            'newsletter_conversions': newsletter_conversions,
             'active_readers_7d': active_readers,
             'returning_readers_7d': returning_readers,
             'funnel': funnel,
             'category_performance': category_performance,
-            'top_authors': [
-                {'username': item['author__username'], 'article_count': item['article_count']}
-                for item in top_authors
-            ],
+            'top_authors': author_performance[:5],
         })
 
 
