@@ -685,6 +685,8 @@ class DistributionJob(models.Model):
     last_attempt_at = models.DateTimeField(null=True, blank=True)
     scheduled_for = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
+    provider_reference = models.CharField(max_length=160, blank=True)
+    provider_response = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

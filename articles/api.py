@@ -2225,7 +2225,7 @@ class DistributionJobView(APIView):
         return Response({
             'count': queryset.count(),
             'summary': {key: queryset.filter(status=key).count() for key, _ in DistributionJob.STATUS_CHOICES},
-            'jobs': [{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'idempotency_key': job.idempotency_key, 'scheduled_for': job.scheduled_for, 'last_attempt_at': job.last_attempt_at, 'delivered_at': job.delivered_at} for job in jobs],
+            'jobs': [{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'idempotency_key': job.idempotency_key, 'scheduled_for': job.scheduled_for, 'last_attempt_at': job.last_attempt_at, 'delivered_at': job.delivered_at, 'provider_reference': job.provider_reference, 'provider_response': job.provider_response} for job in jobs],
         })
 
     def post(self, request):
