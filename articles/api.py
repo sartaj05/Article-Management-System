@@ -1555,6 +1555,25 @@ class ArticleTranslationReviewView(APIView):
         return Response(ArticleTranslationSerializer(translation).data)
 
 
+class ArticleTranslationComparisonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, translation_id):
+        translation = get_object_or_404(ArticleTranslation.objects.select_related('article'), pk=translation_id)
+        if translation.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only newsroom collaborators can compare translations.'}, status=403)
+        return Response({
+            'translation': ArticleTranslationSerializer(translation).data,
+            'source': {
+                'title': translation.article.title,
+                'subtitle': translation.article.subtitle,
+                'summary': translation.article.summary,
+                'content': translation.article.content,
+            },
+            'fields': ['title', 'subtitle', 'summary', 'content'],
+        })
+
+
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]

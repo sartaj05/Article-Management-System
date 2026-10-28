@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .distribution import public_article
+from .distribution import public_article, public_article_translation
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
@@ -37,7 +37,7 @@ from .api import (
     PlagiarismCheckView,
     ModerationView,
     ArticleTranslationListView,
-    ArticleTranslationDetailView, ArticleTranslationReviewView, EditorialCalendarView,
+    ArticleTranslationDetailView, ArticleTranslationReviewView, ArticleTranslationComparisonView, EditorialCalendarView,
     ArticleAutosaveView,
     ArticleSEOView,
     ReportExportView,
@@ -49,6 +49,7 @@ from .api import (
 from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
+    path('read/<slug:slug>/<str:language_code>/', public_article_translation, name='public-article-translation'),
     path('api/articles/create/', ArticleCreateAPIView.as_view(), name='article-create'),
 
     path('api/articles/list/', ArticleListAPIView.as_view(), name='article-list'),
@@ -181,6 +182,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/translations/', ArticleTranslationListView.as_view(), name='article-translations'),
     path('api/v2/translations/<int:translation_id>/', ArticleTranslationDetailView.as_view(), name='article-translation-detail'),
     path('api/v2/translations/<int:translation_id>/review/', ArticleTranslationReviewView.as_view(), name='article-translation-review'),
+    path('api/v2/translations/<int:translation_id>/compare/', ArticleTranslationComparisonView.as_view(), name='article-translation-compare'),
     path('api/v2/notifications/', NotificationListView.as_view(), name='notifications'),
     path('api/v2/notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
     path('api/v2/notifications/read-all/', NotificationReadAllView.as_view(), name='notification-read-all'),

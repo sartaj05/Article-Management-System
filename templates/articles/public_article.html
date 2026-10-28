@@ -5,10 +5,14 @@
 
 {% block extra_head %}
 <meta name="description" content="{{ article.meta_description|default:article.summary|default:article.content|truncatechars:160 }}">
-{% if article.canonical_url %}<link rel="canonical" href="{{ article.canonical_url }}">{% endif %}
+{% if article.canonical_url and not article_translation %}<link rel="canonical" href="{{ article.canonical_url }}">{% endif %}
 <meta property="og:type" content="article">
 <meta property="og:title" content="{{ article.meta_title|default:article.title }}">
 <meta property="og:description" content="{{ article.meta_description|default:article.summary|default:article.content|truncatechars:160 }}">
+<meta property="og:locale" content="{{ current_language|default:'en' }}">
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+<link rel="alternate" hreflang="en" href="{{ request.scheme }}://{{ request.get_host }}{% url 'public-article' slug=article.slug %}">
+{% for translation in available_translations %}<link rel="alternate" hreflang="{{ translation.language_code }}" href="{{ request.scheme }}://{{ request.get_host }}{% url 'public-article-translation' slug=article.slug language_code=translation.language_code %}">{% endfor %}
 {% if article.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ article.image.url }}">{% endif %}
 <script type="application/ld+json">
 {
@@ -27,6 +31,7 @@
 {% block content %}
 <article class="article-detail-container">
     <div class="article-meta"><span class="meta-pill">{{ article.category|default:'General' }}</span><span>{{ article.published_at|date:'M d, Y' }}</span></div>
+    {% if available_translations %}<nav class="article-language-switcher" aria-label="Available languages"><span>Read in:</span><a href="{% url 'public-article' slug=article.slug %}"{% if current_language == 'en' %} aria-current="page"{% endif %}>English</a>{% for translation in available_translations %}<a href="{% url 'public-article-translation' slug=article.slug language_code=translation.language_code %}"{% if current_language == translation.language_code %} aria-current="page"{% endif %}>{{ translation.get_language_code_display }}</a>{% endfor %}</nav>{% endif %}
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.subtitle %}<p class="article-subtitle">{{ article.subtitle }}</p>{% endif %}
     <p class="article-byline">By {{ article.author.get_full_name|default:article.author.username }}</p>

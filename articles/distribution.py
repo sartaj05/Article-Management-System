@@ -2,7 +2,7 @@ from django.contrib.sitemaps import Sitemap
 from django.contrib.syndication.views import Feed
 from django.conf import settings
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
@@ -58,10 +58,26 @@ def robots_txt(request):
 
 
 def public_article(request, slug):
+    return public_article_translation(request, slug, None)
+
+
+def public_article_translation(request, slug, language_code=None):
     article = get_object_or_404(published_articles(), slug=slug)
+    translation = None
+    if language_code:
+        translation = article.translations.filter(language_code=language_code, status='published').first()
+        if translation is None:
+            return redirect('public-article', slug=slug)
+        article.title = translation.title
+        article.subtitle = translation.subtitle
+        article.content = translation.content
+        article.summary = translation.summary or article.summary
     has_article_access = not article.is_premium or has_active_membership(request.user)
     context = {
         'article': article,
+        'article_translation': translation,
+        'available_translations': article.translations.filter(status='published'),
+        'current_language': language_code or 'en',
         'has_article_access': has_article_access,
         'article_sources': article.sources.all() if has_article_access else [],
         'article_fact_checks': article.fact_checks.select_related('checked_by').all() if has_article_access else [],

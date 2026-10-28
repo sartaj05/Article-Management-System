@@ -41,3 +41,20 @@ class TranslationTests(APITestCase):
         translation.refresh_from_db()
         self.assertEqual(translation.status, 'approved')
         self.assertEqual(translation.review_notes, 'Language checked.')
+
+    def test_published_translation_has_public_locale_url_and_source_comparison(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        translation = ArticleTranslation.objects.create(
+            article=self.article, language_code='hi', title='Hindi article', content='Hindi content', status='published', translated_by=self.author,
+        )
+        response = self.client.get(f'/articles/read/{self.article.slug}/hi/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Hindi article')
+        self.client.force_authenticate(self.author)
+        response = self.client.get(f'/articles/api/v2/translations/{translation.id}/compare/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['source']['title'], self.article.title)
+        self.assertEqual(response.data['translation']['content'], 'Hindi content')
