@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from articles.models import Notification
-from users.models import NotificationPreference
+from users.models import NotificationPreference, ReaderDigestDelivery
 
 
 class Command(BaseCommand):
@@ -15,11 +15,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--frequency', choices=['daily', 'weekly'], default='daily')
         parser.add_argument('--dry-run', action='store_true')
+        parser.add_argument('--retry-failed', action='store_true')
 
     def handle(self, *args, **options):
         frequency = options['frequency']
         now = timezone.now()
         since = now - timedelta(days=1 if frequency == 'daily' else 7)
+        period_key = now.date() if frequency == 'daily' else (now - timedelta(days=now.weekday())).date()
         notifications = Notification.objects.filter(
             notification_type='reader_alert',
             digest_frequency=frequency,
@@ -38,14 +40,35 @@ class Command(BaseCommand):
         sent = 0
         for recipient, items in grouped.items():
             lines = [f"{item.article.title if item.article else 'Article Studio alert'}\n{item.message}\n{item.action_url}" for item in items]
+            delivery, created = ReaderDigestDelivery.objects.get_or_create(
+                user=recipient,
+                frequency=frequency,
+                period_key=period_key,
+                defaults={'notification_count': len(items)},
+            )
+            if delivery.status == 'sent' or (delivery.status == 'failed' and not options['retry_failed']):
+                continue
             if not options['dry_run']:
-                send_mail(
-                    subject=f'Your Article Studio {frequency} reader digest',
-                    message='\n\n'.join(lines),
-                    from_email=None,
-                    recipient_list=[recipient.email],
-                    fail_silently=True,
-                )
-                Notification.objects.filter(pk__in=[item.pk for item in items]).update(digest_sent_at=now)
+                delivery.status = 'sending'
+                delivery.attempts += 1
+                delivery.notification_count = len(items)
+                delivery.last_error = ''
+                delivery.save(update_fields=['status', 'attempts', 'notification_count', 'last_error'])
+                try:
+                    send_mail(
+                        subject=f'Your Article Studio {frequency} reader digest',
+                        message='\n\n'.join(lines),
+                        from_email=None,
+                        recipient_list=[recipient.email],
+                        fail_silently=False,
+                    )
+                    Notification.objects.filter(pk__in=[item.pk for item in items]).update(digest_sent_at=now)
+                    delivery.status = 'sent'
+                    delivery.sent_at = now
+                    delivery.save(update_fields=['status', 'sent_at'])
+                except Exception as error:
+                    delivery.status = 'failed'
+                    delivery.last_error = str(error)[:500]
+                    delivery.save(update_fields=['status', 'last_error'])
             sent += 1
         self.stdout.write(self.style.SUCCESS(f'Prepared {sent} {frequency} reader digest(s).'))

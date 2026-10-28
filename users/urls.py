@@ -11,7 +11,7 @@ from . import views
 from .api import (
     AccessibilityPreferenceView, AlertRuleView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
-    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, SupportChatView,
+    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
@@ -60,6 +60,7 @@ path('', views.home, name='home'),
     path('alerts/rules/<int:pk>/', AlertRuleView.as_view(), name='alert-rule-detail'),
     path('alerts/saved-searches/', SavedSearchView.as_view(), name='saved-search-list'),
     path('alerts/saved-searches/<int:pk>/', SavedSearchView.as_view(), name='saved-search-detail'),
+    path('alerts/digests/', ReaderDigestDeliveryView.as_view(), name='reader-digest-deliveries'),
     path('role-capabilities/', RoleCapabilityView.as_view(), name='role-capabilities'),
     path('feature-flags/', FeatureFlagView.as_view(), name='feature-flags'),
     path('two-factor/', TwoFactorView.as_view(), name='two-factor'),

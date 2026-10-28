@@ -280,6 +280,25 @@ class SavedSearch(models.Model):
         return f'{self.user.username}: {self.name}'
 
 
+class ReaderDigestDelivery(models.Model):
+    STATUS_CHOICES = [('sending', 'Sending'), ('sent', 'Sent'), ('failed', 'Failed')]
+    FREQUENCY_CHOICES = [('daily', 'Daily'), ('weekly', 'Weekly')]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reader_digest_deliveries')
+    frequency = models.CharField(max_length=10, choices=FREQUENCY_CHOICES)
+    period_key = models.DateField()
+    notification_count = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='sending')
+    attempts = models.PositiveIntegerField(default=0)
+    last_error = models.CharField(max_length=500, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['user', 'frequency', 'period_key'], name='unique_reader_digest_period')]
+
+
 class RoleCapabilityOverride(models.Model):
     ROLE_CHOICES = [('Journalist', 'Journalist'), ('Editor', 'Editor'), ('Admin', 'Admin')]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)

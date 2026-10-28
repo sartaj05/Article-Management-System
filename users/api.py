@@ -25,7 +25,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
+    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -388,6 +388,28 @@ class SavedSearchView(APIView):
         saved_search = get_object_or_404(self.get_queryset(request), pk=pk)
         saved_search.delete()
         return Response({'removed': True})
+
+
+class ReaderDigestDeliveryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = ReaderDigestDelivery.objects.filter(user=request.user)
+        if request.user.role in {'Editor', 'Admin'} and request.query_params.get('all') in {'1', 'true'}:
+            queryset = ReaderDigestDelivery.objects.select_related('user')
+        return Response([{
+            'id': item.id,
+            'user': item.user.username,
+            'frequency': item.frequency,
+            'period_key': item.period_key,
+            'notification_count': item.notification_count,
+            'status': item.status,
+            'attempts': item.attempts,
+            'last_error': item.last_error,
+            'sent_at': item.sent_at,
+            'created_at': item.created_at,
+        } for item in queryset[:50]])
 
 
 class FeatureFlagView(APIView):

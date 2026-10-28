@@ -72,6 +72,7 @@
             </form>
             <p id="saved-search-status" class="account-status" role="status" aria-live="polite"></p>
             <div id="saved-searches-list" class="saved-search-list" aria-live="polite"></div>
+            <div id="reader-digest-history" class="saved-search-list" aria-live="polite"><p class="account-empty">Loading digest history…</p></div>
         </section>
 
         <section class="account-panel" id="privacy" aria-labelledby="privacy-title">
@@ -111,5 +112,6 @@
     </div>
 </section>
 <script src="{% static 'js/account-settings.js' %}" defer></script>
+<script src="{% static 'js/reader-digest-history.js' %}" defer></script>
 <script src="{% static 'js/reading-collections.js' %}?v=20261021-1" defer></script>
 {% endblock %}
