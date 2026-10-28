@@ -797,12 +797,42 @@ class MembershipCheckoutView(APIView):
             if attribution:
                 attribution.transaction = transaction
                 attribution.save(update_fields=['transaction'])
-            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
+            checkout_url = str(request.data.get('checkout_url') or '').strip()
+            if checkout_url:
+                transaction.checkout_url = checkout_url[:500]
+                transaction.save(update_fields=['checkout_url', 'updated_at'])
+            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'checkout_url': transaction.checkout_url, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
         if attribution:
             attribution.subscription = subscription
             attribution.converted_at = timezone.now()
             attribution.save(update_fields=['subscription', 'converted_at'])
         return Response(MembershipSubscriptionSerializer(subscription).data, status=201)
+
+
+class MembershipCheckoutStatusView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, checkout_token):
+        transaction = get_object_or_404(
+            PaymentTransaction.objects.select_related('plan', 'invoice'),
+            checkout_token=checkout_token,
+            user=request.user,
+        )
+        subscription = MembershipSubscription.objects.filter(user=request.user, plan=transaction.plan).order_by('-created_at').first()
+        return Response({
+            'transaction_id': transaction.id,
+            'status': transaction.status,
+            'provider': transaction.provider,
+            'provider_reference': transaction.provider_reference,
+            'checkout_url': transaction.checkout_url,
+            'invoice': {
+                'number': transaction.invoice.invoice_number,
+                'status': transaction.invoice.status,
+                'paid_at': transaction.invoice.paid_at,
+            } if hasattr(transaction, 'invoice') else None,
+            'subscription': MembershipSubscriptionSerializer(subscription).data if subscription else None,
+        })
 
 
 class PaymentTransactionView(APIView):
@@ -857,47 +887,70 @@ class MembershipWebhookView(APIView):
             payload = json.loads(request.body.decode('utf-8'))
         except (UnicodeDecodeError, json.JSONDecodeError):
             return Response({'detail': 'Webhook payload must be valid JSON.'}, status=400)
+        provider = str(request.headers.get('X-Payment-Provider') or payload.get('provider') or 'payment').strip().lower()[:30]
         event_id = str(payload.get('id', '')).strip()
         event_type = str(payload.get('type', '')).strip()
         data = payload.get('data') or {}
+        if isinstance(data, dict) and isinstance(data.get('object'), dict):
+            data = {**data['object'], **{f'metadata_{key}': value for key, value in (data['object'].get('metadata') or {}).items()}}
+        metadata = data.get('metadata') if isinstance(data.get('metadata'), dict) else {}
+        user_id = data.get('user_id') or metadata.get('user_id') or data.get('metadata_user_id')
+        plan_id = data.get('plan_id') or metadata.get('plan_id') or data.get('metadata_plan_id')
+        transaction_id = data.get('transaction_id') or metadata.get('transaction_id') or data.get('metadata_transaction_id')
+        checkout_token = data.get('checkout_token') or metadata.get('checkout_token') or data.get('metadata_checkout_token')
+        provider_reference = str(data.get('provider_reference') or data.get('subscription_id') or data.get('subscription') or data.get('id') or '')[:160]
         if not event_id or not event_type:
             return Response({'detail': 'Webhook id and type are required.'}, status=400)
         event, created = MembershipWebhookEvent.objects.get_or_create(
             event_id=event_id,
-            defaults={'event_type': event_type, 'payload': payload},
+            defaults={'provider': provider, 'event_type': event_type, 'payload': payload},
         )
         if not created:
             return Response({'processed': True, 'duplicate': True})
-        if event_type not in {'subscription.active', 'subscription.canceled', 'subscription.past_due'}:
-            return Response({'processed': True, 'ignored': True})
-        user = get_object_or_404(CustomUser, pk=data.get('user_id'))
-        plan = get_object_or_404(MembershipPlan, pk=data.get('plan_id'), is_active=True)
         status_map = {
             'subscription.active': 'active',
             'subscription.canceled': 'canceled',
             'subscription.past_due': 'past_due',
+            'checkout.session.completed': 'active',
+            'invoice.payment_succeeded': 'active',
+            'invoice.payment_failed': 'past_due',
+            'customer.subscription.deleted': 'canceled',
+            'payment.captured': 'active',
+            'subscription.cancelled': 'canceled',
+            'subscription.charged': 'active',
         }
+        if event_type not in status_map:
+            return Response({'processed': True, 'ignored': True})
+        user = get_object_or_404(CustomUser, pk=user_id)
+        plan = get_object_or_404(MembershipPlan, pk=plan_id, is_active=True)
+        subscription_defaults = {
+            'provider': provider,
+            'status': status_map[event_type],
+            'auto_renew': status_map[event_type] == 'active',
+        }
+        if status_map[event_type] == 'active':
+            subscription_defaults['started_at'] = timezone.now()
         subscription, _ = MembershipSubscription.objects.update_or_create(
             user=user,
             plan=plan,
-            provider_reference=str(data.get('provider_reference', '')),
-            defaults={
-                'provider': str(data.get('provider', 'payment'))[:30],
-                'status': status_map[event_type],
-                'auto_renew': event_type == 'subscription.active',
-            },
+            provider_reference=provider_reference,
+            defaults=subscription_defaults,
         )
-        if event_type == 'subscription.active':
-            transaction_query = PaymentTransaction.objects.filter(user=user, plan=plan, status='pending')
-            if data.get('transaction_id'):
-                transaction_query = transaction_query.filter(pk=data['transaction_id'])
-            elif data.get('checkout_token'):
-                transaction_query = transaction_query.filter(checkout_token=data['checkout_token'])
-            payment = transaction_query.order_by('-created_at').first()
+        transaction_query = PaymentTransaction.objects.filter(user=user, plan=plan, status='pending')
+        if transaction_id:
+            transaction_query = transaction_query.filter(pk=transaction_id)
+        elif checkout_token:
+            transaction_query = transaction_query.filter(checkout_token=checkout_token)
+        payment = transaction_query.order_by('-created_at').first()
+        if status_map[event_type] == 'active':
             if payment:
                 payment.status = 'succeeded'
-                payment.provider_reference = str(data.get('provider_reference', payment.provider_reference))[:160]
+                payment.provider_reference = provider_reference or payment.provider_reference
                 payment.save(update_fields=['status', 'provider_reference', 'updated_at'])
+                if hasattr(payment, 'invoice'):
+                    payment.invoice.status = 'paid'
+                    payment.invoice.paid_at = timezone.now()
+                    payment.invoice.save(update_fields=['status', 'paid_at'])
             attribution = NewsletterCampaignAttribution.objects.filter(transaction=payment).first() if payment else None
             if attribution is None:
                 attribution = NewsletterCampaignAttribution.objects.filter(
@@ -910,6 +963,13 @@ class MembershipWebhookView(APIView):
                 attribution.subscription = subscription
                 attribution.converted_at = timezone.now()
                 attribution.save(update_fields=['user', 'subscription', 'converted_at'])
+        elif payment:
+            payment.status = 'failed' if status_map[event_type] == 'past_due' else 'refunded'
+            payment.provider_reference = provider_reference or payment.provider_reference
+            payment.save(update_fields=['status', 'provider_reference', 'updated_at'])
+            if hasattr(payment, 'invoice') and status_map[event_type] == 'past_due':
+                payment.invoice.status = 'issued'
+                payment.invoice.save(update_fields=['status'])
         return Response({'processed': True, 'subscription_id': subscription.id})
 
 

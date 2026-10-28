@@ -440,6 +440,7 @@ class PaymentTransaction(models.Model):
     plan = models.ForeignKey(MembershipPlan, on_delete=models.PROTECT, related_name='payment_transactions')
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, default='manual')
     checkout_token = models.CharField(max_length=80, unique=True)
+    checkout_url = models.URLField(blank=True)
     provider_reference = models.CharField(max_length=160, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     currency = models.CharField(max_length=3, default='INR')

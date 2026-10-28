@@ -8,6 +8,24 @@
     status.classList.toggle('is-error', error);
   };
 
+  const pollCheckoutStatus = async (checkoutToken, attempts = 0) => {
+    if (!checkoutToken || attempts >= 15) return;
+    try {
+      const response = await fetch(`/api/membership/checkout/${encodeURIComponent(checkoutToken)}/`, { headers: { Accept: 'application/json' } });
+      const data = await response.json();
+      if (response.ok && data.status === 'succeeded') {
+        showStatus('Payment confirmed. Your membership is active.');
+        await loadPlans();
+        return;
+      }
+      if (response.ok && data.status === 'failed') {
+        showStatus('Payment failed. Please try checkout again.', true);
+        return;
+      }
+    } catch (error) { /* Retry while the provider webhook is in flight. */ }
+    window.setTimeout(() => pollCheckoutStatus(checkoutToken, attempts + 1), 2000);
+  };
+
   const loadPlans = async () => {
     try {
       const [plansResponse, membershipResponse] = await Promise.all([
@@ -45,7 +63,10 @@
             });
             const data = await response.json();
             showStatus(data.detail || (response.ok ? 'Membership updated.' : 'This plan needs payment setup.'), !response.ok && response.status !== 402);
-            if (response.ok) button.textContent = 'Active membership';
+            if (response.ok && data.checkout_required) {
+              if (data.checkout_url) window.open(data.checkout_url, '_blank', 'noopener');
+              pollCheckoutStatus(data.checkout_token);
+            } else if (response.ok) button.textContent = 'Active membership';
           } catch (error) {
             showStatus('We could not update your membership. Please try again.', true);
             button.disabled = false;

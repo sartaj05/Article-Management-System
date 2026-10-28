@@ -6,7 +6,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from users.models import CustomUser, MembershipPlan, MembershipSubscription, MembershipWebhookEvent, WebhookDelivery, WebhookEndpoint
+from users.models import CustomUser, MembershipPlan, MembershipSubscription, MembershipWebhookEvent, PaymentTransaction, WebhookDelivery, WebhookEndpoint
 from unittest.mock import Mock, patch
 
 from ..models import Article, ArticleEditEvent, ArticleEngagementEvent, ArticlePresence, Comment, EditorialAssistantRun, Like, Notification
@@ -278,6 +278,26 @@ class ArticleFeatureTests(TestCase):
         response = self.client.post('/api/membership/webhook/', body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=signature)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data['duplicate'])
+
+    @override_settings(PAYMENT_WEBHOOK_SECRET='test-webhook-secret')
+    def test_membership_checkout_status_and_paid_invoice(self):
+        plan = MembershipPlan.objects.create(name='Status paid', slug='status-paid', price='99.00')
+        self.client.force_authenticate(self.journalist)
+        checkout = self.client.post('/api/membership/checkout/', {'plan_id': plan.id, 'provider': 'stripe'}, format='json')
+        self.assertEqual(checkout.status_code, 202)
+        token = checkout.data['checkout_token']
+        transaction = PaymentTransaction.objects.get(checkout_token=token)
+        payload = {
+            'id': 'evt_checkout_completed', 'type': 'checkout.session.completed',
+            'provider': 'stripe', 'data': {'user_id': self.journalist.id, 'plan_id': plan.id, 'transaction_id': transaction.id, 'provider_reference': 'cs_123'},
+        }
+        body = json.dumps(payload).encode()
+        signature = 'sha256=' + hmac.new(b'test-webhook-secret', body, hashlib.sha256).hexdigest()
+        response = self.client.post('/api/membership/webhook/', body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=signature, HTTP_X_PAYMENT_PROVIDER='stripe')
+        self.assertEqual(response.status_code, 200)
+        status_response = self.client.get(f'/api/membership/checkout/{token}/')
+        self.assertEqual(status_response.data['status'], 'succeeded')
+        self.assertEqual(status_response.data['invoice']['status'], 'paid')
 
     @patch('users.delivery.requests.post')
     def test_published_event_is_delivered_to_subscribed_webhook(self, post):
