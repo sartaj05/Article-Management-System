@@ -299,6 +299,17 @@ class ArticleFeatureTests(TestCase):
         self.assertEqual(status_response.data['status'], 'succeeded')
         self.assertEqual(status_response.data['invoice']['status'], 'paid')
 
+    @override_settings(STRIPE_SECRET_KEY='sk_test_example')
+    @patch('users.billing_providers.requests.post')
+    def test_configured_stripe_checkout_returns_provider_session(self, post):
+        post.return_value = Mock(ok=True, status_code=200, json=lambda: {'id': 'cs_test_123', 'url': 'https://checkout.stripe.test/session'})
+        plan = MembershipPlan.objects.create(name='Stripe plan', slug='stripe-plan', price='10.00')
+        self.client.force_authenticate(self.journalist)
+        response = self.client.post('/api/membership/checkout/', {'plan_id': plan.id, 'provider': 'stripe'}, format='json')
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue(response.data['provider_configured'])
+        self.assertEqual(response.data['checkout_url'], 'https://checkout.stripe.test/session')
+
     @patch('users.delivery.requests.post')
     def test_published_event_is_delivered_to_subscribed_webhook(self, post):
         post.return_value = Mock(status_code=204)

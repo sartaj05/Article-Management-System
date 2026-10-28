@@ -797,11 +797,20 @@ class MembershipCheckoutView(APIView):
             if attribution:
                 attribution.transaction = transaction
                 attribution.save(update_fields=['transaction'])
-            checkout_url = str(request.data.get('checkout_url') or '').strip()
-            if checkout_url:
-                transaction.checkout_url = checkout_url[:500]
-                transaction.save(update_fields=['checkout_url', 'updated_at'])
-            return Response({'detail': 'Checkout session created. Complete payment with the configured provider.', 'checkout_required': True, 'provider': provider, 'checkout_token': transaction.checkout_token, 'checkout_url': transaction.checkout_url, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
+            from .billing_providers import ProviderRequestError, create_checkout
+            try:
+                checkout = create_checkout(transaction, request)
+            except ProviderRequestError as error:
+                transaction.status = 'failed'
+                transaction.save(update_fields=['status', 'updated_at'])
+                invoice.status = 'void'
+                invoice.save(update_fields=['status'])
+                return Response({'detail': str(error)}, status=502)
+            transaction.provider_reference = checkout.get('provider_reference', '')[:160]
+            transaction.checkout_url = checkout.get('checkout_url', '')[:500]
+            transaction.save(update_fields=['provider_reference', 'checkout_url', 'updated_at'])
+            detail = 'Checkout session created. Complete payment with the configured provider.' if checkout.get('configured') else 'Checkout created. Provider credentials are not configured yet.'
+            return Response({'detail': detail, 'checkout_required': True, 'provider': provider, 'provider_configured': checkout.get('configured', False), 'checkout_token': transaction.checkout_token, 'checkout_url': transaction.checkout_url, 'transaction_id': transaction.id, 'invoice_number': invoice.invoice_number, 'plan': MembershipPlanSerializer(plan).data}, status=202)
         if attribution:
             attribution.subscription = subscription
             attribution.converted_at = timezone.now()
