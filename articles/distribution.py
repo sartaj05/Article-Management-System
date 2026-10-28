@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
-from .models import Article
+from .models import Article, ArticleTranslation
 from users.models import has_active_membership
 
 
@@ -26,6 +26,22 @@ class ArticleSitemap(Sitemap):
 
     def location(self, article):
         return reverse('public-article', kwargs={'slug': article.slug})
+
+
+class LocalizedArticleSitemap(Sitemap):
+    changefreq = 'daily'
+    priority = 0.7
+
+    def items(self):
+        return ArticleTranslation.objects.filter(
+            status='published', article__workflow_status='published', article__is_visible=True,
+        ).select_related('article').order_by('-updated_at')
+
+    def lastmod(self, translation):
+        return translation.updated_at
+
+    def location(self, translation):
+        return reverse('public-article-translation', kwargs={'slug': translation.article.slug, 'language_code': translation.language_code})
 
 
 class ArticleFeed(Feed):
@@ -49,6 +65,36 @@ class ArticleFeed(Feed):
 
     def item_pubdate(self, article):
         return article.published_at or article.updated_at
+
+
+class LocalizedArticleFeed(Feed):
+    description = 'Localized published stories from Article Studio.'
+
+    def get_object(self, request, language_code):
+        return language_code
+
+    def title(self, language_code):
+        return f'Article Studio | {language_code} stories'
+
+    def link(self, language_code):
+        return reverse('home')
+
+    def items(self, language_code):
+        return ArticleTranslation.objects.filter(
+            language_code=language_code, status='published', article__workflow_status='published', article__is_visible=True,
+        ).select_related('article').order_by('-article__published_at', '-updated_at')[:25]
+
+    def item_title(self, translation):
+        return translation.title
+
+    def item_description(self, translation):
+        return translation.summary or translation.content[:300]
+
+    def item_link(self, translation):
+        return reverse('public-article-translation', kwargs={'slug': translation.article.slug, 'language_code': translation.language_code})
+
+    def item_pubdate(self, translation):
+        return translation.article.published_at or translation.updated_at
 
 
 @cache_page(300)

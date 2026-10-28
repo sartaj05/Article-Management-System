@@ -58,3 +58,19 @@ class TranslationTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['source']['title'], self.article.title)
         self.assertEqual(response.data['translation']['content'], 'Hindi content')
+
+    def test_localized_feed_and_sitemap_include_published_translation(self):
+        self.article.workflow_status = 'published'
+        self.article.status = 'published'
+        self.article.is_visible = True
+        self.article.save(update_fields=['workflow_status', 'status', 'is_visible'])
+        ArticleTranslation.objects.create(
+            article=self.article, language_code='hi', title='Hindi feed story', content='Hindi feed content', status='published', translated_by=self.author,
+        )
+        feed = self.client.get('/rss/hi.xml')
+        self.assertEqual(feed.status_code, 200)
+        self.assertContains(feed, 'Hindi feed story')
+        self.assertContains(feed, f'/articles/read/{self.article.slug}/hi/')
+        sitemap = self.client.get('/sitemap.xml')
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertContains(sitemap, f'/articles/read/{self.article.slug}/hi/')
