@@ -2327,6 +2327,12 @@ class ArticleAnalyticsView(APIView):
 
     def get(self, request, article_id=None):
         queryset = Article.objects.all()
+        workspace_slug = request.headers.get('X-Workspace-Slug') or request.query_params.get('workspace') or request.session.get('active_workspace_slug')
+        if workspace_slug:
+            workspace = Workspace.objects.filter(slug=workspace_slug, is_active=True, memberships__user=request.user).first()
+            if workspace is None:
+                return Response({'detail': 'You are not a member of this workspace.'}, status=status.HTTP_403_FORBIDDEN)
+            queryset = queryset.filter(workspace=workspace)
         if article_id:
             article = get_object_or_404(queryset, pk=article_id)
             if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:

@@ -1462,6 +1462,27 @@ class WorkspaceBillingView(APIView):
         return self.get(request, slug)
 
 
+class WorkspaceControlsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        membership = WorkspaceMembership.objects.get(workspace=workspace, user=request.user)
+        article_queryset = Article.objects.filter(workspace=workspace)
+        article_limit = {'starter': 100, 'team': 1000, 'enterprise': None}[workspace.plan]
+        return Response({
+            'workspace': WorkspaceSerializer(workspace).data,
+            'membership': WorkspaceMembershipSerializer(membership).data,
+            'roles': [choice[0] for choice in WorkspaceMembership.ROLE_CHOICES],
+            'quotas': {
+                'seats': {'used': workspace.memberships.count(), 'limit': workspace.seat_limit},
+                'articles': {'used': article_queryset.count(), 'limit': article_limit},
+            },
+            'analytics_scope': {'workspace_id': workspace.id, 'workspace_slug': workspace.slug},
+        })
+
+
 class WorkspaceSelectView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]

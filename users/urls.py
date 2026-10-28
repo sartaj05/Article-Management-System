@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceBillingView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
+    WorkspaceMembersView, WorkspaceBillingView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
 urlpatterns = [
     
@@ -98,6 +98,7 @@ path('', views.home, name='home'),
     path('workspaces/', WorkspaceListCreateView.as_view(), name='workspace-list-create'),
     path('workspaces/<slug:slug>/members/', WorkspaceMembersView.as_view(), name='workspace-members'),
     path('workspaces/<slug:slug>/billing/', WorkspaceBillingView.as_view(), name='workspace-billing'),
+    path('workspaces/<slug:slug>/controls/', WorkspaceControlsView.as_view(), name='workspace-controls'),
     path('workspaces/<slug:slug>/select/', WorkspaceSelectView.as_view(), name='workspace-select'),
     path('workspaces/select/', WorkspaceSelectView.as_view(), name='workspace-clear'),
     path('workspaces/<slug:slug>/invite/', WorkspaceInviteView.as_view(), name='workspace-invite'),
