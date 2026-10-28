@@ -609,7 +609,9 @@ class Notification(models.Model):
         ('published', 'Published'),
         ('scheduled', 'Scheduled'),
         ('comment', 'Comment'),
+        ('reader_alert', 'Reader alert'),
     ]
+    DIGEST_CHOICES = [('instant', 'Instant'), ('daily', 'Daily'), ('weekly', 'Weekly')]
 
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
     article = models.ForeignKey(Article, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
@@ -617,8 +619,10 @@ class Notification(models.Model):
     message = models.CharField(max_length=500)
     action_url = models.CharField(max_length=500, blank=True)
     priority = models.CharField(max_length=10, choices=[('normal', 'Normal'), ('high', 'High')], default='normal')
+    digest_frequency = models.CharField(max_length=10, choices=DIGEST_CHOICES, default='instant')
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
+    digest_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -33,3 +33,11 @@ class NotificationCenterTests(APITestCase):
         self.client.force_authenticate(other)
         response = self.client.patch(f'/articles/api/v2/notifications/{self.notification.id}/read/')
         self.assertEqual(response.status_code, 404)
+
+    def test_user_can_mark_all_notifications_read(self):
+        Notification.objects.create(recipient=self.user, notification_type='reader_alert', message='New story alert.')
+        self.client.force_authenticate(self.user)
+        response = self.client.patch('/articles/api/v2/notifications/read-all/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['updated'], 2)
+        self.assertFalse(Notification.objects.filter(recipient=self.user, is_read=False).exists())

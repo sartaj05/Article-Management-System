@@ -9,7 +9,7 @@ from django.db import models
 from django.utils import timezone
 import requests
 
-from .models import AlertRule, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
+from .models import AlertRule, NotificationPreference, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -100,22 +100,46 @@ def send_web_push(subscription, payload):
 
 
 def dispatch_article_alert(*, article, title=None, body=None):
-    """Send a best-effort push alert to readers matching their saved rules."""
-    matching = AlertRule.objects.filter(is_active=True).filter(
+    """Create reader alerts and send best-effort instant push notifications."""
+    from articles.models import Notification
+
+    rule_matches = AlertRule.objects.filter(is_active=True).filter(
         models.Q(rule_type='all') |
         models.Q(rule_type='category', value__iexact=article.category or '') |
         models.Q(rule_type='author', value=str(article.author_id)) |
         models.Q(rule_type='author', value__iexact=article.author.username),
     ).values_list('user_id', flat=True).distinct()
     searchable_text = ' '.join(filter(None, [article.title, article.summary, article.category, article.tags])).casefold()
-    matching_search_users = [
-        saved_search.user_id for saved_search in SavedSearch.objects.filter(is_active=True)
+    search_matches = [
+        saved_search for saved_search in SavedSearch.objects.filter(is_active=True)
         if saved_search.query.casefold() in searchable_text
     ]
-    matching = set(matching).union(matching_search_users)
+    matching = set(rule_matches).union(saved_search.user_id for saved_search in search_matches)
+    instant_users = set(rule_matches).union(
+        saved_search.user_id for saved_search in search_matches if saved_search.frequency == 'instant'
+    )
     payload = {'title': title or article.title, 'body': body or (article.summary or article.content[:160]), 'url': f'/articles/read/{article.slug}/', 'article_id': article.id}
+    message = body or (article.summary or article.content[:160])
+    search_frequency = {saved_search.user_id: saved_search.frequency for saved_search in search_matches}
+    in_app_preferences = dict(NotificationPreference.objects.filter(user_id__in=matching).values_list('user_id', 'in_app_enabled'))
+    for user_id in matching:
+        if not in_app_preferences.get(user_id, True):
+            continue
+        notification, created = Notification.objects.get_or_create(
+            recipient_id=user_id,
+            article=article,
+            notification_type='reader_alert',
+            defaults={
+                'message': message,
+                'action_url': payload['url'],
+                'digest_frequency': search_frequency.get(user_id, 'instant'),
+            },
+        )
+        if not created and not notification.action_url:
+            notification.action_url = payload['url']
+            notification.save(update_fields=['action_url'])
     results = []
-    for subscription in PushSubscription.objects.filter(user_id__in=matching, is_active=True):
+    for subscription in PushSubscription.objects.filter(user_id__in=instant_users, is_active=True):
         result = send_web_push(subscription, payload)
         results.append({'subscription_id': subscription.id, **result})
     return results

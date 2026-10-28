@@ -1582,6 +1582,17 @@ class NotificationReadView(APIView):
         return Response(NotificationSerializer(notification).data)
 
 
+class NotificationReadAllView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        updated = Notification.objects.filter(recipient=request.user, is_read=False).update(
+            is_read=True,
+            read_at=timezone.now(),
+        )
+        return Response({'updated': updated})
+
+
 class AuditLogListView(generics.ListAPIView):
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated]

@@ -25,6 +25,11 @@
     const response = await fetch(`/articles/api/v2/notifications/${id}/read/`, { method: 'PATCH', headers: Object.assign(headers(), { 'Content-Type': 'application/json' }), credentials: 'same-origin' });
     if (response.ok) loadNotifications(); else status.textContent = 'Notification could not be marked as read.';
   }
+  async function markAllRead() {
+    const response = await fetch('/articles/api/v2/notifications/read-all/', { method: 'PATCH', headers: Object.assign(headers(), { 'Content-Type': 'application/json' }), credentials: 'same-origin' });
+    if (response.ok) loadNotifications(); else status.textContent = 'Notifications could not be marked as read.';
+  }
   document.getElementById('refresh-notifications').addEventListener('click', loadNotifications);
+  document.getElementById('mark-all-notifications-read')?.addEventListener('click', markAllRead);
   loadNotifications();
 })();

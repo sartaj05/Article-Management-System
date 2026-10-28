@@ -37,7 +37,7 @@ class RevisionSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'article', 'notification_type', 'message', 'action_url', 'priority', 'is_read', 'read_at', 'created_at']
+        fields = ['id', 'article', 'notification_type', 'message', 'action_url', 'priority', 'digest_frequency', 'is_read', 'read_at', 'created_at']
         read_only_fields = fields
 
 
