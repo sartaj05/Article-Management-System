@@ -2187,7 +2187,18 @@ class DistributionJobView(APIView):
         queryset = DistributionJob.objects.select_related('article', 'requested_by')
         if request.user.role not in {'Editor', 'Admin'}:
             queryset = queryset.filter(requested_by=request.user)
-        return Response([{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'scheduled_for': job.scheduled_for, 'delivered_at': job.delivered_at} for job in queryset[:100]])
+        channel = request.query_params.get('channel')
+        status_filter = request.query_params.get('status')
+        if channel:
+            queryset = queryset.filter(channel=channel)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        jobs = list(queryset[:100])
+        return Response({
+            'count': queryset.count(),
+            'summary': {key: queryset.filter(status=key).count() for key, _ in DistributionJob.STATUS_CHOICES},
+            'jobs': [{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'idempotency_key': job.idempotency_key, 'scheduled_for': job.scheduled_for, 'last_attempt_at': job.last_attempt_at, 'delivered_at': job.delivered_at} for job in jobs],
+        })
 
     def post(self, request):
         article = get_object_or_404(Article, pk=request.data.get('article_id'))
@@ -2196,8 +2207,15 @@ class DistributionJobView(APIView):
         channel = str(request.data.get('channel', '')).strip().lower()
         if channel not in dict(DistributionJob.CHANNEL_CHOICES):
             return Response({'detail': 'Choose rss, newsletter, webhook, or social.'}, status=400)
-        job = DistributionJob.objects.create(article=article, requested_by=request.user, channel=channel, scheduled_for=parse_datetime(str(request.data.get('scheduled_for'))) if request.data.get('scheduled_for') else None)
-        return Response({'id': job.id, 'channel': job.channel, 'status': job.status}, status=201)
+        idempotency_key = str(request.headers.get('Idempotency-Key') or request.data.get('idempotency_key') or '').strip()[:100] or None
+        defaults = {
+            'article': article,
+            'requested_by': request.user,
+            'channel': channel,
+            'scheduled_for': parse_datetime(str(request.data.get('scheduled_for'))) if request.data.get('scheduled_for') else None,
+        }
+        job, created = DistributionJob.objects.get_or_create(idempotency_key=idempotency_key, defaults=defaults) if idempotency_key else (DistributionJob.objects.create(**defaults), True)
+        return Response({'id': job.id, 'channel': job.channel, 'status': job.status, 'idempotency_key': job.idempotency_key, 'deduplicated': not created}, status=201 if created else 200)
 
     def patch(self, request, pk):
         job = get_object_or_404(DistributionJob, pk=pk)
@@ -2207,7 +2225,8 @@ class DistributionJobView(APIView):
             return Response({'detail': 'Only failed or waiting jobs can be retried.'}, status=400)
         job.status = 'queued'
         job.last_error = ''
-        job.save(update_fields=['status', 'last_error'])
+        job.scheduled_for = timezone.now()
+        job.save(update_fields=['status', 'last_error', 'scheduled_for'])
         return Response({'id': job.id, 'status': job.status})
 
 
