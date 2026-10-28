@@ -25,6 +25,11 @@
     }, extra || {});
   }
 
+  function csrfToken() {
+    const cookie = document.cookie.split('; ').find((item) => item.startsWith('csrftoken='));
+    return cookie ? decodeURIComponent(cookie.split('=').slice(1).join('=')) : '';
+  }
+
   async function loadBoard() {
     status.textContent = 'Loading assignments…';
     const query = priority.value ? `?priority=${encodeURIComponent(priority.value)}` : '';
@@ -73,7 +78,47 @@
       ${item.notes ? `<p class="assignment-card__notes">${escapeHtml(item.notes)}</p>` : ''}
       <label class="assignment-card__status">Move to <select>${columns.map(([key, label]) => `<option value="${key}" ${key === item.status ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
       <button class="button button--small assignment-card__timeline" type="button" data-timeline-article="${item.article}">View timeline</button>
+      <button class="button button--secondary button--small" type="button" data-discussion-assignment="${item.id}">Discuss</button>
+      <div class="assignment-discussion" data-discussion-panel hidden><div class="assignment-discussion__comments" data-comments-list></div><form data-comment-form><textarea name="body" rows="2" maxlength="2000" required placeholder="Add an internal note…"></textarea><input name="mentions" placeholder="Mention usernames, separated by commas"><button class="button button--small" type="submit">Post note</button></form></div>
     </article>`;
+  }
+
+  async function loadDiscussion(card, toggle = true) {
+    const panel = card.querySelector('[data-discussion-panel]');
+    const list = card.querySelector('[data-comments-list]');
+    if (toggle) panel.hidden = !panel.hidden;
+    if (panel.hidden) return;
+    list.textContent = 'Loading discussion…';
+    try {
+      const response = await fetch(`/articles/api/v2/assignments/${card.dataset.assignmentId}/comments/`, { headers: headers(), credentials: 'same-origin' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || 'Unable to load discussion.');
+      list.innerHTML = payload.length ? payload.map((comment) => `<article><strong>${escapeHtml(comment.author_name)}</strong><small>${new Date(comment.created_at).toLocaleString()}</small><p>${escapeHtml(comment.body)}</p><button class="button button--secondary button--small" type="button" data-resolve-comment="${comment.id}" data-comment-status="${comment.status}">${comment.status === 'resolved' ? 'Reopen' : 'Resolve'}</button></article>`).join('') : '<p class="feature-empty">No internal notes yet.</p>';
+    } catch (error) { list.textContent = error.message; }
+  }
+
+  async function createDiscussionComment(form) {
+    const card = form.closest('[data-assignment-id]');
+    const data = Object.fromEntries(new FormData(form).entries());
+    const response = await fetch(`/articles/api/v2/assignments/${card.dataset.assignmentId}/comments/`, {
+      method: 'POST', headers: headers({ 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }), credentials: 'same-origin',
+      body: JSON.stringify({ body: data.body, mentions: data.mentions }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || 'Unable to post note.');
+    form.reset();
+    await loadDiscussion(card, false);
+  }
+
+  async function resolveDiscussionComment(button) {
+    const card = button.closest('[data-assignment-id]');
+    const statusValue = button.dataset.commentStatus === 'resolved' ? 'open' : 'resolved';
+    const response = await fetch(`/articles/api/v2/assignments/${card.dataset.assignmentId}/comments/`, {
+      method: 'PATCH', headers: headers({ 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }), credentials: 'same-origin',
+      body: JSON.stringify({ comment_id: button.dataset.resolveComment, status: statusValue }),
+    });
+    if (!response.ok) throw new Error('Unable to update note.');
+    await loadDiscussion(card, false);
   }
 
   async function openTimeline(articleId) {
@@ -123,6 +168,16 @@
   board.addEventListener('click', (event) => {
     const button = event.target.closest('[data-timeline-article]');
     if (button) openTimeline(button.dataset.timelineArticle);
+    const discussionButton = event.target.closest('[data-discussion-assignment]');
+    if (discussionButton) loadDiscussion(discussionButton.closest('[data-assignment-id]'));
+    const resolveButton = event.target.closest('[data-resolve-comment]');
+    if (resolveButton) resolveDiscussionComment(resolveButton).catch((error) => { status.textContent = error.message; });
+  });
+  board.addEventListener('submit', (event) => {
+    const form = event.target.closest('[data-comment-form]');
+    if (!form) return;
+    event.preventDefault();
+    createDiscussionComment(form).catch((error) => { status.textContent = error.message; });
   });
   document.getElementById('timeline-close').addEventListener('click', () => { timelineModal.hidden = true; });
   timelineModal.addEventListener('click', (event) => { if (event.target === timelineModal) timelineModal.hidden = true; });

@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from users.models import CustomUser
-from ..models import Article, ArticleAssignment
+from ..models import Article, ArticleAssignment, EditorialComment, Notification
 
 
 class AssignmentBoardTests(TestCase):
@@ -35,3 +35,15 @@ class AssignmentBoardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         assignment.refresh_from_db()
         self.assertEqual(assignment.status, 'review')
+
+    def test_editorial_comments_support_mentions_and_resolution(self):
+        assignment = ArticleAssignment.objects.create(article=self.article, editor=self.editor)
+        self.client.force_authenticate(self.editor)
+        response = self.client.post(f'/articles/api/v2/assignments/{assignment.id}/comments/', {'body': 'Please check the sources.', 'mentions': ['board-admin']}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['mentions'], ['board-admin'])
+        self.assertTrue(Notification.objects.filter(recipient=self.admin, notification_type='comment').exists())
+        response = self.client.patch(f'/articles/api/v2/assignments/{assignment.id}/comments/', {'comment_id': response.data['id'], 'status': 'resolved'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'resolved')
+        self.assertEqual(EditorialComment.objects.get().status, 'resolved')

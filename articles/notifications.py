@@ -7,7 +7,7 @@ from .models import Notification
 def notify(*, recipient, notification_type, message, article=None):
     """Deliver an in-app and/or email notification according to user preferences."""
     preferences = getattr(recipient, 'notification_preferences', None)
-    workflow_type = notification_type in {'submitted', 'approved', 'rejected', 'published', 'scheduled'}
+    workflow_type = notification_type in {'submitted', 'approved', 'rejected', 'published', 'scheduled', 'assignment'}
     enabled = preferences is None or (
         (preferences.workflow_enabled if workflow_type else preferences.comments_enabled)
     )

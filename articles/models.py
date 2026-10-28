@@ -610,6 +610,7 @@ class Notification(models.Model):
         ('scheduled', 'Scheduled'),
         ('comment', 'Comment'),
         ('reader_alert', 'Reader alert'),
+        ('assignment', 'Assignment reminder'),
     ]
     DIGEST_CHOICES = [('instant', 'Instant'), ('daily', 'Daily'), ('weekly', 'Weekly')]
 
@@ -714,6 +715,23 @@ class ArticleAssignment(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['article', 'editor'], name='unique_article_editor_assignment'),
         ]
+
+
+class EditorialComment(models.Model):
+    STATUS_CHOICES = [('open', 'Open'), ('resolved', 'Resolved')]
+
+    assignment = models.ForeignKey(ArticleAssignment, on_delete=models.CASCADE, related_name='editorial_comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='editorial_comments')
+    body = models.TextField(max_length=2000)
+    mentions = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    resolved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='editorial_comments_resolved')
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
 
 
 class WorkflowRule(models.Model):

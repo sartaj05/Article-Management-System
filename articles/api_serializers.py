@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.conf import settings
 
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, AuditLog, Bookmark, Category, Comment, CommentReport, ContentExperiment, EditorialComment, ExperimentVariant, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingProgress, SeriesArticle, StorySeries, Tag
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -73,6 +73,16 @@ class ArticleAssignmentSerializer(serializers.ModelSerializer):
         model = ArticleAssignment
         fields = ['id', 'article', 'article_title', 'author_name', 'editor', 'editor_name', 'can_review', 'can_edit', 'can_publish', 'status', 'priority', 'due_at', 'notes', 'created_at', 'updated_at']
         read_only_fields = ['id', 'article', 'article_title', 'author_name', 'editor_name', 'created_at', 'updated_at']
+
+
+class EditorialCommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.username', read_only=True)
+    resolved_by_name = serializers.CharField(source='resolved_by.username', read_only=True, default=None)
+
+    class Meta:
+        model = EditorialComment
+        fields = ['id', 'assignment', 'author', 'author_name', 'body', 'mentions', 'status', 'resolved_by', 'resolved_by_name', 'resolved_at', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'assignment', 'author', 'author_name', 'resolved_by', 'resolved_by_name', 'resolved_at', 'created_at', 'updated_at']
 
 
 class ArticleImageSerializer(serializers.ModelSerializer):

@@ -36,7 +36,7 @@ from users.delivery import dispatch_article_alert, dispatch_webhook_event
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
     ArticleScheduleSerializer,
-    ArticleAssignmentSerializer,
+    ArticleAssignmentSerializer, EditorialCommentSerializer,
     ArticleImageSerializer, ArticleLiveUpdateSerializer, ArticleMediaSerializer, ArticleSourceSerializer,
     ArticleAutosaveSerializer,
     BookmarkSerializer, ReadingProgressSerializer,
@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -1692,6 +1692,64 @@ class ArticleAssignmentView(APIView):
             return Response({'detail': 'Assignment not found.'}, status=status.HTTP_404_NOT_FOUND)
         record_audit_event(actor=request.user, action='article_assignment_removed', article=article, details={'editor_id': editor_id})
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AssignmentCommentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def assignment(self, assignment_id):
+        return get_object_or_404(ArticleAssignment.objects.select_related('article', 'editor'), pk=assignment_id)
+
+    def allowed(self, request, assignment):
+        return request.user.role in {'Editor', 'Admin'} or request.user.id in {assignment.editor_id, assignment.article.author_id}
+
+    def get(self, request, assignment_id):
+        assignment = self.assignment(assignment_id)
+        if not self.allowed(request, assignment):
+            return Response({'detail': 'You do not have access to this discussion.'}, status=403)
+        comments = assignment.editorial_comments.select_related('author', 'resolved_by')
+        return Response(EditorialCommentSerializer(comments, many=True).data)
+
+    def post(self, request, assignment_id):
+        assignment = self.assignment(assignment_id)
+        if not self.allowed(request, assignment):
+            return Response({'detail': 'You do not have access to this discussion.'}, status=403)
+        body = str(request.data.get('body', '')).strip()
+        if not body:
+            return Response({'detail': 'Comment body is required.'}, status=400)
+        if len(body) > 2000:
+            return Response({'detail': 'Comment body must be 2000 characters or fewer.'}, status=400)
+        requested_mentions = request.data.get('mentions', [])
+        if isinstance(requested_mentions, str):
+            requested_mentions = [item.strip().lstrip('@') for item in requested_mentions.split(',') if item.strip()]
+        mentioned_users = list(CustomUser.objects.filter(username__in=requested_mentions, is_active=True))
+        comment = EditorialComment.objects.create(
+            assignment=assignment,
+            author=request.user,
+            body=body,
+            mentions=[user.username for user in mentioned_users],
+        )
+        record_audit_event(actor=request.user, action='editorial_comment_added', article=assignment.article, details={'assignment_id': assignment.id, 'comment_id': comment.id})
+        recipients = {user.id: user for user in mentioned_users}
+        if assignment.editor_id != request.user.id:
+            recipients[assignment.editor_id] = assignment.editor
+        for recipient in recipients.values():
+            notify(recipient=recipient, notification_type='comment', message=f'{request.user.username} commented on {assignment.article.title}.', article=assignment.article)
+        return Response(EditorialCommentSerializer(comment).data, status=201)
+
+    def patch(self, request, assignment_id):
+        assignment = self.assignment(assignment_id)
+        if not self.allowed(request, assignment):
+            return Response({'detail': 'You do not have access to this discussion.'}, status=403)
+        comment = get_object_or_404(assignment.editorial_comments, pk=request.data.get('comment_id'))
+        status_value = str(request.data.get('status', '')).strip()
+        if status_value not in {'open', 'resolved'}:
+            return Response({'detail': 'Status must be open or resolved.'}, status=400)
+        comment.status = status_value
+        comment.resolved_by = request.user if status_value == 'resolved' else None
+        comment.resolved_at = timezone.now() if status_value == 'resolved' else None
+        comment.save(update_fields=['status', 'resolved_by', 'resolved_at', 'updated_at'])
+        return Response(EditorialCommentSerializer(comment).data)
 
 
 class AssignmentBoardView(APIView):
