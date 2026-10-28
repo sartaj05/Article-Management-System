@@ -744,6 +744,7 @@ class WorkflowRule(models.Model):
     from_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     to_status = models.CharField(max_length=20, choices=STATUS_CHOICES)
     required_role = models.CharField(max_length=20, blank=True)
+    auto_assign_role = models.CharField(max_length=20, blank=True)
     require_sources = models.BooleanField(default=False)
     require_fact_check = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

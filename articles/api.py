@@ -655,7 +655,7 @@ class WorkflowRuleView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _payload(self, rule):
-        return {'id': rule.id, 'workspace_id': rule.workspace_id, 'name': rule.name, 'from_status': rule.from_status, 'to_status': rule.to_status, 'required_role': rule.required_role, 'require_sources': rule.require_sources, 'require_fact_check': rule.require_fact_check, 'is_active': rule.is_active}
+        return {'id': rule.id, 'workspace_id': rule.workspace_id, 'name': rule.name, 'from_status': rule.from_status, 'to_status': rule.to_status, 'required_role': rule.required_role, 'auto_assign_role': rule.auto_assign_role, 'require_sources': rule.require_sources, 'require_fact_check': rule.require_fact_check, 'is_active': rule.is_active}
 
     def get(self, request):
         queryset = WorkflowRule.objects.all()
@@ -669,14 +669,14 @@ class WorkflowRuleView(APIView):
         workspace = get_object_or_404(Workspace, slug=request.data.get('workspace_slug'), memberships__user=request.user, is_active=True)
         if request.user.role == 'Editor' and not WorkspaceMembership.objects.filter(workspace=workspace, user=request.user, role__in=['owner', 'admin', 'editor']).exists():
             return Response({'detail': 'Workspace editor access is required.'}, status=403)
-        rule = WorkflowRule.objects.create(workspace=workspace, name=str(request.data.get('name', 'Editorial rule'))[:120], from_status=request.data.get('from_status'), to_status=request.data.get('to_status'), required_role=str(request.data.get('required_role', ''))[:20], require_sources=bool(request.data.get('require_sources', False)), require_fact_check=bool(request.data.get('require_fact_check', False)), is_active=bool(request.data.get('is_active', True)))
+        rule = WorkflowRule.objects.create(workspace=workspace, name=str(request.data.get('name', 'Editorial rule'))[:120], from_status=request.data.get('from_status'), to_status=request.data.get('to_status'), required_role=str(request.data.get('required_role', ''))[:20], auto_assign_role=str(request.data.get('auto_assign_role', ''))[:20], require_sources=bool(request.data.get('require_sources', False)), require_fact_check=bool(request.data.get('require_fact_check', False)), is_active=bool(request.data.get('is_active', True)))
         return Response(self._payload(rule), status=201)
 
     def patch(self, request, pk):
         if request.user.role not in {'Admin', 'Editor'}:
             return Response({'detail': 'Only editors and admins can configure workflow rules.'}, status=403)
         rule = get_object_or_404(WorkflowRule, pk=pk, workspace__memberships__user=request.user)
-        for field in ('name', 'from_status', 'to_status', 'required_role'):
+        for field in ('name', 'from_status', 'to_status', 'required_role', 'auto_assign_role'):
             if field in request.data:
                 setattr(rule, field, str(request.data[field])[:120])
         for field in ('require_sources', 'require_fact_check', 'is_active'):
@@ -698,6 +698,22 @@ def _workflow_rule_errors(article, from_status, to_status, user):
         if rule.require_fact_check and not article.fact_checks.exists():
             errors.append(f'{rule.name}: a fact check is required.')
     return errors
+
+
+def _apply_workflow_automation(article, from_status, to_status):
+    if not article.workspace_id:
+        return
+    rules = WorkflowRule.objects.filter(workspace_id=article.workspace_id, from_status=from_status, to_status=to_status, is_active=True).exclude(auto_assign_role='')
+    for rule in rules:
+        candidates = CustomUser.objects.filter(role__iexact=rule.auto_assign_role, is_active=True).annotate(
+            open_assignments=Count('article_assignments', filter=Q(article_assignments__status__in=['queued', 'in_progress', 'review', 'blocked']))
+        ).order_by('open_assignments', 'id')
+        editor = candidates.first()
+        if editor is None:
+            continue
+        assignment, created = ArticleAssignment.objects.get_or_create(article=article, editor=editor, defaults={'status': 'queued', 'priority': 'normal', 'notes': f'Auto-assigned by workflow rule: {rule.name}'})
+        if created:
+            notify(recipient=editor, notification_type='assignment', article=article, message=f'{article.title} was assigned to you by workflow automation.')
 
 
 class ArticleWorkflowActionView(APIView):
@@ -730,6 +746,7 @@ class ArticleWorkflowActionView(APIView):
             article.submitted_at = now
             article.is_visible = False
             article.save(update_fields=['workflow_status', 'review_status', 'status', 'rejection_reason', 'submitted_at', 'is_visible', 'updated_at'])
+            _apply_workflow_automation(article, 'draft', 'submitted')
             record_audit_event(actor=request.user, action='article_submitted', article=article)
             dispatch_webhook_event(
                 owner=article.author,
@@ -832,6 +849,9 @@ class ArticleReviewView(APIView):
         review.is_valid(raise_exception=True)
         now = timezone.now()
         decision = review.validated_data['decision']
+        rule_errors = _workflow_rule_errors(article, article.workflow_status, 'approved' if decision == 'approve' else 'rejected', request.user)
+        if rule_errors:
+            return Response({'detail': 'Workflow rules blocked review.', 'rules': rule_errors}, status=status.HTTP_400_BAD_REQUEST)
         reason = review.validated_data.get('reason', '').strip()
         article.reviewed_by = request.user
         article.reviewed_at = now
