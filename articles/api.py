@@ -1590,6 +1590,14 @@ class NotificationListView(generics.ListAPIView):
         return response
 
 
+class NotificationUnreadCountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({'count': count})
+
+
 class NotificationReadView(APIView):
     permission_classes = [IsAuthenticated]
 
