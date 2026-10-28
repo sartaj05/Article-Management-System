@@ -611,6 +611,7 @@ class Notification(models.Model):
         ('comment', 'Comment'),
         ('reader_alert', 'Reader alert'),
         ('assignment', 'Assignment reminder'),
+        ('sla_escalation', 'SLA escalation'),
     ]
     DIGEST_CHOICES = [('instant', 'Instant'), ('daily', 'Daily'), ('weekly', 'Weekly')]
 
