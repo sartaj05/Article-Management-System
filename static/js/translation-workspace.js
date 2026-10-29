@@ -29,11 +29,12 @@
   const fieldLabel = (field) => field.charAt(0).toUpperCase() + field.slice(1);
 
   async function showComparison(button) {
-    const panel = document.getElementById(`translation-comparison-${button.dataset.id}`);
+    const translationId = button.dataset.compare || button.dataset.id;
+    const panel = document.getElementById(`translation-comparison-${translationId}`);
     if (panel.dataset.loaded === "true") { panel.hidden = !panel.hidden; return; }
     button.disabled = true; button.textContent = "Loading…";
     try {
-      const payload = await request(`/articles/api/v2/translations/${button.dataset.id}/compare/`);
+      const payload = await request(`/articles/api/v2/translations/${translationId}/compare/`);
       panel.innerHTML = `<div class="translation-comparison__heading"><strong>Source vs ${escape(payload.translation.language_code)}</strong><span>${escape(payload.translation.status.replace("_", " "))}</span></div>${payload.fields.map((field) => { const diff = diffMarkup(payload.source[field], payload.translation[field]); return `<section class="translation-comparison__field"><h3>${fieldLabel(field)}</h3><div class="translation-comparison__columns"><div><small>Source</small><p>${diff.sourceHtml || "—"}</p></div><div><small>Translation</small><p>${diff.targetHtml || "—"}</p></div></div></section>`; }).join("")}<p class="translation-comparison__legend"><del>Removed from translation</del> <ins>Added to translation</ins></p>`;
       panel.dataset.loaded = "true"; panel.hidden = false; button.textContent = "Hide comparison";
     } catch (error) { status.textContent = error.message; button.textContent = "Compare source"; } finally { button.disabled = false; }

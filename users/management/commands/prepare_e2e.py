@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from articles.models import Article, ArticleCorrection, ArticleMedia
+from articles.models import Article, ArticleCorrection, ArticleMedia, ArticleTranslation, Notification
 from users.models import NewsletterEdition
 
 
@@ -79,6 +79,27 @@ class Command(BaseCommand):
                 'status': 'published',
                 'published_at': timezone.now(),
             },
+        )
+        ArticleTranslation.objects.update_or_create(
+            article=reader_article,
+            language_code='hi',
+            defaults={
+                'title': 'E2E Hindi Reader Story',
+                'subtitle': 'A localized E2E fixture',
+                'content': 'यह एक स्थिर अनुवाद परीक्षण कहानी है।',
+                'summary': 'A published Hindi translation used by the browser regression suite.',
+                'status': 'published',
+                'translated_by': user,
+                'reviewed_by': users['Editor'],
+                'reviewed_at': timezone.now(),
+            },
+        )
+        Notification.objects.get_or_create(
+            recipient=users['Editor'],
+            article=reader_article,
+            notification_type='reader_alert',
+            message='E2E unread reader alert fixture.',
+            defaults={'action_url': '/articles/read/e2e-public-reader-story/', 'priority': 'normal'},
         )
         NewsletterEdition.objects.get_or_create(
             subject='E2E Newsletter Campaign',

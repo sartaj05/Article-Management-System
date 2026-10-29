@@ -1,4 +1,4 @@
-# Local verification — 15 October 2026
+# Local verification — 29 October 2026
 
 The project runs at `http://127.0.0.1:8000/` using the existing virtual environment.
 
@@ -13,8 +13,12 @@ The project runs at `http://127.0.0.1:8000/` using the existing virtual environm
 
 ```powershell
 .\venv\Scripts\python.exe manage.py test --noinput
-node node_modules/@playwright/test/cli.js test
+npm run test:e2e:chromium
 ```
+
+For the fast browser regression check, run `npm run test:e2e:smoke`. To run the
+backend suite and browser smoke check together, run `npm run test:unit` followed
+by `npm run test:e2e:smoke`.
 
 Playwright starts an isolated server on port 8001 with its own SQLite database in `test-runtime/`, migrates it, and prepares deterministic E2E accounts. The browser suite does not reset or write to the development database on port 8000. Optional `E2E_USERNAME`, `E2E_EDITOR_USERNAME`, `E2E_ADMIN_USERNAME`, and `E2E_PASSWORD` environment variables select other test accounts. `BASE_URL` changes the server URL.
 
@@ -26,6 +30,7 @@ Playwright starts an isolated server on port 8001 with its own SQLite database i
 - Editor rejection with a reason, approval, publishing, and public availability after publication.
 - Admin article editing, user listing across pages, moving a story to trash, and loss of public access after trashing. Backend tests cover user deletion permissions and prevention of self-deletion.
 - Desktop, tablet, mobile, and narrow mobile layouts; additional 900px and 1100px header checks; public feed, dialogs, support chat, and shared workspace tools.
+- Translation comparison, Hindi RSS and sitemap publishing, unread notification badges, reader digest history, and workspace-scoped quotas.
 
 The workflow tests create uniquely named QA stories and clean up only those stories. Negative-login tests use unique nonexistent usernames so repeated runs do not lock the shared test accounts.
 
@@ -38,5 +43,6 @@ The workflow tests create uniquely named QA stories and clean up only those stor
 - Correct Admin user-list and trash endpoints, role-based user-management permissions, and valid empty HTTP 204 deletion responses.
 - Intermediate-width header wrapping and usable form/dialog controls.
 - Offline caching restricted to public assets and the homepage; private workspace and API responses are excluded.
+- Local dashboard assets are used for browser tests, so editorial workflows do not depend on a public CDN being reachable.
 
 This is local functional and regression testing. Live SMTP delivery, external payments, SSO providers, web push, and production deployment were not exercised. The local email backend prints messages to the development log.

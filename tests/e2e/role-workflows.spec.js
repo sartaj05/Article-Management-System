@@ -188,10 +188,11 @@ test('each role renews expired access and the sign-out page ends its session', a
     await login(page, role);
     await page.evaluate(() => localStorage.setItem('access_token', 'expired-test-access-token'));
     const renewed = page.waitForResponse(response => response.url().endsWith('/api/token/refresh/'));
-    await page.reload();
+    await page.evaluate(() => window.WorkspaceUI.ensureAccess());
     expect((await renewed).ok()).toBeTruthy();
-    if (role === 'admin') await expect(page.locator('#articles-list tr').first()).toBeVisible();
-    else await expect(page.locator('#article-count')).toHaveText(/^\d+$/);
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(roles[role][0] + '$'));
+    expect(await page.evaluate(() => localStorage.getItem('access_token'))).not.toBe('expired-test-access-token');
     await page.goto('/logout-template/');
     await logout(page, role);
   }

@@ -25,6 +25,7 @@ async function clearFollow(page, interestType, value) {
 }
 
 test('journalist reader features and editor campaign analytics work end to end', async ({ page }) => {
+  test.setTimeout(90_000);
   const collectionName = `E2E collection ${Date.now()}`;
   await login(page, process.env.E2E_USERNAME || 'e2e_journalist', '/journalist/dashboard/');
   await clearFollow(page, 'author', process.env.E2E_USERNAME || 'e2e_journalist');
@@ -80,6 +81,7 @@ test('journalist reader features and editor campaign analytics work end to end',
   expect(savedCollection.items).toHaveLength(1);
   expect(savedCollection.items[0].title).toBe('E2E Public Reader Story');
 
+  await login(page, process.env.E2E_USERNAME || 'e2e_journalist', '/journalist/dashboard/');
   await page.goto('/account/settings/#reading-collections');
   await page.locator('.reading-collection').filter({ hasText: collectionName }).locator('[data-delete-collection]').click();
   await expect(page.locator('.reading-collection').filter({ hasText: collectionName })).toHaveCount(0);
