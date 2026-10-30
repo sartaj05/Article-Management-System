@@ -53,12 +53,13 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
+from .ai_evaluation import run_evaluation
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -260,6 +261,49 @@ class EditorialAIHealthView(APIView):
             'fallback_enabled': settings.AI_ASSISTANT_FALLBACK_ENABLED,
             'human_review_required': True,
         })
+
+
+class AIPromptVersionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def _allowed(self, user):
+        return user.role in {'Editor', 'Admin'}
+
+    def get(self, request):
+        if not self._allowed(request.user):
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        prompts = AIPromptVersion.objects.order_by('-created_at')[:50]
+        return Response([{'id': item.id, 'name': item.name, 'version': item.version, 'system_prompt': item.system_prompt, 'is_active': item.is_active, 'created_at': item.created_at} for item in prompts])
+
+    def post(self, request):
+        if not self._allowed(request.user):
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        prompt = AIPromptVersion.objects.create(
+            name=str(request.data.get('name', 'editorial-copilot'))[:80],
+            version=str(request.data.get('version', '')).strip()[:40],
+            system_prompt=str(request.data.get('system_prompt', '')).strip(),
+            is_active=bool(request.data.get('is_active', True)),
+            created_by=request.user,
+        )
+        return Response({'id': prompt.id, 'name': prompt.name, 'version': prompt.version, 'is_active': prompt.is_active}, status=201)
+
+
+class AIEvaluationView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        runs = AIEvaluationRun.objects.all()[:20]
+        return Response([{'id': run.id, 'prompt_version': run.prompt_version, 'provider': run.provider, 'total_cases': run.total_cases, 'passed_cases': run.passed_cases, 'score': float(run.score), 'results': run.results, 'created_at': run.created_at} for run in runs])
+
+    def post(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        run = run_evaluation(actor=request.user)
+        return Response({'id': run.id, 'prompt_version': run.prompt_version, 'provider': run.provider, 'total_cases': run.total_cases, 'passed_cases': run.passed_cases, 'score': float(run.score), 'results': run.results}, status=201)
 
 
 class EditorialAssistantApplyView(APIView):

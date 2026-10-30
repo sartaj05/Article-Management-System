@@ -45,7 +45,7 @@ class LocalRuleBasedProvider:
             provider=self.name,
             model="rules-v1",
             latency_ms=round((time.perf_counter() - started) * 1000),
-            metadata={"mode": "deterministic", "prompt_version": "editorial-v1"},
+            metadata={"mode": "deterministic", "prompt_version": settings.AI_ASSISTANT_PROMPT_VERSION},
         )
 
 
@@ -110,7 +110,7 @@ class OpenAICompatibleProvider:
             latency_ms=round((time.perf_counter() - started) * 1000),
             metadata={
                 "mode": "remote",
-                "prompt_version": "editorial-v1",
+                "prompt_version": settings.AI_ASSISTANT_PROMPT_VERSION,
                 "usage": {
                     key: usage[key]
                     for key in ("prompt_tokens", "completion_tokens", "total_tokens")

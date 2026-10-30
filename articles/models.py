@@ -907,6 +907,48 @@ class EditorialAssistantRun(models.Model):
         ordering = ['-created_at']
 
 
+class AIPromptVersion(models.Model):
+    name = models.CharField(max_length=80, default='editorial-copilot')
+    version = models.CharField(max_length=40)
+    system_prompt = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_prompt_versions_created')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['name', '-created_at']
+        constraints = [models.UniqueConstraint(fields=['name', 'version'], name='unique_ai_prompt_version')]
+
+
+class AIEvaluationCase(models.Model):
+    ACTION_CHOICES = [('summarize', 'Summarize'), ('headline', 'Headline'), ('seo', 'SEO'), ('proofread', 'Proofread')]
+
+    name = models.CharField(max_length=120, unique=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    criteria = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['name']
+
+
+class AIEvaluationRun(models.Model):
+    prompt_version = models.CharField(max_length=80, default='editorial-v1')
+    provider = models.CharField(max_length=80)
+    total_cases = models.PositiveIntegerField(default=0)
+    passed_cases = models.PositiveIntegerField(default=0)
+    score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    results = models.JSONField(default=list, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_evaluation_runs_created')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]

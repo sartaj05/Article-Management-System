@@ -258,6 +258,7 @@ AI_ASSISTANT_API_KEY = os.getenv('AI_ASSISTANT_API_KEY', os.getenv('OPENAI_API_K
 AI_ASSISTANT_BASE_URL = os.getenv('AI_ASSISTANT_BASE_URL', 'https://api.openai.com/v1/chat/completions')
 AI_ASSISTANT_TIMEOUT = float(os.getenv('AI_ASSISTANT_TIMEOUT', '20'))
 AI_ASSISTANT_FALLBACK_ENABLED = os.getenv('AI_ASSISTANT_FALLBACK_ENABLED', 'true').lower() in {'1', 'true', 'yes'}
+AI_ASSISTANT_PROMPT_VERSION = os.getenv('AI_ASSISTANT_PROMPT_VERSION', 'editorial-v1')
 SSO_CALLBACK_URL = os.getenv('SSO_CALLBACK_URL', '')
 WEBAUTHN_RP_ID = os.getenv('WEBAUTHN_RP_ID', 'localhost')
 WEBAUTHN_ORIGIN = os.getenv('WEBAUTHN_ORIGIN', 'http://localhost:8000')
