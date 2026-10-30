@@ -27,7 +27,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
+    NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -163,6 +163,46 @@ class NotificationPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class NotificationDeliveryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        queryset = NotificationDelivery.objects.filter(recipient=request.user)
+        channel = request.query_params.get('channel')
+        status_filter = request.query_params.get('status')
+        if channel in {'email', 'push'}:
+            queryset = queryset.filter(channel=channel)
+        if status_filter in {'queued', 'sent', 'failed', 'skipped'}:
+            queryset = queryset.filter(status=status_filter)
+        return Response([{
+            'id': item.id,
+            'channel': item.channel,
+            'status': item.status,
+            'attempts': item.attempts,
+            'last_error': item.last_error,
+            'delivered_at': item.delivered_at,
+            'created_at': item.created_at,
+        } for item in queryset[:100]])
+
+    def post(self, request):
+        from users.delivery import deliver_email, deliver_push_notification
+        delivery = get_object_or_404(NotificationDelivery, pk=request.data.get('delivery_id'), recipient=request.user)
+        if delivery.status not in {'failed', 'skipped'}:
+            return Response({'detail': 'Only failed or skipped deliveries can be retried.'}, status=400)
+        if delivery.channel == 'email':
+            deliver_email(delivery)
+        else:
+            subscription = PushSubscription.objects.filter(pk=delivery.provider_reference, user=request.user, is_active=True).first()
+            if subscription is None:
+                delivery.status = 'failed'
+                delivery.last_error = 'Push subscription is no longer active.'
+                delivery.save(update_fields=['status', 'last_error'])
+            else:
+                deliver_push_notification(delivery, subscription)
+        return Response({'id': delivery.id, 'status': delivery.status, 'attempts': delivery.attempts})
 
 
 class NewsletterSubscriptionSerializer(serializers.ModelSerializer):

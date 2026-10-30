@@ -125,6 +125,25 @@ class NotificationPreference(models.Model):
         return f"Notification preferences for {self.user.username}"
 
 
+class NotificationDelivery(models.Model):
+    CHANNEL_CHOICES = [('email', 'Email'), ('push', 'Web push')]
+    STATUS_CHOICES = [('queued', 'Queued'), ('sent', 'Sent'), ('failed', 'Failed'), ('skipped', 'Skipped')]
+
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notification_deliveries')
+    notification = models.ForeignKey('articles.Notification', on_delete=models.SET_NULL, null=True, blank=True, related_name='deliveries')
+    channel = models.CharField(max_length=12, choices=CHANNEL_CHOICES)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='queued')
+    attempts = models.PositiveSmallIntegerField(default=0)
+    payload = models.JSONField(default=dict, blank=True)
+    provider_reference = models.CharField(max_length=160, blank=True)
+    last_error = models.CharField(max_length=500, blank=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class SecurityEvent(models.Model):
     EVENT_CHOICES = [
         ('login_success', 'Login success'),

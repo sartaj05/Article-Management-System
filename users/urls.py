@@ -11,7 +11,7 @@ from . import views
 from .api import (
     AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
-    NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
+    NotificationDeliveryView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceBillingView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
@@ -55,6 +55,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('users/update/', UserUpdateView.as_view(), name='user-update'),
     path('profile/', UserProfileView.as_view(), name='user_profile'),
     path('notification-preferences/', NotificationPreferenceView.as_view(), name='notification-preferences'),
+    path('notification-deliveries/', NotificationDeliveryView.as_view(), name='notification-deliveries'),
     path('newsletter/subscribe/', NewsletterSubscriptionView.as_view(), name='newsletter-subscribe'),
     path('newsletter/preview/', NewsletterPreviewView.as_view(), name='newsletter-preview'),
     path('newsletter/editions/', NewsletterEditionView.as_view(), name='newsletter-editions'),

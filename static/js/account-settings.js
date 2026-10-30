@@ -14,6 +14,7 @@
   const twoFactorState = document.getElementById("two-factor-state");
   const twoFactorSetup = document.getElementById("two-factor-setup");
   const twoFactorDisable = document.getElementById("two-factor-disable");
+  const deliveryHistory = document.getElementById("notification-delivery-history");
   const personalizationForm = document.getElementById("personalization-preferences-form");
   const personalizationStatus = document.getElementById("personalization-status");
   const notificationForm = document.getElementById("notification-preferences-form");
@@ -78,6 +79,14 @@
     if (!savedSearchList) return;
     try { renderSavedSearches(await request("/alerts/saved-searches/")); }
     catch (error) { setStatus(savedSearchStatus, error.message, true); }
+  }
+
+  async function loadNotificationDeliveries() {
+    if (!deliveryHistory) return;
+    try {
+      const items = await request("/notification-deliveries/");
+      deliveryHistory.innerHTML = items.length ? `<h3>Notification delivery history</h3>${items.map((item) => `<article class="saved-search-item"><span><strong>${escapeHtml(item.channel)} · ${escapeHtml(item.status)}</strong><small>${item.attempts} attempt(s) · ${formatDate(item.delivered_at || item.created_at)}${item.last_error ? ` · ${escapeHtml(item.last_error)}` : ""}</small></span>${["failed", "skipped"].includes(item.status) ? `<button class="button button--secondary button--small" type="button" data-retry-delivery="${item.id}">Retry</button>` : ""}</article>`).join('')}` : '<p class="account-empty">No notification deliveries yet.</p>';
+    } catch (error) { deliveryHistory.innerHTML = `<p class="account-status is-error">${escapeHtml(error.message)}</p>`; }
   }
 
   async function loadTwoFactor() { if (!twoFactorState) return; try { const data = await request("/two-factor/"); twoFactorState.textContent = data.enabled ? "2FA is enabled for this account." : "2FA is not enabled."; document.getElementById("start-two-factor").hidden = data.enabled; twoFactorDisable.hidden = !data.enabled; } catch (error) { setStatus(twoFactorState, error.message, true); } }
@@ -177,6 +186,7 @@
   document.getElementById("start-two-factor")?.addEventListener("click", async () => { try { const data = await request("/two-factor/", { method: "GET" }); const setup = document.getElementById("two-factor-setup"); setup.hidden = false; document.getElementById("two-factor-secret").textContent = data.secret || "Open the authenticator setup flow."; } catch (error) { setStatus(twoFactorState, error.message, true); } });
   document.getElementById("confirm-two-factor")?.addEventListener("click", async () => { try { const data = await request("/two-factor/", { method: "POST", body: JSON.stringify({ code: document.getElementById("two-factor-code").value }) }); document.getElementById("two-factor-backup").textContent = `Save these backup codes: ${data.backup_codes.join(", ")}`; await loadTwoFactor(); } catch (error) { setStatus(twoFactorState, error.message, true); } });
   document.getElementById("disable-two-factor-button")?.addEventListener("click", async () => { try { await request("/two-factor/", { method: "PUT", body: JSON.stringify({ code: document.getElementById("disable-two-factor-code").value }) }); await loadTwoFactor(); } catch (error) { setStatus(twoFactorState, error.message, true); } });
+  deliveryHistory?.addEventListener("click", async (event) => { const button = event.target.closest("[data-retry-delivery]"); if (!button) return; button.disabled = true; try { await request("/notification-deliveries/", { method: "POST", body: JSON.stringify({ delivery_id: button.dataset.retryDelivery }) }); await loadNotificationDeliveries(); } catch (error) { button.disabled = false; } });
 
   loadPrivacy();
   loadSecurity();
@@ -184,4 +194,5 @@
   loadSavedSearches();
   loadTwoFactor();
   loadPersonalization();
+  loadNotificationDeliveries();
 })();

@@ -1,7 +1,6 @@
-from django.conf import settings
-from django.core.mail import send_mail
-
 from .models import Notification
+from users.delivery import deliver_email
+from users.models import NotificationDelivery
 
 
 def notify(*, recipient, notification_type, message, article=None):
@@ -20,11 +19,11 @@ def notify(*, recipient, notification_type, message, article=None):
             article=article,
         )
     if enabled and (preferences is None or preferences.email_enabled) and recipient.email:
-        send_mail(
-            subject=f'Article Management: {notification_type.title()}',
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[recipient.email],
-            fail_silently=True,
+        delivery = NotificationDelivery.objects.create(
+            recipient=recipient,
+            notification=notification,
+            channel='email',
+            payload={'subject': f'Article Management: {notification_type.title()}', 'message': message},
         )
+        deliver_email(delivery)
     return notification

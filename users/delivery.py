@@ -5,11 +5,12 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 import requests
 
-from .models import AlertRule, NotificationPreference, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
+from .models import AlertRule, NotificationDelivery, NotificationPreference, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,45 @@ def send_web_push(subscription, payload):
         return {'sent': False, 'reason': 'delivery_failed'}
 
 
+def deliver_email(delivery):
+    """Send and persist one email notification attempt."""
+    delivery.attempts += 1
+    try:
+        send_mail(
+            subject=delivery.payload.get('subject', 'Article Studio notification'),
+            message=delivery.payload.get('message', ''),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[delivery.recipient.email],
+            fail_silently=False,
+        )
+        delivery.status = 'sent'
+        delivery.last_error = ''
+        delivery.delivered_at = timezone.now()
+    except Exception as exc:
+        delivery.status = 'failed'
+        delivery.last_error = str(exc)[:500]
+    delivery.save(update_fields=['attempts', 'status', 'last_error', 'delivered_at'])
+    return delivery
+
+
+def deliver_push_notification(delivery, subscription):
+    """Send and persist one push notification attempt."""
+    delivery.attempts += 1
+    result = send_web_push(subscription, delivery.payload)
+    if result.get('sent'):
+        delivery.status = 'sent'
+        delivery.last_error = ''
+        delivery.delivered_at = timezone.now()
+    elif result.get('reason') in {'web_push_not_configured', 'pywebpush_not_installed'}:
+        delivery.status = 'skipped'
+        delivery.last_error = result.get('reason', '')
+    else:
+        delivery.status = 'failed'
+        delivery.last_error = result.get('reason', 'Push provider rejected the notification')
+    delivery.save(update_fields=['attempts', 'status', 'last_error', 'delivered_at'])
+    return delivery
+
+
 def dispatch_article_alert(*, article, title=None, body=None):
     """Create reader alerts and send best-effort instant push notifications."""
     from articles.models import Notification
@@ -140,6 +180,10 @@ def dispatch_article_alert(*, article, title=None, body=None):
             notification.save(update_fields=['action_url'])
     results = []
     for subscription in PushSubscription.objects.filter(user_id__in=instant_users, is_active=True):
-        result = send_web_push(subscription, payload)
-        results.append({'subscription_id': subscription.id, **result})
+        notification = Notification.objects.filter(recipient=subscription.user, article=article, notification_type='reader_alert').order_by('-created_at').first()
+        delivery = NotificationDelivery.objects.create(
+            recipient=subscription.user, notification=notification, channel='push', payload=payload, provider_reference=str(subscription.id),
+        )
+        delivery = deliver_push_notification(delivery, subscription)
+        results.append({'subscription_id': subscription.id, 'sent': delivery.status == 'sent', 'reason': delivery.last_error})
     return results
