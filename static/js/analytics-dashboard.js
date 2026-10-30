@@ -3,6 +3,9 @@
   const authors = document.getElementById('analytics-authors');
   const funnel = document.getElementById('analytics-funnel');
   const status = document.getElementById('analytics-status');
+  const executiveSummary = document.getElementById('executive-summary');
+  const executivePanels = document.getElementById('executive-panels');
+  const executiveUpdated = document.getElementById('executive-updated');
   const token = localStorage.getItem('access_token');
   const headers = { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
@@ -21,6 +24,20 @@
       status.textContent = `Updated just now · ${Number(payload.active_readers_7d || 0).toLocaleString()} active reader(s) this week`;
     } catch (error) { stats.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`; authors.innerHTML = ''; status.textContent = 'Analytics unavailable'; }
   }
-  document.getElementById('refresh-analytics').addEventListener('click', loadAnalytics);
-  loadAnalytics();
+  async function loadExecutiveAnalytics() {
+    if (!executiveSummary || !executivePanels) return;
+    try {
+      const response = await fetch('/articles/api/v2/analytics/executive/', { headers, credentials: 'same-origin' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || 'Executive analytics unavailable.');
+      const summary = [['published', payload.content.published, 'Published stories'], ['active_7d', payload.reader.active_7d, 'Active readers / 7d'], ['paid_transactions', payload.membership.paid_transactions, 'Paid transactions'], ['delivery_rate', `${payload.distribution.delivery_rate}%`, 'Distribution delivery']];
+      executiveSummary.innerHTML = summary.map((item) => `<article><strong>${Number.isFinite(item[1]) ? Number(item[1]).toLocaleString() : escapeHtml(item[1])}</strong><span>${item[2]}</span></article>`).join('');
+      const panels = [['Reader engagement', ` ${payload.reader.completion_rate}% completion · ${payload.reader.returning_7d} returning`, 'reader'], ['Workflow throughput', `${payload.workflow.submitted} in review · ${payload.workflow.approved} approved`, 'workflow'], ['Membership conversion', `${payload.membership.active_subscriptions} active subscriptions · ${payload.membership.paid_invoices} paid invoices`, 'membership'], ['Distribution health', `${payload.distribution.failed} failed · ${payload.distribution.queued} queued`, 'distribution']];
+      executivePanels.innerHTML = panels.map((item) => `<article class="executive-panel executive-panel--${item[2]}"><div class="executive-panel__icon" aria-hidden="true"><i class="fa-solid fa-${item[2] === 'reader' ? 'users' : item[2] === 'workflow' ? 'diagram-project' : item[2] === 'membership' ? 'credit-card' : 'paper-plane'}"></i></div><div><strong>${item[0]}</strong><span>${escapeHtml(item[1])}</span></div></article>`).join('');
+      executiveUpdated.textContent = `Updated ${new Date(payload.generated_at).toLocaleTimeString()}`;
+    } catch (error) { executiveSummary.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`; }
+  }
+  function refresh() { loadAnalytics(); loadExecutiveAnalytics(); }
+  document.getElementById('refresh-analytics').addEventListener('click', refresh);
+  refresh();
 })();
