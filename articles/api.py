@@ -2289,9 +2289,31 @@ class DistributionJobView(APIView):
         if status_filter:
             queryset = queryset.filter(status=status_filter)
         jobs = list(queryset[:100])
+        channel_health = []
+        for channel, label in DistributionJob.CHANNEL_CHOICES:
+            channel_jobs = queryset.filter(channel=channel)
+            failed = channel_jobs.filter(status='failed').count()
+            delivered = channel_jobs.filter(status='delivered').count()
+            latest = channel_jobs.order_by('-created_at').first()
+            channel_health.append({
+                'channel': channel,
+                'label': label,
+                'status': 'degraded' if failed else ('healthy' if delivered else 'ready'),
+                'failed': failed,
+                'delivered': delivered,
+                'last_error': latest.last_error if latest and latest.status == 'failed' else '',
+                'last_activity_at': latest.created_at if latest else None,
+            })
+        failed_count = queryset.filter(status='failed').count()
         return Response({
             'count': queryset.count(),
             'summary': {key: queryset.filter(status=key).count() for key, _ in DistributionJob.STATUS_CHOICES},
+            'failure_alert': {
+                'active': failed_count > 0,
+                'count': failed_count,
+                'message': f'{failed_count} distribution job(s) need attention.' if failed_count else '',
+            },
+            'provider_health': channel_health,
             'jobs': [{'id': job.id, 'article_id': job.article_id, 'article': job.article.title, 'channel': job.channel, 'status': job.status, 'attempts': job.attempts, 'last_error': job.last_error, 'idempotency_key': job.idempotency_key, 'scheduled_for': job.scheduled_for, 'last_attempt_at': job.last_attempt_at, 'delivered_at': job.delivered_at, 'provider_reference': job.provider_reference, 'provider_response': job.provider_response} for job in jobs],
         })
 

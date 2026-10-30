@@ -43,3 +43,15 @@ class DistributionAutomationTests(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, 'queued')
         self.assertEqual(job.last_error, '')
+
+    def test_control_center_returns_health_and_failure_alert(self):
+        DistributionJob.objects.create(article=self.article, requested_by=self.author, channel='newsletter', status='failed', last_error='Newsletter provider timed out')
+        DistributionJob.objects.create(article=self.article, requested_by=self.author, channel='rss', status='delivered')
+        self.client.force_authenticate(self.author)
+        response = self.client.get('/articles/api/v2/distribution-jobs/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['failure_alert']['active'])
+        self.assertEqual(response.data['failure_alert']['count'], 1)
+        health = {item['channel']: item for item in response.data['provider_health']}
+        self.assertEqual(health['newsletter']['status'], 'degraded')
+        self.assertEqual(health['rss']['status'], 'healthy')

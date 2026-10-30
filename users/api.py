@@ -1172,11 +1172,16 @@ class WebhookDeliveryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        deliveries = WebhookDelivery.objects.filter(endpoint__owner=request.user).select_related('endpoint')[:100]
+        deliveries = WebhookDelivery.objects.filter(endpoint__owner=request.user).select_related('endpoint')
+        status_filter = request.query_params.get('status')
+        if status_filter in dict(WebhookDelivery.STATUS_CHOICES):
+            deliveries = deliveries.filter(status=status_filter)
+        deliveries = deliveries[:100]
         return Response([{
             'id': delivery.id,
             'event_id': delivery.event_id,
             'endpoint_id': delivery.endpoint_id,
+            'endpoint_url': delivery.endpoint.url,
             'event_type': delivery.event_type,
             'status': delivery.status,
             'response_code': delivery.response_code,
