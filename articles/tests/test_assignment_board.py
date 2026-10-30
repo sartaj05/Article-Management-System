@@ -47,3 +47,14 @@ class AssignmentBoardTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['status'], 'resolved')
         self.assertEqual(EditorialComment.objects.get().status, 'resolved')
+
+    def test_article_editorial_comments_create_assignment_and_notify_mentions(self):
+        self.client.force_authenticate(self.author)
+        response = self.client.post(f'/articles/api/v2/articles/{self.article.id}/editorial-comments/', {'body': 'Please verify this paragraph.', 'mentions': ['board-editor']}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['mentions'], ['board-editor'])
+        self.assertTrue(ArticleAssignment.objects.filter(article=self.article, editor=self.author).exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.editor, notification_type='comment').exists())
+        response = self.client.patch(f'/articles/api/v2/articles/{self.article.id}/editorial-comments/', {'comment_id': response.data['id'], 'status': 'resolved'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'resolved')

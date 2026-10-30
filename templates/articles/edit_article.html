@@ -30,6 +30,12 @@
             <h1>Edit Article</h1>
             <p id="collaboration-status" class="collaboration-status" role="status" aria-live="polite">Autosave is ready.</p>
             <div id="collaborator-presence" class="collaborator-presence" aria-live="polite"><span class="collaborator-presence__label">Live room</span><span id="collaborator-count">Only you</span></div>
+            <section class="editorial-comments-panel" aria-labelledby="editorial-comments-title">
+                <div class="editorial-comments-panel__heading"><div><span class="feature-eyebrow">Editorial collaboration</span><h2 id="editorial-comments-title">Review notes</h2><p>Leave context for the next editor, mention a teammate, and resolve notes as the story moves forward.</p></div><button class="btn btn-secondary" type="button" id="refresh-editorial-comments">Refresh</button></div>
+                <p id="editorial-comments-status" class="editor-tool-panel__status" role="status" aria-live="polite">Loading review notes…</p>
+                <div id="editorial-comments-list" class="editorial-comments-list" aria-live="polite"></div>
+                <form id="editorial-comment-form" class="editorial-comment-form"><textarea name="body" rows="3" maxlength="2000" required placeholder="Add an editorial note…"></textarea><input name="mentions" placeholder="Mention usernames, separated by commas"><button class="button" type="submit">Post review note</button></form>
+            </section>
             <section class="editor-tool-panel" aria-labelledby="revision-tools-title">
                 <div><span class="feature-eyebrow">Draft safety</span><h2 id="revision-tools-title">Autosave & revisions</h2><p>Restore the latest autosave or compare your previous saved versions.</p></div>
                 <div class="editor-tool-panel__actions"><button class="btn btn-secondary" type="button" id="restore-autosave">Restore autosave</button><button class="btn btn-secondary" type="button" id="load-revisions">View revisions</button></div>
@@ -145,6 +151,7 @@
     <script src="{% static 'js/script.js' %}?v=20261014-1"></script>
     <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
     <script src="{% static 'js/collaboration.js' %}"></script>
+    <script src="{% static 'js/editorial-comments.js' %}"></script>
     <script src="{% static 'js/article-revisions.js' %}"></script>
     <script src="{% static 'js/rich-block-editor.js' %}" defer></script>
     <script src="{% static 'js/quality-gate.js' %}" defer></script>

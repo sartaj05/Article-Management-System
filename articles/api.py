@@ -1799,6 +1799,73 @@ class AssignmentCommentView(APIView):
         return Response(EditorialCommentSerializer(comment).data)
 
 
+class ArticleEditorialCommentsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def article(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if request.user.role not in {'Editor', 'Admin'} and article.author_id != request.user.id:
+            return None
+        return article
+
+    def assignment(self, article, user):
+        assignment = article.assignments.select_related('editor').order_by('-updated_at', '-id').first()
+        if assignment:
+            return assignment
+        return ArticleAssignment.objects.create(
+            article=article, editor=user, can_edit=user.role in {'Editor', 'Admin'}, can_review=user.role in {'Editor', 'Admin'},
+        )
+
+    def allowed(self, request, comment):
+        return request.user.role in {'Editor', 'Admin'} or request.user.id in {comment.assignment.editor_id, comment.assignment.article.author_id}
+
+    def get(self, request, article_id):
+        article = self.article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have access to editorial comments.'}, status=403)
+        comments = EditorialComment.objects.filter(assignment__article=article).select_related('author', 'resolved_by').order_by('status', 'created_at')
+        return Response(EditorialCommentSerializer(comments, many=True).data)
+
+    def post(self, request, article_id):
+        article = self.article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have access to editorial comments.'}, status=403)
+        body = str(request.data.get('body', '')).strip()
+        if not body:
+            return Response({'detail': 'Comment body is required.'}, status=400)
+        if len(body) > 2000:
+            return Response({'detail': 'Comment body must be 2000 characters or fewer.'}, status=400)
+        mentions = request.data.get('mentions', [])
+        if isinstance(mentions, str):
+            mentions = [item.strip().lstrip('@') for item in mentions.split(',') if item.strip()]
+        mentioned_users = list(CustomUser.objects.filter(username__in=mentions, is_active=True))
+        assignment = self.assignment(article, request.user)
+        comment = EditorialComment.objects.create(assignment=assignment, author=request.user, body=body, mentions=[user.username for user in mentioned_users])
+        record_audit_event(actor=request.user, action='article_editorial_comment_added', article=article, details={'comment_id': comment.id})
+        recipients = {user.id: user for user in mentioned_users}
+        if assignment.editor_id != request.user.id:
+            recipients[assignment.editor_id] = assignment.editor
+        for recipient in recipients.values():
+            notify(recipient=recipient, notification_type='comment', message=f'{request.user.username} commented on {article.title}.', article=article)
+        return Response(EditorialCommentSerializer(comment).data, status=201)
+
+    def patch(self, request, article_id):
+        article = self.article(request, article_id)
+        if article is None:
+            return Response({'detail': 'You do not have access to editorial comments.'}, status=403)
+        comment = get_object_or_404(EditorialComment, pk=request.data.get('comment_id'), assignment__article=article)
+        if not self.allowed(request, comment):
+            return Response({'detail': 'You do not have access to this comment.'}, status=403)
+        status_value = str(request.data.get('status', '')).strip()
+        if status_value not in {'open', 'resolved'}:
+            return Response({'detail': 'Status must be open or resolved.'}, status=400)
+        comment.status = status_value
+        comment.resolved_by = request.user if status_value == 'resolved' else None
+        comment.resolved_at = timezone.now() if status_value == 'resolved' else None
+        comment.save(update_fields=['status', 'resolved_by', 'resolved_at', 'updated_at'])
+        return Response(EditorialCommentSerializer(comment).data)
+
+
 class AssignmentBoardView(APIView):
     permission_classes = [IsAuthenticated]
 

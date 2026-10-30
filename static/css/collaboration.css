@@ -32,4 +32,19 @@
 .revision-item div { display: grid; gap: 2px; }
 .revision-item span { color: var(--muted); font-size: .75rem; }
 .revision-diff { max-height: 260px; overflow: auto; margin: 0; padding: 13px; border-radius: 10px; color: var(--ink); background: #171b3a; font: .78rem/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; white-space: pre-wrap; }
+.editorial-comments-panel { display: grid; gap: 12px; margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.editorial-comments-panel__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.editorial-comments-panel__heading h2 { margin: 4px 0; color: var(--ink); font-size: 1rem; }
+.editorial-comments-panel__heading p { margin: 0; color: var(--muted); font-size: .82rem; }
+.editorial-comments-list { display: grid; gap: 9px; }
+.editorial-comment { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.editorial-comment.is-resolved { opacity: .72; }
+.editorial-comment__meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.editorial-comment__meta strong { color: var(--ink); font-size: .82rem; }
+.editorial-comment__meta small, .editorial-comment__mentions { color: var(--muted); font-size: .7rem; }
+.editorial-comment__meta span { margin-left: auto; padding: 4px 7px; border-radius: 999px; color: var(--brand); background: var(--surface-tint); font-size: .66rem; font-weight: 800; text-transform: capitalize; }
+.editorial-comment p { margin: 8px 0; color: var(--ink); font-size: .84rem; white-space: pre-wrap; }
+.editorial-comment button { min-height: 32px; padding: 6px 9px; font-size: .72rem; }
+.editorial-comment-form { display: grid; gap: 9px; padding-top: 12px; border-top: 1px solid var(--line); }
+.editorial-comment-form textarea, .editorial-comment-form input { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--surface-soft); }
 @media (max-width: 560px) { .revision-item { align-items: stretch; flex-direction: column; } .revision-item .btn { width: 100%; } }
