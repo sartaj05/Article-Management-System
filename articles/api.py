@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIInsight, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -62,6 +62,7 @@ from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial
 from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
 from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
+from .newsroom_intelligence import build_article_intelligence, build_workspace_intelligence
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -409,6 +410,47 @@ class AIUsageView(APIView):
         events = AIUsageEvent.objects.filter(workspace=workspace, created_at__gte=start)
         totals = events.aggregate(prompt_tokens=Sum('prompt_tokens'), completion_tokens=Sum('completion_tokens'), total_tokens=Sum('total_tokens'), estimated_cost=Sum('estimated_cost'))
         return Response({'workspace_slug': workspace.slug, 'period_start': start, 'event_count': events.count(), 'prompt_tokens': totals['prompt_tokens'] or 0, 'completion_tokens': totals['completion_tokens'] or 0, 'total_tokens': totals['total_tokens'] or 0, 'estimated_cost': str(totals['estimated_cost'] or 0)})
+
+
+class ArticleIntelligenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        candidates = Article.objects.filter(is_deleted=False)
+        if article.workspace_id:
+            candidates = candidates.filter(workspace_id=article.workspace_id)
+        payload = build_article_intelligence(article, candidates.select_related('author')[:100])
+        insight = AIInsight.objects.create(article=article, workspace_id=article.workspace_id, payload=payload, score=100 if payload['duplicate_risk'] == 'low' else 70, created_by=request.user)
+        record_audit_event(actor=request.user, action='ai_newsroom_intelligence_generated', article=article, details={'insight_id': insight.id})
+        return Response({'id': insight.id, 'article_id': article.id, 'payload': payload}, status=201)
+
+    def get(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        insight = article.ai_insights.first()
+        if not insight:
+            return Response({'detail': 'No intelligence has been generated yet.'}, status=404)
+        return Response({'id': insight.id, 'article_id': article.id, 'payload': insight.payload, 'created_at': insight.created_at})
+
+
+class NewsroomIntelligenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        slug = request.query_params.get('workspace')
+        workspace = Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
+        if not workspace:
+            return Response({'detail': 'Editor workspace access is required.'}, status=403)
+        articles = Article.objects.filter(workspace=workspace, is_deleted=False).order_by('-updated_at')[:100]
+        return Response({'workspace_slug': workspace.slug, 'intelligence': build_workspace_intelligence(articles)})
 
 
 class EditorialAssistantApplyView(APIView):

@@ -74,6 +74,12 @@
                 <p id="ai-fact-check-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
                 <div id="ai-fact-check-result" class="ai-copilot__result" hidden></div>
             </section>
+            <section class="ai-copilot" aria-labelledby="ai-intelligence-title">
+                <div class="ai-copilot__heading"><div><span class="feature-eyebrow">Newsroom intelligence</span><h2 id="ai-intelligence-title">Story context</h2><p>Find related coverage and possible duplicates before assigning or publishing this story.</p></div><span class="ai-copilot__badge">Explainable signals</span></div>
+                <div class="ai-copilot__controls"><button class="btn btn-primary" type="button" id="run-ai-intelligence">Analyze story context</button></div>
+                <p id="ai-intelligence-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
+                <div id="ai-intelligence-result" class="ai-copilot__result" hidden></div>
+            </section>
             <form id="article-form" enctype="multipart/form-data" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="id" value="{{ article.id }}">
@@ -183,6 +189,7 @@
     <script src="{% static 'js/quality-gate.js' %}" defer></script>
     <script src="{% static 'js/ai-copilot.js' %}" defer></script>
     <script src="{% static 'js/ai-fact-check.js' %}" defer></script>
+    <script src="{% static 'js/ai-intelligence.js' %}" defer></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

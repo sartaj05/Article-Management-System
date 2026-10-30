@@ -1006,6 +1006,19 @@ class AIUsageEvent(models.Model):
         indexes = [models.Index(fields=['workspace', 'created_at'])]
 
 
+class AIInsight(models.Model):
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, null=True, blank=True, related_name='ai_insights')
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.CASCADE, null=True, blank=True, related_name='ai_insights')
+    kind = models.CharField(max_length=40, default='newsroom-intelligence')
+    payload = models.JSONField(default=dict, blank=True)
+    score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_insights_created')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]
