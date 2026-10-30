@@ -1,0 +1,17 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Client demo | Article Studio{% endblock %}
+
+{% block content %}
+<main class="demo-page">
+    <section class="demo-hero">
+        <div class="demo-hero__copy"><span class="eyebrow">Private client preview</span><h1>See the whole newsroom in motion.</h1><p>Explore Article Studio as a journalist, editor, or admin. Every persona opens the same connected demo workspace with realistic editorial data.</p><div class="demo-hero__actions"><button class="button button--light" type="button" id="demo-reset"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Refresh demo workspace</button><span id="demo-status" class="demo-status" role="status" aria-live="polite">Ready for your walkthrough.</span></div></div>
+        <div class="demo-hero__orb" aria-hidden="true"><span>✦</span><i></i><b></b></div>
+    </section>
+    <section class="demo-section" aria-labelledby="demo-personas-title"><div class="demo-section__heading"><div><span class="feature-eyebrow">Choose a perspective</span><h2 id="demo-personas-title">Start the guided demo</h2></div><span class="demo-badge"><i class="fa-solid fa-circle" aria-hidden="true"></i> Live demo data</span></div><div id="demo-personas" class="demo-personas"><div class="demo-loading">Loading demo personas…</div></div></section>
+    <section class="demo-section demo-tour" aria-labelledby="demo-tour-title"><div><span class="feature-eyebrow">A connected product story</span><h2 id="demo-tour-title">What to show your client</h2></div><div class="demo-tour__steps"><article><span>01</span><strong>Shape the story</strong><p>Draft, assign, fact-check, translate, and review from one editorial workspace.</p></article><article><span>02</span><strong>Publish with confidence</strong><p>Move through approval gates, scheduled publishing, and distribution health.</p></article><article><span>03</span><strong>Understand the audience</strong><p>Personalized reading, notifications, memberships, and performance analytics close the loop.</p></article></div></section>
+</main>
+{% endblock %}
+
+{% block extra_scripts %}<script src="{% static 'js/demo-mode.js' %}" defer></script>{% endblock %}

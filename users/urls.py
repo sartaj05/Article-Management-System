@@ -9,7 +9,7 @@ from .views import (
 )
 from . import views
 from .api import (
-    AccessibilityPreferenceView, AlertRuleView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
+    AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
@@ -19,6 +19,7 @@ urlpatterns = [
     
 
 path('', views.home, name='home'),
+path('demo/', views.demo_mode, name='demo-mode'),
 
     # Authentication
     path('register/', UserRegistrationView.as_view(), name='user-registration'),
@@ -43,6 +44,7 @@ path('', views.home, name='home'),
     path('security/center/', SecurityCenterView.as_view(), name='security-center'),
     path('security/sessions/<int:pk>/', SecuritySessionRevokeView.as_view(), name='security-session-revoke'),
     path('support/chat/', SupportChatView.as_view(), name='support-chat'),
+    path('demo/api/', DemoModeView.as_view(), name='demo-mode-api'),
     
     # User List (Admin Only)
     path('user-list/', UserListView.as_view(), name='user-list'),

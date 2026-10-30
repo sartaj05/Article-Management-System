@@ -517,6 +517,10 @@ def home(request):
     return render(request, 'users/home.html')
 
 
+def demo_mode(request):
+    return render(request, 'users/demo_mode.html', {'demo_mode_enabled': settings.DEMO_MODE_ENABLED})
+
+
 @login_required
 def user_profile(request):
     # You can return a simple JsonResponse or render an HTML page

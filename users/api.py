@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate, login
 from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -48,6 +49,41 @@ class SupportChatView(APIView):
         if len(message) > 500:
             return Response({'detail': 'message must be 500 characters or fewer.'}, status=400)
         return Response(get_support_response(message))
+
+
+class DemoModeView(APIView):
+    permission_classes = [AllowAny]
+
+    personas = {
+        'journalist': {'label': 'Journalist', 'description': 'Write, revise, and follow the reader experience.', 'icon': 'pen-nib', 'dashboard_url': '/journalist/dashboard/'},
+        'editor': {'label': 'Editor', 'description': 'Review assignments, collaborate, and publish with confidence.', 'icon': 'check-double', 'dashboard_url': '/editor/dashboard/'},
+        'admin': {'label': 'Admin', 'description': 'Manage workspaces, billing, permissions, and operations.', 'icon': 'shield-halved', 'dashboard_url': '/adminMain/dashboard/'},
+    }
+
+    def dispatch(self, request, *args, **kwargs):
+        if not settings.DEMO_MODE_ENABLED:
+            return Response({'detail': 'Demo mode is disabled.'}, status=status.HTTP_404_NOT_FOUND)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        return Response({'enabled': True, 'workspace': 'Demo Newsroom', 'personas': [{'key': key, **value} for key, value in self.personas.items()], 'features': ['Editorial workflow', 'Workspace collaboration', 'Membership billing', 'Distribution monitoring', 'Reader personalization']})
+
+    def post(self, request):
+        action = str(request.data.get('action', 'login')).strip().lower()
+        if action == 'reset':
+            from django.core.management import call_command
+            call_command('seed_demo_data', verbosity=0)
+            return Response({'reset': True, 'message': 'Demo workspace refreshed. Choose a persona to continue.'})
+        persona = str(request.data.get('persona', '')).strip().lower()
+        from users.management.commands.seed_demo_data import DEMO_USERS
+        account = DEMO_USERS.get(persona)
+        if not account or persona not in self.personas:
+            return Response({'detail': 'Choose a valid demo persona.'}, status=status.HTTP_400_BAD_REQUEST)
+        user = authenticate(request, username=account['username'], password=account['password'])
+        if user is None:
+            return Response({'detail': 'Demo accounts are not seeded yet. Refresh the demo workspace first.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        login(request, user)
+        return Response({'authenticated': True, 'persona': persona, 'username': user.username, 'dashboard_url': self.personas[persona]['dashboard_url']})
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
