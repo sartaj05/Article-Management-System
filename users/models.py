@@ -524,6 +524,7 @@ class PublicAPIKey(models.Model):
     key_hash = models.CharField(max_length=64, unique=True)
     scopes = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(blank=True, null=True)
 

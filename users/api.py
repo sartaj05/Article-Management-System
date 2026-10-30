@@ -1140,10 +1140,11 @@ class PublicAPIKeySerializer(serializers.ModelSerializer):
         required=False,
         allow_empty=True,
     )
+    expires_at = serializers.DateTimeField(required=False, allow_null=True)
 
     class Meta:
         model = PublicAPIKey
-        fields = ['id', 'name', 'prefix', 'scopes', 'is_active', 'created_at', 'last_used_at']
+        fields = ['id', 'name', 'prefix', 'scopes', 'is_active', 'expires_at', 'created_at', 'last_used_at']
         read_only_fields = ['id', 'prefix', 'is_active', 'created_at', 'last_used_at']
 
 
@@ -1165,6 +1166,7 @@ class PublicAPIKeyView(APIView):
             scopes=serializer.validated_data.get('scopes', []),
             prefix=raw_key[:10],
             key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
+            expires_at=serializer.validated_data.get('expires_at') or timezone.now() + timedelta(days=90),
         )
         return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data}, status=201)
 
@@ -1178,6 +1180,16 @@ class PublicAPIKeyDetailView(APIView):
         key.is_active = False
         key.save(update_fields=['is_active'])
         return Response({'revoked': True})
+
+    def post(self, request, pk):
+        key = get_object_or_404(PublicAPIKey, pk=pk, owner=request.user)
+        raw_key = f'as_{secrets.token_urlsafe(32)}'
+        key.prefix = raw_key[:10]
+        key.key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+        key.is_active = True
+        key.expires_at = timezone.now() + timedelta(days=90)
+        key.save(update_fields=['prefix', 'key_hash', 'is_active', 'expires_at'])
+        return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data})
 
 
 class WebhookEndpointSerializer(serializers.ModelSerializer):
@@ -1201,6 +1213,17 @@ class WebhookEndpointView(APIView):
         serializer.is_valid(raise_exception=True)
         endpoint = serializer.save(owner=request.user, secret=serializer.validated_data.get('secret') or secrets.token_urlsafe(32))
         return Response(WebhookEndpointSerializer(endpoint).data, status=201)
+
+
+class WebhookEndpointRotateSecretView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        endpoint = get_object_or_404(WebhookEndpoint, pk=pk, owner=request.user)
+        endpoint.secret = secrets.token_urlsafe(32)
+        endpoint.save(update_fields=['secret', 'updated_at'])
+        return Response({'secret': endpoint.secret, 'endpoint': WebhookEndpointSerializer(endpoint).data})
 
 
 class WebhookDeliveryView(APIView):
@@ -1259,6 +1282,9 @@ def resolve_public_api_key(raw_key, required_scope=None):
         return None
     key = PublicAPIKey.objects.filter(
         prefix=raw_key[:10], is_active=True,
+    ).filter(
+        models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now()),
+    ).filter(
         key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
     ).select_related('owner').first()
     if key:

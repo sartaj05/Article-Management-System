@@ -12,7 +12,7 @@ from .api import (
     AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
-    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
+    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceBillingView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
 urlpatterns = [
@@ -92,6 +92,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('developer/keys/', PublicAPIKeyView.as_view(), name='public-api-keys'),
     path('developer/keys/<int:pk>/', PublicAPIKeyDetailView.as_view(), name='public-api-key-detail'),
     path('developer/webhooks/', WebhookEndpointView.as_view(), name='webhook-endpoints'),
+    path('developer/webhooks/<int:pk>/rotate-secret/', WebhookEndpointRotateSecretView.as_view(), name='webhook-secret-rotate'),
     path('developer/webhook-deliveries/', WebhookDeliveryView.as_view(), name='webhook-deliveries'),
     path('privacy/preferences/', PrivacyPreferenceView.as_view(), name='privacy-preferences'),
     path('privacy/consents/', PrivacyConsentView.as_view(), name='privacy-consents'),
