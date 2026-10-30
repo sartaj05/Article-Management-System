@@ -950,6 +950,9 @@ class MembershipWebhookView(APIView):
             'payment.captured': 'active',
             'subscription.cancelled': 'canceled',
             'subscription.charged': 'active',
+            'charge.refunded': 'canceled',
+            'payment.refunded': 'canceled',
+            'refund.created': 'canceled',
         }
         if event_type not in status_map:
             return Response({'processed': True, 'ignored': True})
@@ -962,13 +965,18 @@ class MembershipWebhookView(APIView):
         }
         if status_map[event_type] == 'active':
             subscription_defaults['started_at'] = timezone.now()
-        subscription, _ = MembershipSubscription.objects.update_or_create(
-            user=user,
-            plan=plan,
-            provider_reference=provider_reference,
-            defaults=subscription_defaults,
-        )
-        transaction_query = PaymentTransaction.objects.filter(user=user, plan=plan, status='pending')
+        subscription = MembershipSubscription.objects.filter(user=user, plan=plan).order_by('-created_at').first()
+        if subscription:
+            for field, value in subscription_defaults.items():
+                setattr(subscription, field, value)
+            subscription.provider_reference = provider_reference or subscription.provider_reference
+            subscription.save(update_fields=[*subscription_defaults.keys(), 'provider_reference', 'updated_at'])
+        else:
+            subscription = MembershipSubscription.objects.create(
+                user=user, plan=plan, provider_reference=provider_reference, **subscription_defaults,
+            )
+        transaction_statuses = ['pending', 'succeeded'] if status_map[event_type] == 'canceled' else ['pending']
+        transaction_query = PaymentTransaction.objects.filter(user=user, plan=plan, status__in=transaction_statuses)
         if transaction_id:
             transaction_query = transaction_query.filter(pk=transaction_id)
         elif checkout_token:
@@ -1002,6 +1010,10 @@ class MembershipWebhookView(APIView):
             if hasattr(payment, 'invoice') and status_map[event_type] == 'past_due':
                 payment.invoice.status = 'issued'
                 payment.invoice.save(update_fields=['status'])
+            elif hasattr(payment, 'invoice') and status_map[event_type] == 'canceled':
+                payment.invoice.status = 'refunded'
+                payment.invoice.paid_at = None
+                payment.invoice.save(update_fields=['status', 'paid_at'])
         return Response({'processed': True, 'subscription_id': subscription.id})
 
 

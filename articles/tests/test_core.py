@@ -299,6 +299,26 @@ class ArticleFeatureTests(TestCase):
         self.assertEqual(status_response.data['status'], 'succeeded')
         self.assertEqual(status_response.data['invoice']['status'], 'paid')
 
+    @override_settings(PAYMENT_WEBHOOK_SECRET='test-webhook-secret')
+    def test_membership_refund_webhook_closes_subscription_and_invoice(self):
+        plan = MembershipPlan.objects.create(name='Refundable', slug='refundable', price='99.00')
+        self.client.force_authenticate(self.journalist)
+        checkout = self.client.post('/api/membership/checkout/', {'plan_id': plan.id, 'provider': 'stripe'}, format='json')
+        transaction = PaymentTransaction.objects.get(checkout_token=checkout.data['checkout_token'])
+        active_payload = {'id': 'evt_refund_active', 'type': 'subscription.active', 'data': {'user_id': self.journalist.id, 'plan_id': plan.id, 'transaction_id': transaction.id, 'provider_reference': 'sub_refund_1'}}
+        active_body = json.dumps(active_payload).encode()
+        active_signature = 'sha256=' + hmac.new(b'test-webhook-secret', active_body, hashlib.sha256).hexdigest()
+        self.client.post('/api/membership/webhook/', active_body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=active_signature)
+        refund_payload = {'id': 'evt_refund_created', 'type': 'charge.refunded', 'data': {'user_id': self.journalist.id, 'plan_id': plan.id, 'transaction_id': transaction.id, 'provider_reference': 'ch_refund_1'}}
+        refund_body = json.dumps(refund_payload).encode()
+        refund_signature = 'sha256=' + hmac.new(b'test-webhook-secret', refund_body, hashlib.sha256).hexdigest()
+        response = self.client.post('/api/membership/webhook/', refund_body, content_type='application/json', HTTP_X_PAYMENT_SIGNATURE=refund_signature)
+        self.assertEqual(response.status_code, 200)
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, 'refunded')
+        self.assertEqual(transaction.invoice.status, 'refunded')
+        self.assertEqual(MembershipSubscription.objects.get(user=self.journalist, plan=plan).status, 'canceled')
+
     @override_settings(STRIPE_SECRET_KEY='sk_test_example')
     @patch('users.billing_providers.requests.post')
     def test_configured_stripe_checkout_returns_provider_session(self, post):

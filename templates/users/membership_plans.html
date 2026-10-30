@@ -16,6 +16,18 @@
     <div id="membership-plans" class="membership-plans" aria-live="polite">
         <p class="account-empty">Loading membership plans…</p>
     </div>
+    <section class="account-panel membership-billing" id="membership-billing" hidden>
+        <div class="account-panel__heading">
+            <div><span class="feature-eyebrow">Billing lifecycle</span><h2>Your membership</h2><p class="account-panel__description">Track payment status, invoices, and access in one place.</p></div>
+            <i class="fa-solid fa-receipt" aria-hidden="true"></i>
+        </div>
+        <div id="membership-summary" class="membership-billing__summary"></div>
+        <div class="membership-billing__actions"><button id="cancel-membership" class="button button--secondary" type="button" hidden>Cancel auto-renewal</button><p id="billing-action-status" class="account-status" role="status" aria-live="polite"></p></div>
+        <div class="membership-billing__columns">
+            <section><div class="membership-billing__heading"><h3>Transactions</h3><span>Latest 20</span></div><div id="membership-transactions" class="membership-billing__list"></div></section>
+            <section><div class="membership-billing__heading"><h3>Invoices</h3><span>Latest 50</span></div><div id="membership-invoices" class="membership-billing__list"></div></section>
+        </div>
+    </section>
 </section>
 <script src="{% static 'js/membership-plans.js' %}" defer></script>
 {% endblock %}
