@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from users.models import CustomUser, ReaderInterest
-from ..models import Article, ArticleView
+from ..models import Article, ArticleEngagementEvent, ArticleView, ReadingProgress
 
 
 class PersonalizedFeedTests(TestCase):
@@ -28,3 +28,14 @@ class PersonalizedFeedTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['mode'], 'trending')
         self.assertFalse(response.data['cold_start'])
+
+    def test_reader_insights_returns_streak_resume_and_topics(self):
+        ReaderInterest.objects.create(user=self.reader, interest_type='tag', value='climate')
+        ArticleEngagementEvent.objects.create(article=self.popular, user=self.reader, event_type='read_complete')
+        ReadingProgress.objects.create(article=self.latest, user=self.reader, progress_percent=42)
+        response = self.client.get('/articles/api/v2/reader/insights/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['streak']['current'], 1)
+        self.assertEqual(response.data['completed_articles'], 1)
+        self.assertEqual(response.data['resume_reading'][0]['progress_percent'], 42)
+        self.assertEqual(response.data['recommendation_topics'][0]['value'], 'climate')

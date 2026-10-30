@@ -29,11 +29,13 @@
     const category = escapeHTML(article.category || "General");
     const initial = escapeHTML(Array.from(String(article.title || "A"))[0].toUpperCase());
     const image = article.image ? `<img src="${escapeHTML(article.image)}" alt="" loading="lazy" decoding="async">` : `<div class="article-cover--placeholder" aria-hidden="true"><span class="cover-label">THE STUDIO / ${category}</span><span class="cover-letter">${initial}</span><span class="cover-caption"><span>✳</span> A perspective worth exploring.</span></div>`;
-    return `<article class="article-card"><div class="article-cover">${image}</div><div class="article-info"><div class="article-meta"><span class="meta-pill"><i class="fa-regular fa-folder" aria-hidden="true"></i>${category}</span><span class="meta-pill"><i class="fa-regular fa-calendar" aria-hidden="true"></i>${formatDate(article.published_at || article.publish_date)}</span></div><h3>${title}</h3><p class="article-summary">${summary}</p><div class="article-meta"><span><i class="fa-regular fa-user" aria-hidden="true"></i> ${author}</span><span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(article.views_count || 0)}</span></div><a class="article-link" href="${articleLink(article)}">Read article <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></article>`;
+    const reason = article.recommendation_reason ? `<span class="recommendation-note"><i class="fa-solid fa-sparkles" aria-hidden="true"></i>${escapeHTML(article.recommendation_reason)}</span>` : "";
+    return `<article class="article-card"><div class="article-cover">${image}</div><div class="article-info"><div class="article-meta"><span class="meta-pill"><i class="fa-regular fa-folder" aria-hidden="true"></i>${category}</span><span class="meta-pill"><i class="fa-regular fa-calendar" aria-hidden="true"></i>${formatDate(article.published_at || article.publish_date)}</span></div><h3>${title}</h3><p class="article-summary">${summary}</p>${reason}<div class="article-meta"><span><i class="fa-regular fa-user" aria-hidden="true"></i> ${author}</span><span><i class="fa-regular fa-eye" aria-hidden="true"></i> ${Number(article.views_count || 0)}</span></div><a class="article-link" href="${articleLink(article)}">Read article <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div></article>`;
   }
   function setStatus(message, isError) { if (!status) return; status.textContent = message || ""; status.classList.toggle("is-error", Boolean(isError)); }
   function endpoint() {
     const query = state.query ? `?q=${encodeURIComponent(state.query)}&sort=${encodeURIComponent(state.sort)}` : `?mode=${encodeURIComponent(state.mode)}`;
+    if (state.mode === "for_you") return "/articles/api/v2/feed/for-you/?limit=20";
     return state.query ? `/articles/api/v2/articles/search/${query}` : `/articles/api/v2/discover/${query}`;
   }
   function syncUrl() {
@@ -99,6 +101,15 @@
     let timer;
     search?.addEventListener("input", () => { window.clearTimeout(timer); timer = window.setTimeout(() => { state.query = search.value.trim(); syncUrl(); resetFeed(); }, 300); });
     loadMore?.addEventListener("click", () => loadArticles(state.next, true));
+  }
+  const readerInsights = document.getElementById("reader-insights-content");
+  if (readerInsights) {
+    fetch("/articles/api/v2/reader/insights/", { credentials: "same-origin", headers: { Accept: "application/json" } }).then((response) => response.ok ? response.json() : Promise.reject(new Error("Insights unavailable"))).then((data) => {
+      const streak = data.streak || {};
+      const topics = (data.recommendation_topics || []).slice(0, 3).map((item) => `<span class="insight-chip">${escapeHTML(item.value)}</span>`).join("");
+      const resume = (data.resume_reading || [])[0];
+      readerInsights.innerHTML = `<div class="insight-stat"><strong>${streak.current || 0}</strong><span>day streak</span></div><div class="insight-stat"><strong>${data.completed_articles || 0}</strong><span>stories completed</span></div>${resume ? `<a class="insight-resume" href="${articleLink(resume)}">Continue: ${escapeHTML(resume.title)} <span>${resume.progress_percent}%</span></a>` : `<div class="insight-topics"><span>Followed topics</span>${topics || "<em>Follow topics to shape your feed.</em>"}</div>`}`;
+    }).catch(() => { readerInsights.innerHTML = "<span>Follow stories and return often to build a more useful feed.</span>"; });
   }
   navToggle?.addEventListener("click", () => { const open = nav?.classList.toggle("is-open"); navToggle.setAttribute("aria-expanded", String(Boolean(open))); });
   function closeNavigation() {

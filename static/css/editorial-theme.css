@@ -775,6 +775,24 @@ body.site-shell, body.auth-shell { background: var(--surface-soft); }
 .feature-page__heading { margin-bottom: 28px; }
 .feature-page__heading p { max-width: 700px; line-height: 1.7; }
 .feature-status { padding-block: 8px; }
+.reader-insights { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(0, 1.5fr) auto; align-items: center; gap: 18px; margin: 20px 0 8px; padding: 17px 19px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(115deg, var(--surface-soft), rgba(235,242,255,.7)); }
+.reader-insights h3 { margin: 6px 0 0; color: var(--ink); font-size: 1.05rem; letter-spacing: -.02em; }
+.reader-insights__content { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.reader-insights__loading { color: var(--muted); font-size: .82rem; }
+.insight-stat { display: grid; gap: 2px; min-width: 78px; }
+.insight-stat strong { color: var(--brand); font-size: 1.35rem; }
+.insight-stat span, .insight-topics > span { color: var(--muted); font-size: .72rem; }
+.insight-resume { display: grid; gap: 4px; min-width: 0; color: var(--ink); font-size: .82rem; font-weight: 700; text-decoration: none; }
+.insight-resume span { color: var(--brand); font-size: .72rem; }
+.insight-topics { display: grid; gap: 6px; }
+.insight-topics em { color: var(--muted); font-size: .78rem; }
+.insight-chip { padding: 5px 9px; border-radius: 999px; color: var(--brand); background: #e6eefc; font-size: .72rem; font-weight: 700; }
+.recommendation-note { display: inline-flex; align-items: center; gap: 6px; margin: 1px 0 10px; color: var(--brand); font-size: .73rem; font-weight: 700; }
+.recommendation-note i { font-size: .68rem; }
+.personalization-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@media (max-width: 760px) { .reader-insights { grid-template-columns: 1fr; gap: 12px; } .reader-insights__content { flex-wrap: wrap; } .personalization-settings-grid { grid-template-columns: 1fr; } }
+html.theme-dark .reader-insights { background: linear-gradient(115deg, #17243a, #1d2940); }
+html.theme-dark .insight-chip { color: #dce8ff; background: #253b63; }
 .integration-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .distribution-alert { margin: 16px 0; padding: 12px 14px; border: 1px solid #f3c1bb; border-radius: 10px; color: #9f3027; background: #fff1ef; font-size: .85rem; font-weight: 700; }
 .distribution-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }

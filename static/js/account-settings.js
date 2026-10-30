@@ -14,6 +14,10 @@
   const twoFactorState = document.getElementById("two-factor-state");
   const twoFactorSetup = document.getElementById("two-factor-setup");
   const twoFactorDisable = document.getElementById("two-factor-disable");
+  const personalizationForm = document.getElementById("personalization-preferences-form");
+  const personalizationStatus = document.getElementById("personalization-status");
+  const notificationForm = document.getElementById("notification-preferences-form");
+  const notificationStatus = document.getElementById("notification-preferences-status");
 
   if (!privacyForm || !sessions || !events) return;
 
@@ -117,6 +121,15 @@
     } catch (error) { setStatus(securityStatus, error.message, true); }
   }
 
+  async function loadPersonalization() {
+    if (!personalizationForm || !notificationForm) return;
+    try {
+      const [personalization, notifications] = await Promise.all([request("/reader/personalization/"), request("/notification-preferences/")]);
+      ["enabled", "use_reading_history", "use_topic_interests"].forEach((field) => { personalizationForm.elements[field].checked = Boolean(personalization[field]); });
+      ["in_app_enabled", "email_enabled", "workflow_enabled", "comments_enabled"].forEach((field) => { notificationForm.elements[field].checked = Boolean(notifications[field]); });
+    } catch (error) { setStatus(personalizationStatus, error.message, true); }
+  }
+
   privacyForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = privacyForm.querySelector("button[type='submit']");
@@ -126,6 +139,17 @@
       setStatus(privacyStatus, "Privacy preferences saved.");
     } catch (error) { setStatus(privacyStatus, error.message, true); }
     finally { button.disabled = false; }
+  });
+
+  personalizationForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try { await request("/reader/personalization/", { method: "PATCH", body: JSON.stringify(Object.fromEntries(["enabled", "use_reading_history", "use_topic_interests"].map((field) => [field, personalizationForm.elements[field].checked]))) }); setStatus(personalizationStatus, "Reading controls saved."); }
+    catch (error) { setStatus(personalizationStatus, error.message, true); }
+  });
+  notificationForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try { await request("/notification-preferences/", { method: "PATCH", body: JSON.stringify(Object.fromEntries(["in_app_enabled", "email_enabled", "workflow_enabled", "comments_enabled"].map((field) => [field, notificationForm.elements[field].checked]))) }); setStatus(notificationStatus, "Notification controls saved."); }
+    catch (error) { setStatus(notificationStatus, error.message, true); }
   });
 
   interestForm?.addEventListener("submit", async (event) => {
@@ -159,4 +183,5 @@
   loadInterests();
   loadSavedSearches();
   loadTwoFactor();
+  loadPersonalization();
 })();

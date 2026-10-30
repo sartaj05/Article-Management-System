@@ -135,6 +135,8 @@ class UserFeatureTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Privacy &amp; security')
         self.assertContains(response, 'privacy-preferences-form')
+        self.assertContains(response, 'personalization-preferences-form')
+        self.assertContains(response, 'notification-preferences-form')
 
         self.client.logout()
         response = self.client.get('/account/settings/')

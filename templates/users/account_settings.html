@@ -41,6 +41,30 @@
             <div id="reader-interests" class="interest-list" aria-live="polite"></div>
         </section>
 
+        <section class="account-panel account-panel--wide" id="personalization" aria-labelledby="personalization-title">
+            <div class="account-panel__heading">
+                <div><span class="feature-eyebrow">Reader intelligence</span><h2 id="personalization-title">Personalize your reading room</h2><p class="account-panel__description">Control recommendation signals and the notifications that keep you connected to followed stories.</p></div>
+                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+            </div>
+            <div class="personalization-settings-grid">
+                <form id="personalization-preferences-form" class="account-preferences-form">
+                    <label class="account-switch"><input type="checkbox" name="enabled"><span><strong>Personalized recommendations</strong><small>Use your interests and reading history for the For you feed.</small></span></label>
+                    <label class="account-switch"><input type="checkbox" name="use_reading_history"><span><strong>Reading history</strong><small>Use unfinished and completed stories to improve recommendations.</small></span></label>
+                    <label class="account-switch"><input type="checkbox" name="use_topic_interests"><span><strong>Followed topics</strong><small>Use categories, tags, and authors you follow.</small></span></label>
+                    <button class="button button--small" type="submit">Save reading controls</button>
+                    <p id="personalization-status" class="account-status" role="status" aria-live="polite"></p>
+                </form>
+                <form id="notification-preferences-form" class="account-preferences-form">
+                    <label class="account-switch"><input type="checkbox" name="in_app_enabled"><span><strong>In-app alerts</strong><small>Show follows, comments, and workflow updates in Article Studio.</small></span></label>
+                    <label class="account-switch"><input type="checkbox" name="email_enabled"><span><strong>Email alerts</strong><small>Receive saved-search and reader notifications by email.</small></span></label>
+                    <label class="account-switch"><input type="checkbox" name="workflow_enabled"><span><strong>Workflow updates</strong><small>Include editorial assignment and publishing events.</small></span></label>
+                    <label class="account-switch"><input type="checkbox" name="comments_enabled"><span><strong>Comment activity</strong><small>Include replies and mentions in your notification center.</small></span></label>
+                    <button class="button button--small" type="submit">Save notification controls</button>
+                    <p id="notification-preferences-status" class="account-status" role="status" aria-live="polite"></p>
+                </form>
+            </div>
+        </section>
+
         <section class="account-panel account-panel--wide" id="reading-collections" aria-labelledby="reading-collections-title">
             <div class="account-panel__heading">
                 <div><span class="feature-eyebrow">Your library</span><h2 id="reading-collections-title">Reading collections</h2><p class="account-panel__description">Organize published stories into private lists you can return to later.</p></div>

@@ -14,18 +14,20 @@
             <div class="section-heading"><div><span class="eyebrow">On the reading list</span><h2 id="feed-title">Worth your attention</h2></div><span class="desk-section-number" aria-hidden="true">01 / DISCOVER</span></div>
             <div class="feed-controls">
                 <div class="feed-switcher" role="group" aria-label="Article feed type">
-                    <button type="button" data-feed-mode="featured" aria-pressed="true"><span aria-hidden="true">✳</span> Featured</button>
+                    <button type="button" data-feed-mode="featured" aria-pressed="true"><span aria-hidden="true">✦</span> Featured</button>
                     <button type="button" data-feed-mode="trending" aria-pressed="false"><span aria-hidden="true">↗</span> Trending</button>
+                    {% if request.user.is_authenticated %}<button type="button" data-feed-mode="for_you" aria-pressed="false"><span aria-hidden="true">✦</span> For you</button>{% endif %}
                 </div>
                 <label class="search-field" for="article-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search articles</span><input id="article-search" type="search" placeholder="Find a story, topic, or idea…" autocomplete="off"></label>
                 <label class="sr-only" for="article-sort">Sort search results</label>
                 <select id="article-sort" class="select-field" aria-label="Sort search results" hidden><option value="recent">Most recent</option><option value="popular">Most popular</option><option value="relevance">Most relevant</option></select>
             </div>
+            {% if request.user.is_authenticated %}<aside id="reader-insights" class="reader-insights" aria-label="Reader insights"><div><span class="eyebrow">Your reading room</span><h3>Small habits, better recommendations.</h3></div><div id="reader-insights-content" class="reader-insights__content"><span class="reader-insights__loading">Loading your reading insights…</span></div><a class="button button--secondary button--small" href="{% url 'account-settings' %}#personalization">Tune recommendations</a></aside>{% endif %}
             <p id="feed-status" class="feed-status" role="status" aria-live="polite"></p>
             <div id="articles-container" class="article-grid" aria-live="polite"></div>
             <div class="feed-actions"><button id="load-more" class="button button--secondary" type="button" hidden>Load more articles</button></div>
         </section>
-        <div class="desk-endnote"><span aria-hidden="true">✳</span><p>A little curiosity goes a long way.<br><strong>Keep reading. Keep questioning.</strong></p></div>
+        <div class="desk-endnote"><span aria-hidden="true">✦</span><p>A little curiosity goes a long way.<br><strong>Keep reading. Keep questioning.</strong></p></div>
     </div>
 </div>
 {% endblock %}

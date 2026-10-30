@@ -328,6 +328,42 @@ class PersonalizedFeedView(APIView):
         })
 
 
+class ReaderPersonalizationInsightsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        completed_events = ArticleEngagementEvent.objects.filter(
+            user=request.user, event_type='read_complete',
+        ).order_by('created_at')
+        active_dates = sorted({event.created_at.date() for event in completed_events})
+        date_set = set(active_dates)
+        today = timezone.localdate()
+        cursor = today if today in date_set else today - timedelta(days=1)
+        current_streak = 0
+        while cursor in date_set:
+            current_streak += 1
+            cursor -= timedelta(days=1)
+        longest_streak = 0
+        run = 0
+        previous = None
+        for active_date in active_dates:
+            run = run + 1 if previous and (active_date - previous).days == 1 else 1
+            longest_streak = max(longest_streak, run)
+            previous = active_date
+        resume_rows = list(ReadingProgress.objects.filter(
+            user=request.user, completed=False, progress_percent__gt=0,
+        ).select_related('article').order_by('-updated_at')[:5])
+        interests = list(ReaderInterest.objects.filter(user=request.user).values('interest_type', 'value')[:8])
+        return Response({
+            'streak': {'current': current_streak, 'longest': longest_streak, 'active_days_30': sum(1 for item in active_dates if item >= today - timedelta(days=29))},
+            'completed_articles': completed_events.values('article_id').distinct().count(),
+            'resume_reading': [{'article_id': row.article_id, 'title': row.article.title, 'progress_percent': row.progress_percent, 'slug': row.article.slug} for row in resume_rows],
+            'recommendation_topics': interests,
+            'personalization': PersonalizationPreference.objects.get_or_create(user=request.user)[0].enabled,
+        })
+
+
 class ArticleSourceView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [AllowAny]
