@@ -403,11 +403,16 @@ class ArticleSource(models.Model):
 
 class ArticleFactCheck(models.Model):
     VERDICT_CHOICES = [('verified', 'Verified'), ('partly_verified', 'Partly verified'), ('unverified', 'Unverified'), ('false', 'False')]
+    REVIEW_STATUS_CHOICES = [('pending', 'Pending editorial review'), ('approved', 'Approved'), ('rejected', 'Rejected')]
 
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='fact_checks')
     claim = models.CharField(max_length=500)
     verdict = models.CharField(max_length=30, choices=VERDICT_CHOICES)
     explanation = models.TextField()
+    confidence = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    review_status = models.CharField(max_length=20, choices=REVIEW_STATUS_CHOICES, default='approved')
+    is_ai_suggested = models.BooleanField(default=False)
+    supporting_sources = models.ManyToManyField(ArticleSource, blank=True, related_name='fact_checks')
     checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='fact_checks_completed')
     checked_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

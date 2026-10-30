@@ -46,7 +46,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import AIFactCheckApplyView, AIFactCheckView, ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('read/<slug:slug>/<str:language_code>/', public_article_translation, name='public-article-translation'),
@@ -135,6 +135,8 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/sources/', ArticleSourceView.as_view(), name='article-sources'),
     path('api/v2/sources/<int:pk>/', ArticleSourceDetailView.as_view(), name='article-source-detail'),
     path('api/v2/articles/<int:article_id>/fact-checks/', ArticleFactCheckView.as_view(), name='article-fact-checks'),
+    path('api/v2/articles/<int:article_id>/fact-checks/ai/', AIFactCheckView.as_view(), name='article-ai-fact-check'),
+    path('api/v2/assistant/runs/<int:run_id>/fact-check/apply/', AIFactCheckApplyView.as_view(), name='ai-fact-check-apply'),
     path('api/v2/articles/<int:article_id>/evidence/', ArticleEvidenceView.as_view(), name='article-evidence'),
     path('api/v2/articles/<int:article_id>/collaboration/', ArticleCollaborationView.as_view(), name='article-collaboration'),
     path('api/v2/articles/<int:article_id>/media/', ArticleMediaView.as_view(), name='article-media'),

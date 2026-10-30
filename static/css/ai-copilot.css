@@ -13,6 +13,13 @@
 .ai-copilot__footer { align-items: center; }
 .ai-copilot__footer small { color: var(--muted, #65748a); }
 #ai-copilot-status[data-state="error"] { color: #b33e4b; }
+.ai-fact-check__claim { display: grid; gap: 8px; }
+.ai-fact-check__claim label { color: var(--muted, #65748a); font-size: .8rem; }
+.ai-fact-check__claim label input { margin-right: 7px; accent-color: #6251a6; }
+.ai-fact-check__claim small { color: var(--muted, #65748a); line-height: 1.5; }
+.ai-fact-check__sources { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-fact-check__sources a { padding: 5px 8px; border-radius: 8px; background: #edf5fb; color: #2c668f; font-size: .76rem; text-decoration: none; }
+#ai-fact-check-status[data-state="error"] { color: #b33e4b; }
 @media (max-width: 680px) { .ai-copilot__heading, .ai-copilot__footer { flex-direction: column; align-items: stretch; } .ai-copilot__controls { align-items: stretch; flex-direction: column; } }
 html.theme-dark .ai-copilot { border-color: #334a63; background: linear-gradient(135deg, #172a3d, #1b2338); }
 html.theme-dark .ai-copilot__suggestion, html.theme-dark .ai-copilot__controls select, html.theme-dark .ai-copilot__suggestion select { border-color: #3a526d; background: #1c2a3d; color: #e8f0fb; }

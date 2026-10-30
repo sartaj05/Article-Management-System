@@ -169,11 +169,18 @@ class ArticleSourceSerializer(serializers.ModelSerializer):
 
 class ArticleFactCheckSerializer(serializers.ModelSerializer):
     checked_by_name = serializers.CharField(source='checked_by.username', read_only=True, default=None)
+    supporting_source_details = serializers.SerializerMethodField()
+
+    def get_supporting_source_details(self, instance):
+        return [
+            {'id': source.id, 'title': source.title, 'publisher': source.publisher, 'url': source.url, 'citation_key': source.citation_key}
+            for source in instance.supporting_sources.all()
+        ]
 
     class Meta:
         model = ArticleFactCheck
-        fields = ['id', 'article', 'claim', 'verdict', 'explanation', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
-        read_only_fields = ['id', 'article', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+        fields = ['id', 'article', 'claim', 'verdict', 'explanation', 'confidence', 'review_status', 'is_ai_suggested', 'supporting_sources', 'supporting_source_details', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
+        read_only_fields = ['id', 'article', 'review_status', 'is_ai_suggested', 'supporting_sources', 'supporting_source_details', 'checked_by', 'checked_by_name', 'checked_at', 'updated_at']
 
 
 class ArticlePresenceSerializer(serializers.ModelSerializer):

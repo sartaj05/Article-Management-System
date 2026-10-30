@@ -451,9 +451,78 @@ class ArticleFactCheckView(APIView):
         article = get_object_or_404(Article, pk=article_id)
         serializer = ArticleFactCheckSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        check = serializer.save(article=article, checked_by=request.user)
+        check = serializer.save(article=article, checked_by=request.user, review_status='approved', is_ai_suggested=False)
         record_audit_event(actor=request.user, action='article_fact_checked', article=article, details={'fact_check_id': check.id, 'verdict': check.verdict})
         return Response(ArticleFactCheckSerializer(check).data, status=201)
+
+
+class AIFactCheckView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can run AI fact checks.'}, status=403)
+        sources = list(article.sources.values('id', 'title', 'publisher', 'source_type', 'url', 'notes', 'citation_key'))
+        context = {'sources': sources}
+        try:
+            provider = get_editorial_provider()
+            result = provider.generate(article, 'fact_check', context)
+        except AIProviderError as exc:
+            if not settings.AI_ASSISTANT_FALLBACK_ENABLED:
+                return Response({'detail': str(exc)}, status=503)
+            result = LocalRuleBasedProvider().generate(article, 'fact_check', context)
+            result.provider = 'local-rule-based-fallback'
+            result.metadata.update({'fallback_reason': str(exc)})
+        run = EditorialAssistantRun.objects.create(
+            article=article, requested_by=request.user, action='fact_check', provider=result.provider,
+            model=result.model, suggestions=result.suggestions, metadata=result.metadata,
+            latency_ms=result.latency_ms,
+        )
+        record_audit_event(actor=request.user, action='ai_fact_check_generated', article=article, details={'run_id': run.id, 'source_count': len(sources)})
+        return Response({
+            'run_id': run.id, 'provider': run.provider, 'model': run.model, 'latency_ms': run.latency_ms,
+            'requires_review': True, 'source_count': len(sources), 'suggestions': run.suggestions,
+        })
+
+
+class AIFactCheckApplyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, run_id):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors or admins can apply AI fact-check suggestions.'}, status=403)
+        run = get_object_or_404(EditorialAssistantRun.objects.select_related('article'), pk=run_id, action='fact_check')
+        article = run.article
+        requested = request.data.get('claim_indexes')
+        if requested is None:
+            requested = list(range(len(run.suggestions.get('claims', []))))
+        if not isinstance(requested, list) or not all(isinstance(index, int) for index in requested):
+            return Response({'detail': 'claim_indexes must be a list of integers.'}, status=400)
+        source_map = {source.id: source for source in article.sources.all()}
+        created = []
+        for index in requested:
+            claims = run.suggestions.get('claims', [])
+            if index < 0 or index >= len(claims):
+                return Response({'detail': f'Unknown claim index: {index}.'}, status=400)
+            suggestion = claims[index]
+            source_ids = [int(source_id) for source_id in suggestion.get('source_ids', []) if int(source_id) in source_map]
+            confidence = max(0, min(1, float(suggestion.get('confidence', 0))))
+            check = ArticleFactCheck.objects.create(
+                article=article,
+                claim=str(suggestion.get('claim', ''))[:500],
+                verdict=suggestion.get('verdict', 'unverified'),
+                explanation=str(suggestion.get('explanation', '')),
+                confidence=confidence,
+                review_status='pending',
+                is_ai_suggested=True,
+            )
+            check.supporting_sources.set([source_map[source_id] for source_id in source_ids])
+            created.append(check)
+        record_audit_event(actor=request.user, action='ai_fact_check_applied', article=article, details={'run_id': run.id, 'count': len(created)})
+        return Response({'run_id': run.id, 'requires_editor_certification': True, 'fact_checks': ArticleFactCheckSerializer(created, many=True).data}, status=201)
 
 
 class ArticleEvidenceView(APIView):

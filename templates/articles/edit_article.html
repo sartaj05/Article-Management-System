@@ -68,6 +68,12 @@
                 <div id="ai-copilot-result" class="ai-copilot__result" hidden></div>
                 <div class="ai-copilot__footer"><small id="ai-copilot-meta">AI output is advisory and must be checked against sources.</small><button class="btn btn-secondary" type="button" id="apply-ai-copilot" disabled>Apply selected output</button></div>
             </section>
+            <section class="ai-copilot ai-fact-check" aria-labelledby="ai-fact-check-title">
+                <div class="ai-copilot__heading"><div><span class="feature-eyebrow">Evidence workspace</span><h2 id="ai-fact-check-title">AI fact-check review</h2><p>Claims are matched to the article's source list. Review the evidence and certify each claim before publication.</p></div><span class="ai-copilot__badge">Sources required</span></div>
+                <div class="ai-copilot__controls"><button class="btn btn-primary" type="button" id="run-ai-fact-check">Analyze article claims</button><button class="btn btn-secondary" type="button" id="apply-ai-fact-check" disabled>Queue selected for certification</button></div>
+                <p id="ai-fact-check-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
+                <div id="ai-fact-check-result" class="ai-copilot__result" hidden></div>
+            </section>
             <form id="article-form" enctype="multipart/form-data" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="id" value="{{ article.id }}">
@@ -176,6 +182,7 @@
     <script src="{% static 'js/rich-block-editor.js' %}" defer></script>
     <script src="{% static 'js/quality-gate.js' %}" defer></script>
     <script src="{% static 'js/ai-copilot.js' %}" defer></script>
+    <script src="{% static 'js/ai-fact-check.js' %}" defer></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

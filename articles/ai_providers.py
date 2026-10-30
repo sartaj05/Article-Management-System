@@ -32,9 +32,14 @@ class AIResult:
 class LocalRuleBasedProvider:
     name = "local-rule-based"
 
-    def generate(self, article, action):
+    def generate(self, article, action, context=None):
         started = time.perf_counter()
-        suggestions = make_suggestions(article, action)
+        context = context or {}
+        if action == 'fact_check':
+            from .fact_checking import make_fact_check_suggestions
+            suggestions = make_fact_check_suggestions(article, context.get('sources', []))
+        else:
+            suggestions = make_suggestions(article, action)
         return AIResult(
             suggestions=suggestions,
             provider=self.name,
@@ -53,7 +58,7 @@ class OpenAICompatibleProvider:
         self.model = model or settings.AI_ASSISTANT_MODEL
         self.timeout = timeout or settings.AI_ASSISTANT_TIMEOUT
 
-    def generate(self, article, action):
+    def generate(self, article, action, context=None):
         if not self.api_key:
             raise AIProviderError("AI_ASSISTANT_API_KEY is not configured.")
 
@@ -70,7 +75,7 @@ class OpenAICompatibleProvider:
                         "Every result requires human review before publication."
                     ),
                 },
-                {"role": "user", "content": self._prompt(article, action)},
+                {"role": "user", "content": self._prompt(article, action, context or {})},
             ],
         }
         request = Request(
@@ -115,18 +120,24 @@ class OpenAICompatibleProvider:
         )
 
     @staticmethod
-    def _prompt(article, action):
+    def _prompt(article, action, context):
         schemas = {
             "summarize": '{"summary": "A concise 1-2 sentence summary under 420 characters."}',
             "headline": '{"headlines": ["Three accurate headline options, each under 80 characters."]}',
             "seo": '{"meta_title": "Under 60 characters", "meta_description": "Under 160 characters", "seo_keywords": "comma-separated keywords"}',
             "proofread": '{"content": "The corrected article content, preserving meaning and facts."}',
+            "fact_check": '{"claims": [{"claim": "Exact claim from the article", "verdict": "verified|partly_verified|unverified|false", "confidence": 0.0, "explanation": "Evidence-based explanation", "source_ids": [1], "source_citations": [{"id": 1, "title": "Source title", "url": "https://..."}], "unresolved": true}]}',
         }
+        source_text = '\n'.join(
+            f"[{source.get('id')}] {source.get('title')} | {source.get('publisher')} | {source.get('source_type')} | {source.get('url')} | {source.get('notes')}"
+            for source in context.get('sources', [])
+        )
         return (
             f"Action: {action}\n"
             f"Return JSON matching this shape: {schemas.get(action, '{}')}\n\n"
             f"Title: {article.title}\n"
-            f"Article:\n{article.content[:12000]}"
+            f"Article:\n{article.content[:12000]}\n\n"
+            f"Available sources (use only these IDs; do not invent citations):\n{source_text or '[none]'}"
         )
 
     @staticmethod
@@ -138,6 +149,7 @@ class OpenAICompatibleProvider:
             "headline": {"headlines"},
             "seo": {"meta_title", "meta_description", "seo_keywords"},
             "proofread": {"content"},
+            "fact_check": {"claims"},
         }.get(action)
         if required is None:
             raise AIProviderError("Unsupported editorial AI action.")
@@ -145,6 +157,8 @@ class OpenAICompatibleProvider:
             raise AIProviderError("AI output did not match the requested schema.")
         if action == "headline" and not isinstance(suggestions["headlines"], list):
             raise AIProviderError("AI headlines must be returned as a list.")
+        if action == "fact_check" and not isinstance(suggestions["claims"], list):
+            raise AIProviderError("AI claims must be returned as a list.")
         for key, value in suggestions.items():
             if key != "headlines" and not isinstance(value, str):
                 raise AIProviderError("AI text fields must be strings.")
