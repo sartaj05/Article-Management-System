@@ -972,6 +972,40 @@ class AIJob(models.Model):
         indexes = [models.Index(fields=['status', 'created_at'])]
 
 
+class AIWorkspacePolicy(models.Model):
+    workspace = models.OneToOneField('users.Workspace', on_delete=models.CASCADE, related_name='ai_policy')
+    enabled = models.BooleanField(default=True)
+    allowed_actions = models.JSONField(default=list, blank=True)
+    monthly_token_budget = models.PositiveIntegerField(default=100000)
+    monthly_spend_limit = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    redact_pii = models.BooleanField(default=True)
+    require_human_review = models.BooleanField(default=True)
+    max_input_chars = models.PositiveIntegerField(default=12000)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class AIUsageEvent(models.Model):
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_usage_events')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='ai_usage_events')
+    article = models.ForeignKey(Article, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_usage_events')
+    job = models.ForeignKey(AIJob, on_delete=models.SET_NULL, null=True, blank=True, related_name='usage_events')
+    provider = models.CharField(max_length=80)
+    model = models.CharField(max_length=120, blank=True)
+    action = models.CharField(max_length=30)
+    prompt_tokens = models.PositiveIntegerField(default=0)
+    completion_tokens = models.PositiveIntegerField(default=0)
+    total_tokens = models.PositiveIntegerField(default=0)
+    estimated_cost = models.DecimalField(max_digits=10, decimal_places=4, default=0)
+    redacted_pii = models.BooleanField(default=False)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['workspace', 'created_at'])]
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]

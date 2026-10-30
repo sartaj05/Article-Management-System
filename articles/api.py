@@ -7,7 +7,7 @@ import re
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
+from django.db.models import Avg, Case, Count, IntegerField, Q, Sum, Value, When
 from django.db import connection
 from django.conf import settings
 from django.core.cache import cache
@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIJob, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -61,6 +61,7 @@ from .notifications import notify
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
 from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
+from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -213,16 +214,22 @@ class ArticleAssistantView(APIView):
         if action not in {'summarize', 'headline', 'seo', 'proofread'}:
             return Response({'detail': 'Supported actions are summarize, headline, seo, and proofread.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            result = get_editorial_provider().generate(article, action)
+            ai_request = prepare_ai_request(article, action)
+        except AIGovernanceError as exc:
+            return Response({'detail': str(exc)}, status=429)
+        try:
+            result = get_editorial_provider().generate(ai_request.article, action)
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except AIProviderError as exc:
             if not settings.AI_ASSISTANT_FALLBACK_ENABLED or settings.AI_ASSISTANT_PROVIDER != 'openai':
                 return Response({'detail': str(exc), 'provider': settings.AI_ASSISTANT_PROVIDER}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             fallback = LocalRuleBasedProvider()
-            result = fallback.generate(article, action)
+            result = fallback.generate(ai_request.article, action)
             result.provider = 'local-rule-based-fallback'
             result.metadata.update({'fallback_reason': str(exc)})
+        usage = record_ai_usage(user=request.user, article=article, action=action, result=result, input_text=ai_request.article.content, redacted_pii=ai_request.redacted_pii)
+        result.metadata['usage_event_id'] = usage.id
         run = EditorialAssistantRun.objects.create(
             article=article,
             requested_by=request.user,
@@ -348,6 +355,60 @@ class AIJobDetailView(APIView):
         if job.requested_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
             return Response({'detail': 'You do not have access to this AI job.'}, status=403)
         return Response(AIJobView.serialize(job))
+
+
+class AIGovernancePolicyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def _workspace(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return None
+        slug = request.data.get('workspace_slug') or request.query_params.get('workspace')
+        return Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
+
+    @staticmethod
+    def serialize(policy, workspace):
+        return {
+            'workspace_slug': workspace.slug, 'enabled': policy.enabled, 'allowed_actions': policy.allowed_actions,
+            'monthly_token_budget': policy.monthly_token_budget, 'monthly_spend_limit': str(policy.monthly_spend_limit),
+            'redact_pii': policy.redact_pii, 'require_human_review': policy.require_human_review, 'max_input_chars': policy.max_input_chars,
+        }
+
+    def get(self, request):
+        workspace = self._workspace(request)
+        if not workspace:
+            return Response({'detail': 'Editor workspace access is required.'}, status=403)
+        policy, _ = AIWorkspacePolicy.objects.get_or_create(workspace=workspace)
+        return Response(self.serialize(policy, workspace))
+
+    def patch(self, request):
+        workspace = self._workspace(request)
+        if not workspace:
+            return Response({'detail': 'Editor workspace access is required.'}, status=403)
+        policy, _ = AIWorkspacePolicy.objects.get_or_create(workspace=workspace)
+        allowed = {'enabled', 'allowed_actions', 'monthly_token_budget', 'monthly_spend_limit', 'redact_pii', 'require_human_review', 'max_input_chars'}
+        for field in allowed.intersection(request.data.keys()):
+            setattr(policy, field, request.data[field])
+        policy.save()
+        return Response(self.serialize(policy, workspace))
+
+
+class AIUsageView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        slug = request.query_params.get('workspace')
+        workspace = Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
+        if not workspace:
+            return Response({'detail': 'Editor workspace access is required.'}, status=403)
+        start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        events = AIUsageEvent.objects.filter(workspace=workspace, created_at__gte=start)
+        totals = events.aggregate(prompt_tokens=Sum('prompt_tokens'), completion_tokens=Sum('completion_tokens'), total_tokens=Sum('total_tokens'), estimated_cost=Sum('estimated_cost'))
+        return Response({'workspace_slug': workspace.slug, 'period_start': start, 'event_count': events.count(), 'prompt_tokens': totals['prompt_tokens'] or 0, 'completion_tokens': totals['completion_tokens'] or 0, 'total_tokens': totals['total_tokens'] or 0, 'estimated_cost': str(totals['estimated_cost'] or 0)})
 
 
 class EditorialAssistantApplyView(APIView):

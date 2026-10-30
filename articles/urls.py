@@ -46,7 +46,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import AIEvaluationView, AIFactCheckApplyView, AIFactCheckView, AIJobDetailView, AIJobView, AIPromptVersionView, ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import AIEvaluationView, AIFactCheckApplyView, AIFactCheckView, AIGovernancePolicyView, AIJobDetailView, AIJobView, AIPromptVersionView, AIUsageView, ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('read/<slug:slug>/<str:language_code>/', public_article_translation, name='public-article-translation'),
@@ -133,6 +133,8 @@ urlpatterns = [
     path('api/v2/assistant/evaluations/', AIEvaluationView.as_view(), name='ai-evaluations'),
     path('api/v2/assistant/jobs/', AIJobView.as_view(), name='ai-jobs'),
     path('api/v2/assistant/jobs/<int:job_id>/', AIJobDetailView.as_view(), name='ai-job-detail'),
+    path('api/v2/assistant/governance/policy/', AIGovernancePolicyView.as_view(), name='ai-governance-policy'),
+    path('api/v2/assistant/governance/usage/', AIUsageView.as_view(), name='ai-governance-usage'),
     path('api/v2/assistant/runs/<int:run_id>/apply/', EditorialAssistantApplyView.as_view(), name='assistant-run-apply'),
     path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
     path('api/v2/reader/insights/', ReaderPersonalizationInsightsView.as_view(), name='reader-personalization-insights'),

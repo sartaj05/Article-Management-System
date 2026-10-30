@@ -7,6 +7,7 @@ from django.utils import timezone
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
 from .models import AIJob, Article, EditorialAssistantRun
 from .audit import record_audit_event
+from .ai_governance import AIGovernanceError, prepare_ai_request, record_ai_usage
 
 
 def _context_for(article, action):
@@ -28,12 +29,13 @@ def execute_ai_job(job_id):
 
     try:
         context = _context_for(job.article, job.action)
-        result = get_editorial_provider().generate(job.article, job.action, context)
+        ai_request = prepare_ai_request(job.article, job.action)
+        result = get_editorial_provider().generate(ai_request.article, job.action, context)
     except AIProviderError as exc:
         if not settings.AI_ASSISTANT_FALLBACK_ENABLED:
             _mark_failed(job_id, str(exc))
             raise
-        result = LocalRuleBasedProvider().generate(job.article, job.action, context)
+        result = LocalRuleBasedProvider().generate(ai_request.article, job.action, context)
         result.provider = 'local-rule-based-fallback'
         result.metadata.update({'fallback_reason': str(exc)})
     except Exception as exc:
@@ -45,6 +47,8 @@ def execute_ai_job(job_id):
         provider=result.provider, model=result.model, suggestions=result.suggestions,
         metadata=result.metadata, latency_ms=result.latency_ms,
     )
+    usage = record_ai_usage(user=job.requested_by, article=job.article, action=job.action, result=result, input_text=ai_request.article.content, redacted_pii=ai_request.redacted_pii, job=job)
+    result.metadata['usage_event_id'] = usage.id
     AIJob.objects.filter(pk=job_id).update(
         status='completed', provider=result.provider, model=result.model,
         result={'run_id': run.id, 'suggestions': result.suggestions, 'metadata': result.metadata},
