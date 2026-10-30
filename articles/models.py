@@ -949,6 +949,29 @@ class AIEvaluationRun(models.Model):
         ordering = ['-created_at']
 
 
+class AIJob(models.Model):
+    ACTION_CHOICES = [('summarize', 'Summarize'), ('headline', 'Headline'), ('seo', 'SEO'), ('proofread', 'Proofread'), ('fact_check', 'Fact check')]
+    STATUS_CHOICES = [('queued', 'Queued'), ('running', 'Running'), ('completed', 'Completed'), ('failed', 'Failed')]
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='ai_jobs')
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='ai_jobs_requested')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    idempotency_key = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='queued')
+    provider = models.CharField(max_length=80, blank=True)
+    model = models.CharField(max_length=120, blank=True)
+    result = models.JSONField(default=dict, blank=True)
+    error = models.TextField(blank=True)
+    attempts = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['status', 'created_at'])]
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]

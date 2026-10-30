@@ -61,3 +61,17 @@ def send_assignment_escalations_task(self):
     from django.core.management import call_command
     call_command('send_assignment_escalations')
     return {'status': 'completed', 'job': 'assignment_escalations'}
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={'max_retries': 3},
+    name='articles.run_ai_job',
+)
+def run_ai_job_task(self, job_id):
+    from .ai_jobs import execute_ai_job
+    job = execute_ai_job(job_id)
+    return {'status': job.status, 'job_id': job.id}

@@ -53,13 +53,14 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIJob, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
 from .ai_evaluation import run_evaluation
+from .ai_jobs import execute_ai_job
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -304,6 +305,49 @@ class AIEvaluationView(APIView):
             return Response({'detail': 'Editor access is required.'}, status=403)
         run = run_evaluation(actor=request.user)
         return Response({'id': run.id, 'prompt_version': run.prompt_version, 'provider': run.provider, 'total_cases': run.total_cases, 'passed_cases': run.passed_cases, 'score': float(run.score), 'results': run.results}, status=201)
+
+
+class AIJobView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        article = get_object_or_404(Article, pk=request.data.get('article_id'))
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can create AI jobs.'}, status=403)
+        action = str(request.data.get('action', '')).strip().lower()
+        if action not in {'summarize', 'headline', 'seo', 'proofread', 'fact_check'}:
+            return Response({'detail': 'Unsupported AI job action.'}, status=400)
+        key = request.headers.get('Idempotency-Key') or str(request.data.get('idempotency_key', '')).strip()
+        if key:
+            existing = AIJob.objects.filter(requested_by=request.user, idempotency_key=key).first()
+            if existing:
+                return Response(self.serialize(existing), status=200)
+        job = AIJob.objects.create(article=article, requested_by=request.user, action=action, idempotency_key=key[:120])
+        if settings.AI_JOBS_ASYNC:
+            from .tasks import run_ai_job_task
+            run_ai_job_task.delay(job.id)
+        else:
+            try:
+                job = execute_ai_job(job.id)
+            except Exception:
+                job.refresh_from_db()
+        return Response(self.serialize(job), status=202 if job.status in {'queued', 'running'} else 201)
+
+    @staticmethod
+    def serialize(job):
+        return {'id': job.id, 'article_id': job.article_id, 'action': job.action, 'status': job.status, 'provider': job.provider, 'model': job.model, 'attempts': job.attempts, 'result': job.result, 'error': job.error, 'created_at': job.created_at, 'completed_at': job.completed_at}
+
+
+class AIJobDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, job_id):
+        job = get_object_or_404(AIJob.objects.select_related('article'), pk=job_id)
+        if job.requested_by_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You do not have access to this AI job.'}, status=403)
+        return Response(AIJobView.serialize(job))
 
 
 class EditorialAssistantApplyView(APIView):

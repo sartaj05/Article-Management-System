@@ -259,6 +259,7 @@ AI_ASSISTANT_BASE_URL = os.getenv('AI_ASSISTANT_BASE_URL', 'https://api.openai.c
 AI_ASSISTANT_TIMEOUT = float(os.getenv('AI_ASSISTANT_TIMEOUT', '20'))
 AI_ASSISTANT_FALLBACK_ENABLED = os.getenv('AI_ASSISTANT_FALLBACK_ENABLED', 'true').lower() in {'1', 'true', 'yes'}
 AI_ASSISTANT_PROMPT_VERSION = os.getenv('AI_ASSISTANT_PROMPT_VERSION', 'editorial-v1')
+AI_JOBS_ASYNC = os.getenv('AI_JOBS_ASYNC', 'false').lower() in {'1', 'true', 'yes'}
 SSO_CALLBACK_URL = os.getenv('SSO_CALLBACK_URL', '')
 WEBAUTHN_RP_ID = os.getenv('WEBAUTHN_RP_ID', 'localhost')
 WEBAUTHN_ORIGIN = os.getenv('WEBAUTHN_ORIGIN', 'http://localhost:8000')
