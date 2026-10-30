@@ -195,6 +195,16 @@ def account_settings(request):
     return render(request, 'users/account_settings.html')
 
 
+@login_required(login_url='/login-template/')
+def workspace_hub(request):
+    return render(request, 'users/workspace_hub.html')
+
+
+@login_required(login_url='/login-template/')
+def workspace_invitation(request, token):
+    return render(request, 'users/workspace_invitation.html', {'invitation_token': token})
+
+
 def newsletter_campaign_landing(request, edition_id):
     edition = get_object_or_404(NewsletterEdition, pk=edition_id, status='sent')
     if not request.session.session_key:

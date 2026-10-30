@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.core import mail
 from rest_framework.test import APIClient
 
 from .models import CustomUser, WorkspaceMembership
@@ -23,6 +24,9 @@ class WorkspaceFeatureTests(TestCase):
         response = self.client.post('/api/workspaces/daily-newsroom/invite/', {'email': self.member.email, 'role': 'writer'}, format='json')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['role'], 'writer')
+        self.assertIn('/workspace/invitations/', response.data['accept_url'])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Daily Newsroom', mail.outbox[0].subject)
         self.invitation_token = response.data['token']
 
         self.client.force_authenticate(self.member)

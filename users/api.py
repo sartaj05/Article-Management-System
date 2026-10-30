@@ -16,6 +16,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
@@ -1519,12 +1520,25 @@ class WorkspaceInviteView(APIView):
             invited_by=request.user,
             expires_at=timezone.now() + timedelta(days=7),
         )
+        accept_url = request.build_absolute_uri(f'/workspace/invitations/{invitation.token}/')
+        send_mail(
+            subject=f'You are invited to join {workspace.name}',
+            message=(
+                f'{request.user.get_full_name() or request.user.username} invited you to join '
+                f'{workspace.name} as a {invitation.role}.\n\nAccept the invitation: {accept_url}\n\n'
+                'This invitation expires in 7 days.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[invitation.email],
+            fail_silently=True,
+        )
         return Response({
             'id': invitation.id,
             'workspace': workspace.slug,
             'email': invitation.email,
             'role': invitation.role,
             'token': str(invitation.token),
+            'accept_url': accept_url,
             'expires_at': invitation.expires_at,
             'status': invitation.status,
         }, status=201)

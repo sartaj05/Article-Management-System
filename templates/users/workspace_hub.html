@@ -1,0 +1,64 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Workspace hub | Article Studio{% endblock %}
+
+{% block content %}
+<main class="account-page workspace-hub" data-workspace-hub>
+    <header class="workspace-hub__hero">
+        <div>
+            <span class="feature-eyebrow">Your newsroom network</span>
+            <h1>Workspaces that keep every story moving.</h1>
+            <p>Create a focused newsroom, invite collaborators, and switch between teams without losing your editorial context.</p>
+        </div>
+        <div class="workspace-hub__hero-art" aria-hidden="true"><span>✦</span><i></i><b></b></div>
+    </header>
+
+    <div class="workspace-hub__layout">
+        <section class="account-panel workspace-hub__list-panel">
+            <div class="account-panel__heading">
+                <div><span class="feature-eyebrow">Workspace switcher</span><h2>Your workspaces</h2></div>
+                <button class="button button--secondary button--small" type="button" id="workspace-refresh">Refresh</button>
+            </div>
+            <p id="workspace-list-status" class="account-status" role="status" aria-live="polite">Loading your workspaces…</p>
+            <div id="workspace-list" class="workspace-hub__list" aria-live="polite"></div>
+        </section>
+
+        <section class="account-panel workspace-hub__create-panel">
+            <div class="account-panel__heading">
+                <div><span class="feature-eyebrow">Start a new desk</span><h2>Create workspace</h2></div>
+            </div>
+            <form id="workspace-create-form" class="workspace-hub__form">
+                <label>Name<input name="name" maxlength="120" required placeholder="e.g. City desk"></label>
+                <label>Description<textarea name="description" maxlength="500" rows="3" placeholder="What does this newsroom cover?"></textarea></label>
+                <button class="button" type="submit">Create workspace</button>
+            </form>
+            <p id="workspace-create-status" class="account-status" role="status" aria-live="polite"></p>
+        </section>
+    </div>
+
+    <section class="account-panel workspace-hub__details" id="workspace-details" hidden>
+        <header class="workspace-hub__details-heading">
+            <div><span class="feature-eyebrow">Selected workspace</span><h2 id="workspace-name">Workspace</h2><p id="workspace-description"></p></div>
+            <span id="workspace-role" class="workspace-hub__role"></span>
+        </header>
+        <div class="workspace-hub__metrics" id="workspace-metrics"></div>
+        <div class="workspace-hub__columns">
+            <section>
+                <div class="workspace-hub__section-heading"><h3>Members</h3><span id="workspace-member-count"></span></div>
+                <div id="workspace-members" class="workspace-hub__members"></div>
+            </section>
+            <section id="workspace-invite-section">
+                <div class="workspace-hub__section-heading"><h3>Invite collaborator</h3><span>7-day invite</span></div>
+                <form id="workspace-invite-form" class="workspace-hub__form">
+                    <label>Email<input name="email" type="email" required placeholder="name@newsroom.com"></label>
+                    <label>Role<select name="role"><option value="writer">Writer</option><option value="editor">Editor</option><option value="viewer">Viewer</option><option value="admin">Workspace admin</option></select></label>
+                    <button class="button" type="submit">Send invitation</button>
+                </form>
+                <p id="workspace-invite-status" class="account-status" role="status" aria-live="polite"></p>
+            </section>
+        </div>
+    </section>
+</main>
+<script src="{% static 'js/workspace-hub.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Workspace invitation | Article Studio{% endblock %}
+
+{% block content %}
+<main class="account-page workspace-invitation" data-invitation-token="{{ invitation_token }}">
+    <section class="account-panel workspace-invitation__panel">
+        <span class="feature-eyebrow">Team invitation</span>
+        <h1 id="invitation-title">Joining your workspace…</h1>
+        <p id="invitation-status" class="account-status" role="status" aria-live="polite">Checking your invitation.</p>
+        <a class="button button--secondary" href="{% url 'workspace-hub' %}">Open workspace hub</a>
+    </section>
+</main>
+<script src="{% static 'js/workspace-invitation.js' %}" defer></script>
+{% endblock %}

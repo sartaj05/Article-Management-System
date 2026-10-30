@@ -895,6 +895,54 @@ body.site-shell, body.auth-shell { background: var(--surface-soft); }
   .reading-collection li button { grid-column: 2; grid-row: 1 / span 2; }
 }
 
+/* Workspace onboarding and invitations. */
+.workspace-hub__hero { display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-bottom: 28px; padding: clamp(24px, 4vw, 42px); overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: linear-gradient(135deg, var(--surface), color-mix(in srgb, var(--surface-tint) 66%, white)); box-shadow: var(--shadow-sm); }
+.workspace-hub__hero h1 { max-width: 680px; margin: 8px 0 10px; font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.06em; }
+.workspace-hub__hero p { max-width: 650px; margin: 0; color: var(--muted); line-height: 1.7; }
+.workspace-hub__hero-art { position: relative; flex: 0 0 150px; width: 150px; height: 150px; border-radius: 38% 62% 58% 42%; background: linear-gradient(145deg, #786cf2, #ff9a7c); box-shadow: 0 22px 44px rgb(98 87 232 / 22%); animation: ui-float 6s ease-in-out infinite; }
+.workspace-hub__hero-art span { position: absolute; inset: 30px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: rgb(255 255 255 / 18%); font-size: 2.5rem; }
+.workspace-hub__hero-art i, .workspace-hub__hero-art b { position: absolute; display: block; border-radius: 50%; background: #fff; }
+.workspace-hub__hero-art i { top: 18px; right: 24px; width: 12px; height: 12px; opacity: .75; }
+.workspace-hub__hero-art b { bottom: 22px; left: 20px; width: 8px; height: 8px; opacity: .55; }
+.workspace-hub__layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 18px; }
+.workspace-hub__list-panel, .workspace-hub__create-panel, .workspace-hub__details { min-width: 0; }
+.workspace-hub__list { display: grid; gap: 10px; }
+.workspace-hub__card { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--surface-soft); text-align: left; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.workspace-hub__card:hover, .workspace-hub__card.is-selected { border-color: color-mix(in srgb, var(--brand) 42%, var(--line)); background: var(--surface-tint); box-shadow: 0 10px 22px rgb(47 54 101 / 8%); transform: translateY(-2px); }
+.workspace-hub__card-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, var(--brand), #8a7ff5); }
+.workspace-hub__card span:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+.workspace-hub__card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-hub__card small, .workspace-hub__card i { color: var(--muted); font-size: .75rem; }
+.workspace-hub__card i { font-size: 1.5rem; font-style: normal; }
+.workspace-hub__form { display: grid; gap: 12px; }
+.workspace-hub__form label { display: grid; gap: 6px; color: var(--muted); font-size: .76rem; font-weight: 750; }
+.workspace-hub__form input, .workspace-hub__form select, .workspace-hub__form textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface-soft); }
+.workspace-hub__form textarea { resize: vertical; }
+.workspace-hub__details { margin-top: 18px; }
+.workspace-hub__details-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.workspace-hub__details-heading h2 { margin: 6px 0 3px; }
+.workspace-hub__details-heading p { margin: 0; color: var(--muted); }
+.workspace-hub__role { padding: 7px 11px; border-radius: 999px; color: var(--brand); background: var(--surface-tint); font-size: .75rem; font-weight: 800; text-transform: capitalize; }
+.workspace-hub__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+.workspace-hub__metrics article { display: grid; gap: 4px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); }
+.workspace-hub__metrics span, .workspace-hub__metrics small { color: var(--muted); font-size: .72rem; text-transform: capitalize; }
+.workspace-hub__metrics strong { font-size: 1.35rem; letter-spacing: -.04em; }
+.workspace-hub__columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr); gap: 22px; }
+.workspace-hub__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.workspace-hub__section-heading h3 { margin: 0; font-size: 1rem; }
+.workspace-hub__section-heading span { color: var(--muted); font-size: .72rem; }
+.workspace-hub__members { display: grid; gap: 8px; }
+.workspace-hub__member { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 11px; background: var(--surface-soft); }
+.workspace-hub__member > span:nth-child(2) { display: grid; min-width: 0; }
+.workspace-hub__member strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; }
+.workspace-hub__member small, .workspace-hub__member b { color: var(--muted); font-size: .7rem; font-weight: 600; }
+.workspace-hub__member b { margin-left: auto; text-transform: capitalize; }
+.workspace-hub__avatar { display: grid; flex: 0 0 30px; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: var(--brand); background: var(--surface-tint); font-size: .78rem; font-weight: 850; }
+.workspace-invitation__panel { max-width: 680px; margin: 0 auto; text-align: center; }
+.workspace-invitation__panel h1 { margin: 9px 0; }
+.workspace-invitation__panel .account-status { margin: 0 0 22px; }
+@media (max-width: 760px) { .workspace-hub__hero { align-items: flex-start; }.workspace-hub__hero-art { flex-basis: 100px; width: 100px; height: 100px; }.workspace-hub__hero-art span { inset: 20px; font-size: 1.7rem; }.workspace-hub__layout, .workspace-hub__columns { grid-template-columns: 1fr; }.workspace-hub__metrics { grid-template-columns: 1fr; }.workspace-hub__details-heading { flex-direction: column; } }
+
 /* Light motion polish: a brighter editorial palette with calm, purposeful movement. */
 :root {
   --ink: #1d2540;
