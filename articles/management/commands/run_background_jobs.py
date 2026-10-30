@@ -6,4 +6,10 @@ class Command(BaseCommand):
     help = 'Run the application background publishing cycle.'
 
     def handle(self, *args, **options):
-        call_command('publish_scheduled_articles')
+        for command in (
+            'publish_scheduled_articles',
+            'process_distribution_jobs',
+            'send_assignment_reminders',
+            'send_assignment_escalations',
+        ):
+            call_command(command)

@@ -15,6 +15,13 @@ import importlib.util
 
 from datetime import timedelta
 import os
+try:
+    from celery.schedules import crontab
+except ImportError:
+    class crontab:
+        """Small settings-only fallback when optional worker dependencies are absent."""
+        def __init__(self, **kwargs):
+            self.schedule = kwargs
 
 MEDIA_URL = '/media/'
 
@@ -232,6 +239,15 @@ CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', os.getenv('REDIS_URL', 'redis
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300
+CELERY_BEAT_SCHEDULE = {
+    'publish-scheduled-articles': {'task': 'articles.publish_scheduled_articles', 'schedule': 60.0},
+    'process-distribution-jobs': {'task': 'articles.process_distribution_jobs', 'schedule': 300.0},
+    'send-assignment-reminders': {'task': 'articles.send_assignment_reminders', 'schedule': 3600.0},
+    'send-assignment-escalations': {'task': 'articles.send_assignment_escalations', 'schedule': 3600.0},
+    'send-daily-reader-digests': {'task': 'users.send_reader_digests', 'schedule': crontab(hour=8, minute=0), 'kwargs': {'frequency': 'daily'}},
+    'send-weekly-reader-digests': {'task': 'users.send_reader_digests', 'schedule': crontab(hour=8, minute=5, day_of_week='monday'), 'kwargs': {'frequency': 'weekly'}},
+    'expire-pending-memberships': {'task': 'users.expire_pending_memberships', 'schedule': crontab(hour=2, minute=0)},
+}
 
 
 
