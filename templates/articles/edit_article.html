@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}" />
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1" />
     <link rel="stylesheet" href="{% static 'css/collaboration.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/ai-copilot.css' %}" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body class="dashboard-shell" data-article-id="{{ article.id }}">
@@ -47,6 +48,25 @@
                 <div id="quality-gate-checks" class="quality-gate__checks" aria-live="polite"></div>
                 <button class="btn btn-secondary" type="button" id="run-plagiarism-check">Run originality check</button>
                 <p id="quality-gate-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
+            </section>
+            <section class="ai-copilot" aria-labelledby="ai-copilot-title">
+                <div class="ai-copilot__heading">
+                    <div><span class="feature-eyebrow">Human-reviewed AI</span><h2 id="ai-copilot-title">Editorial Copilot</h2><p>Generate a draft summary, headline, SEO metadata, or proofread copy. Nothing is applied without your approval.</p></div>
+                    <span class="ai-copilot__badge">Review required</span>
+                </div>
+                <div class="ai-copilot__controls">
+                    <label for="ai-copilot-action">Assist with</label>
+                    <select id="ai-copilot-action">
+                        <option value="summarize">Summary</option>
+                        <option value="headline">Headline ideas</option>
+                        <option value="seo">SEO metadata</option>
+                        <option value="proofread">Proofread copy</option>
+                    </select>
+                    <button class="btn btn-primary" type="button" id="run-ai-copilot">Generate suggestions</button>
+                </div>
+                <p id="ai-copilot-status" class="editor-tool-panel__status" role="status" aria-live="polite"></p>
+                <div id="ai-copilot-result" class="ai-copilot__result" hidden></div>
+                <div class="ai-copilot__footer"><small id="ai-copilot-meta">AI output is advisory and must be checked against sources.</small><button class="btn btn-secondary" type="button" id="apply-ai-copilot" disabled>Apply selected output</button></div>
             </section>
             <form id="article-form" enctype="multipart/form-data" method="POST">
                 {% csrf_token %}
@@ -155,6 +175,7 @@
     <script src="{% static 'js/article-revisions.js' %}"></script>
     <script src="{% static 'js/rich-block-editor.js' %}" defer></script>
     <script src="{% static 'js/quality-gate.js' %}" defer></script>
+    <script src="{% static 'js/ai-copilot.js' %}" defer></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>

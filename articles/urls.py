@@ -46,7 +46,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
+from .api import ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('read/<slug:slug>/<str:language_code>/', public_article_translation, name='public-article-translation'),
@@ -128,6 +128,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/export/', ArticleExportView.as_view(), name='article-export'),
     path('api/v2/import/', ArticleImportView.as_view(), name='article-import'),
     path('api/v2/articles/<int:article_id>/assistant/', ArticleAssistantView.as_view(), name='article-assistant'),
+    path('api/v2/assistant/health/', EditorialAIHealthView.as_view(), name='editorial-ai-health'),
     path('api/v2/assistant/runs/<int:run_id>/apply/', EditorialAssistantApplyView.as_view(), name='assistant-run-apply'),
     path('api/v2/feed/for-you/', PersonalizedFeedView.as_view(), name='personalized-feed'),
     path('api/v2/reader/insights/', ReaderPersonalizationInsightsView.as_view(), name='reader-personalization-insights'),

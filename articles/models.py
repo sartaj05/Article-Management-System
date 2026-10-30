@@ -891,8 +891,11 @@ class EditorialAssistantRun(models.Model):
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='assistant_runs_requested')
     action = models.CharField(max_length=30)
     provider = models.CharField(max_length=80)
+    model = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
     suggestions = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    latency_ms = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:

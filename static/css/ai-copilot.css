@@ -1,0 +1,18 @@
+.ai-copilot { display: grid; gap: 18px; margin: 22px 0; padding: 22px; border: 1px solid #d8e6f2; border-radius: 18px; background: linear-gradient(135deg, #f5fbff, #ffffff 58%, #f8f5ff); box-shadow: 0 16px 36px rgba(48, 80, 120, .08); }
+.ai-copilot__heading, .ai-copilot__footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.ai-copilot__heading h2 { margin: 5px 0; color: var(--ink, #17243a); font-size: 1.2rem; }
+.ai-copilot__heading p { margin: 0; max-width: 700px; color: var(--muted, #65748a); font-size: .86rem; }
+.ai-copilot__badge { padding: 8px 12px; border-radius: 999px; color: #6251a6; background: #eee9ff; font-size: .76rem; font-weight: 700; white-space: nowrap; }
+.ai-copilot__controls { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.ai-copilot__controls label { display: grid; gap: 5px; color: var(--muted, #65748a); font-size: .76rem; font-weight: 700; }
+.ai-copilot__controls select, .ai-copilot__suggestion select { min-height: 40px; padding: 8px 12px; border: 1px solid #cbdbea; border-radius: 10px; background: #fff; color: var(--ink, #17243a); }
+.ai-copilot__result { display: grid; gap: 10px; }
+.ai-copilot__suggestion { padding: 14px; border: 1px solid #dfebf4; border-radius: 12px; background: rgba(255,255,255,.75); }
+.ai-copilot__suggestion strong { display: block; margin-bottom: 7px; color: #49647f; text-transform: capitalize; }
+.ai-copilot__suggestion p { margin: 0; color: var(--ink, #17243a); line-height: 1.55; white-space: pre-wrap; }
+.ai-copilot__footer { align-items: center; }
+.ai-copilot__footer small { color: var(--muted, #65748a); }
+#ai-copilot-status[data-state="error"] { color: #b33e4b; }
+@media (max-width: 680px) { .ai-copilot__heading, .ai-copilot__footer { flex-direction: column; align-items: stretch; } .ai-copilot__controls { align-items: stretch; flex-direction: column; } }
+html.theme-dark .ai-copilot { border-color: #334a63; background: linear-gradient(135deg, #172a3d, #1b2338); }
+html.theme-dark .ai-copilot__suggestion, html.theme-dark .ai-copilot__controls select, html.theme-dark .ai-copilot__suggestion select { border-color: #3a526d; background: #1c2a3d; color: #e8f0fb; }

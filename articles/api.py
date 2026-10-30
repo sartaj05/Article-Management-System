@@ -58,7 +58,7 @@ from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
-from .assistant import make_suggestions
+from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -208,16 +208,28 @@ class ArticleAssistantView(APIView):
         if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
             return Response({'detail': 'Only the author, editors, or admins can use the editorial assistant.'}, status=status.HTTP_403_FORBIDDEN)
         action = str(request.data.get('action', '')).strip().lower()
+        if action not in {'summarize', 'headline', 'seo', 'proofread'}:
+            return Response({'detail': 'Supported actions are summarize, headline, seo, and proofread.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            suggestions = make_suggestions(article, action)
+            result = get_editorial_provider().generate(article, action)
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except AIProviderError as exc:
+            if not settings.AI_ASSISTANT_FALLBACK_ENABLED or settings.AI_ASSISTANT_PROVIDER != 'openai':
+                return Response({'detail': str(exc), 'provider': settings.AI_ASSISTANT_PROVIDER}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            fallback = LocalRuleBasedProvider()
+            result = fallback.generate(article, action)
+            result.provider = 'local-rule-based-fallback'
+            result.metadata.update({'fallback_reason': str(exc)})
         run = EditorialAssistantRun.objects.create(
             article=article,
             requested_by=request.user,
             action=action,
-            provider=settings.AI_ASSISTANT_PROVIDER,
-            suggestions=suggestions,
+            provider=result.provider,
+            model=result.model,
+            suggestions=result.suggestions,
+            metadata=result.metadata,
+            latency_ms=result.latency_ms,
         )
         record_audit_event(actor=request.user, action='editorial_assistant_used', article=article, details={'action': action})
         return Response({
@@ -225,8 +237,28 @@ class ArticleAssistantView(APIView):
             'article_id': article.id,
             'action': action,
             'provider': run.provider,
+            'model': run.model,
+            'latency_ms': run.latency_ms,
+            'metadata': run.metadata,
             'requires_review': True,
-            'suggestions': suggestions,
+            'suggestions': run.suggestions,
+        })
+
+
+class EditorialAIHealthView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors or admins can inspect AI configuration.'}, status=status.HTTP_403_FORBIDDEN)
+        provider = settings.AI_ASSISTANT_PROVIDER
+        return Response({
+            'provider': provider,
+            'model': settings.AI_ASSISTANT_MODEL if provider == 'openai' else 'rules-v1',
+            'configured': bool(settings.AI_ASSISTANT_API_KEY) if provider == 'openai' else True,
+            'fallback_enabled': settings.AI_ASSISTANT_FALLBACK_ENABLED,
+            'human_review_required': True,
         })
 
 
