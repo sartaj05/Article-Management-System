@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1">
     <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
-    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
+    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261030-operations-1">
 </head>
 <body class="dashboard-shell">
     <header class="workspace-topbar">
@@ -16,8 +16,9 @@
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a class="is-active" href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a href="{% url 'analytics-dashboard-page' %}">Analytics</a><a href="{% url 'notification-center-page' %}">Notifications</a><a href="{% url 'workspace-search-page' %}">Search</a></nav>
     </header>
     <main class="feature-page">
-        <header class="feature-page__heading"><div><span class="feature-eyebrow">Reliability center</span><h1>Monitoring & audit</h1><p>Check dependencies and review important editorial activity.</p></div><div class="feature-toolbar"><a class="button button--secondary button--small" href="/articles/api/v2/reports/audit/">Export audit CSV</a><button class="button button--small" id="refresh-monitoring" type="button">Refresh</button></div></header>
+        <header class="feature-page__heading"><div><span class="feature-eyebrow">Reliability center</span><h1>Monitoring &amp; audit</h1><p>Check dependencies, workflow health, and important editorial activity.</p></div><div class="feature-toolbar"><a class="button button--secondary button--small" href="/articles/api/v2/reports/audit/">Export audit CSV</a><button class="button button--small" id="refresh-monitoring" type="button">Refresh</button></div></header>
         <section class="health-panel"><div><span class="feature-eyebrow">System health</span><h2 id="health-status">Checking services…</h2></div><div class="health-checks" id="health-checks"></div><div class="health-metadata" id="health-metadata"></div><small id="health-request-id"></small></section>
+        <section class="operations-panel" aria-labelledby="operations-title"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Action center</span><h2 id="operations-title">Operations overview</h2><p>See failures and backlog across the workflows that keep the newsroom moving.</p></div><span id="operations-last-checked" class="feature-status">Checking…</span></div><div id="operations-summary" class="operations-summary"></div><div id="operations-incidents" class="operations-incidents" aria-live="polite"><p class="feature-status">Loading operational incidents…</p></div></section>
         <section class="audit-panel"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Accountability</span><h2>Recent audit events</h2></div><label>Filter action<input id="audit-action" type="search" placeholder="article_published"></label></div><p class="feature-status" id="audit-status" role="status" aria-live="polite">Loading audit events…</p><div class="audit-list" id="audit-list"></div></section>
     </main>
     <script src="{% static 'js/monitoring-dashboard.js' %}" defer></script>

@@ -29,7 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, NewsletterCampaignAttribution, NewsletterEdition, PersonalizationPreference, ReaderInterest, Workspace, WorkspaceMembership, has_active_membership
+from users.models import CustomUser, MembershipWebhookEvent, NewsletterCampaignAttribution, NewsletterEdition, PersonalizationPreference, ReaderDigestDelivery, ReaderInterest, WebhookDelivery, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
 
@@ -2228,6 +2228,44 @@ class HealthCheckView(APIView):
                 'request_id': getattr(request, 'request_id', None),
             }, status=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({'status': 'healthy', 'database': 'ok'})
+
+
+class OperationsOverviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view operations health.'}, status=status.HTTP_403_FORBIDDEN)
+        now = timezone.now()
+        distribution = DistributionJob.objects.all()
+        webhook_deliveries = WebhookDelivery.objects.all()
+        digests = ReaderDigestDelivery.objects.all()
+        overdue_assignments = ArticleAssignment.objects.filter(due_at__lt=now).exclude(status='done')
+        summary = {
+            'distribution_failed': distribution.filter(status='failed').count(),
+            'distribution_queued': distribution.filter(status__in={'queued', 'processing', 'awaiting_provider'}).count(),
+            'webhook_failed': webhook_deliveries.filter(status='failed').count(),
+            'digest_failed': digests.filter(status='failed').count(),
+            'payment_events_24h': MembershipWebhookEvent.objects.filter(created_at__gte=now - timedelta(hours=24)).count(),
+            'overdue_assignments': overdue_assignments.count(),
+        }
+        incidents = []
+        if summary['distribution_failed']:
+            incidents.append({'severity': 'high', 'area': 'Distribution', 'message': f"{summary['distribution_failed']} distribution job(s) failed.", 'action_url': '/articles/workspace/integrations/'})
+        if summary['webhook_failed']:
+            incidents.append({'severity': 'high', 'area': 'Webhooks', 'message': f"{summary['webhook_failed']} webhook delivery(ies) failed.", 'action_url': '/articles/workspace/integrations/'})
+        if summary['digest_failed']:
+            incidents.append({'severity': 'medium', 'area': 'Reader digests', 'message': f"{summary['digest_failed']} reader digest delivery(ies) failed.", 'action_url': '/account/settings/#saved-searches'})
+        if summary['overdue_assignments']:
+            incidents.append({'severity': 'medium', 'area': 'Editorial SLA', 'message': f"{summary['overdue_assignments']} assignment(s) are overdue.", 'action_url': '/articles/editor/assignments/'})
+        if summary['distribution_queued'] > 10:
+            incidents.append({'severity': 'low', 'area': 'Queue', 'message': f"{summary['distribution_queued']} distribution job(s) are waiting for processing.", 'action_url': '/articles/workspace/integrations/'})
+        return Response({
+            'status': 'attention' if incidents else 'clear',
+            'summary': summary,
+            'incidents': incidents,
+            'last_checked_at': now,
+        })
 
 
 class BackupOperationsView(APIView):

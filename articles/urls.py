@@ -4,7 +4,7 @@ from .distribution import public_article, public_article_translation
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
-    ArticleAnalyticsView, BackupOperationsView, RecoveryDrillView, WorkspaceContentMigrationView, WorkflowRuleView, DistributionJobView,
+    ArticleAnalyticsView, BackupOperationsView, OperationsOverviewView, RecoveryDrillView, WorkspaceContentMigrationView, WorkflowRuleView, DistributionJobView,
     ArticleWorkflowTimelineView,
     CurrentUserCapabilitiesView,
     ArticleExportView,
@@ -190,6 +190,7 @@ urlpatterns = [
     path('api/v2/notifications/read-all/', NotificationReadAllView.as_view(), name='notification-read-all'),
     path('api/v2/audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
     path('api/v2/operations/backups/', BackupOperationsView.as_view(), name='backup-operations'),
+    path('api/v2/operations/overview/', OperationsOverviewView.as_view(), name='operations-overview'),
     path('api/v2/operations/recovery-drills/', RecoveryDrillView.as_view(), name='recovery-drills'),
     path('api/v2/operations/workspace-migration/', WorkspaceContentMigrationView.as_view(), name='workspace-content-migration'),
     path('api/v2/workflow-rules/', WorkflowRuleView.as_view(), name='workflow-rules'),
