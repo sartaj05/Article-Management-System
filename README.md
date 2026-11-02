@@ -96,3 +96,7 @@ npm ci
 npx playwright install chromium
 npm run test:e2e
 ```
+
+Pull requests also run a PostgreSQL/Redis integration job and deployment smoke checks.
+Browser failures are uploaded as Playwright artifacts for review; visual baselines are
+stored under `tests/e2e/*-snapshots/`.
