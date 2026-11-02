@@ -41,10 +41,16 @@ For future model changes, run `python scripts/migrate.py` from the repository ro
 
 ## Deployment and monitoring
 
-The project includes `Dockerfile`, `docker-compose.yml`, and a GitHub Actions workflow at `.github/workflows/ci.yml`.
-Run `docker compose up --build` for a PostgreSQL-backed deployment. The health endpoint is available at
+The project includes `Dockerfile`, `docker-compose.yml`, and a production topology in
+`docker-compose.production.yml` with Nginx, PostgreSQL, Redis, Gunicorn, Celery worker, and Celery beat.
+Run `docker compose -f docker-compose.production.yml up --build` after providing the required environment
+variables. The health endpoint is available at
 `/health/` and verifies database connectivity. Set `DATABASE_ENGINE=postgresql` and the `POSTGRES_*`
 environment variables in production.
+
+The CI workflow validates tests, migrations, production security checks, dependency integrity, and the
+container build. Version tags or a manual release can publish an image to GitHub Container Registry. Set
+the repository variable `DEPLOYMENT_BASE_URL` to enable the post-release health smoke test.
 
 For a database backup, run `./docker/backup_postgres.sh` on Linux/macOS or
 `./docker/backup_postgres.ps1` in PowerShell. Backups are intentionally ignored by Git; copy them to

@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the image to GitHub Container Registry
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-workers.txt
+      - name: Validate Django deployment configuration
+        env:
+          DJANGO_DEBUG: "false"
+          DJANGO_SECRET_KEY: release-validation-secret-only
+          DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+          SECURE_SSL_REDIRECT: "true"
+          SESSION_COOKIE_SECURE: "true"
+          CSRF_COOKIE_SECURE: "true"
+          SECURE_HSTS_SECONDS: "3600"
+        run: |
+          python manage.py check --deploy
+          python manage.py makemigrations --check --dry-run
+          python manage.py test --noinput
+
+  publish:
+    needs: validate
+    if: github.event_name == 'push' || inputs.publish == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish production image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke-test:
+    needs: publish
+    if: needs.publish.result == 'success' && vars.DEPLOYMENT_BASE_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run deployment smoke test
+        env:
+          BASE_URL: ${{ vars.DEPLOYMENT_BASE_URL }}
+        run: python scripts/smoke_test.py
