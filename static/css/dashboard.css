@@ -63,11 +63,14 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 
 .workspace-topbar__actions {
   display: flex;
+  flex: 1 1 auto;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .dashboard-shell .workspace-topbar__actions a,
@@ -82,6 +85,22 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   font-size: .88rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* Keep the dense editor navigation readable without allowing actions to wrap
+   into a second header row. The nav can scroll on compact desktop widths. */
+.dashboard-shell .workspace-topbar__actions a,
+.dashboard-shell .workspace-topbar__actions button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: .78rem;
+  padding-inline: 8px;
+}
+
+.dashboard-shell .workspace-topbar__actions .workspace-logout {
+  margin-left: 6px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
 }
 
 .dashboard-shell .workspace-topbar__actions a:hover,
@@ -445,6 +464,21 @@ body.dashboard-shell .sidebar-toggle { display: none; }
     min-width: 0;
     max-width: 100%;
     overflow-x: auto;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 721px) {
+  .dashboard-shell .workspace-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+
+  .dashboard-shell .workspace-topbar__actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
 
