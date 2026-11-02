@@ -184,10 +184,16 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
     ],
-    'DEFAULT_THROTTLE_RATES': {'anon': '100/hour', 'user': '1000/hour'},
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'public_feed': os.getenv('PUBLIC_FEED_RATE_LIMIT', '120/min'),
+    },
 }
 PUBLIC_API_KEY_RATE_LIMIT = int(os.getenv('PUBLIC_API_KEY_RATE_LIMIT', '120'))
 PUBLIC_API_MAX_PAGE_SIZE = int(os.getenv('PUBLIC_API_MAX_PAGE_SIZE', '100'))
+PUBLIC_FEED_CACHE_SECONDS = int(os.getenv('PUBLIC_FEED_CACHE_SECONDS', '30'))
+PUBLIC_FEED_RATE_LIMIT = os.getenv('PUBLIC_FEED_RATE_LIMIT', '120/min')
 OPERATIONS_ERROR_RATE_THRESHOLD = float(os.getenv('OPERATIONS_ERROR_RATE_THRESHOLD', '0.10'))
 OPS_ALERT_WEBHOOK_URL = os.getenv('OPS_ALERT_WEBHOOK_URL', '')
 OPS_ALERT_WEBHOOK_PROVIDER = os.getenv('OPS_ALERT_WEBHOOK_PROVIDER', 'slack').lower()

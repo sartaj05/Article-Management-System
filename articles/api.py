@@ -60,6 +60,7 @@ from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, OpenAIResponsesProvider, get_editorial_provider
+from .throttling import PublicFeedThrottle
 from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
 from .ai_governance import AIGovernanceError, enforce_result_policy, get_policy, prepare_ai_request, record_ai_usage
@@ -3458,6 +3459,7 @@ class ArticleEngagementView(APIView):
 
 class HeadlessArticleFeedView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PublicFeedThrottle]
 
     def get(self, request):
         raw_key = request.headers.get('X-API-Key', '')
@@ -3480,11 +3482,21 @@ class HeadlessArticleFeedView(APIView):
             page = max(int(request.query_params.get('page', 1)), 1)
         except ValueError:
             page = 1
+        cache_key = None
+        if not raw_key:
+            cache_fingerprint = hashlib.sha256(f'{category or ""}:{search or ""}:{limit}:{page}'.encode()).hexdigest()
+            cache_key = f'public-feed:v2:{cache_fingerprint}'
+            cached_payload = cache.get(cache_key)
+            if cached_payload is not None:
+                response = Response(cached_payload)
+                response['X-API-Version'] = 'v2'
+                response['X-Cache'] = 'HIT'
+                return response
         total = queryset.count()
         pages = max((total + limit - 1) // limit, 1)
         page = min(page, pages)
         articles = queryset.order_by('-published_at', '-created_at')[(page - 1) * limit:page * limit]
-        response = Response({
+        payload = {
             'count': total,
             'page': page,
             'page_size': limit,
@@ -3506,8 +3518,12 @@ class HeadlessArticleFeedView(APIView):
                 }
                 for article in articles
             ],
-        })
+        }
+        if cache_key:
+            cache.set(cache_key, payload, timeout=settings.PUBLIC_FEED_CACHE_SECONDS)
+        response = Response(payload)
         response['X-API-Version'] = 'v2'
+        response['X-Cache'] = 'MISS' if cache_key else 'BYPASS'
         return response
 
 
