@@ -386,13 +386,32 @@ class PasskeyCredential(models.Model):
 
 
 class SSOProvider(models.Model):
-    PROVIDER_CHOICES = [('oidc', 'OpenID Connect'), ('google', 'Google'), ('microsoft', 'Microsoft')]
+    PROVIDER_CHOICES = [('oidc', 'OpenID Connect'), ('google', 'Google'), ('microsoft', 'Microsoft'), ('saml', 'SAML 2.0')]
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES, unique=True)
     client_id = models.CharField(max_length=255, blank=True)
+    client_secret = models.CharField(max_length=512, blank=True)
     discovery_url = models.URLField(blank=True)
+    token_url = models.URLField(blank=True)
+    userinfo_url = models.URLField(blank=True)
+    metadata_url = models.URLField(blank=True)
+    default_role = models.CharField(max_length=20, choices=CustomUser.ROLE_CHOICES, default='Journalist')
+    auto_provision = models.BooleanField(default=True)
     is_enabled = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class SCIMToken(models.Model):
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='scim_tokens')
+    prefix = models.CharField(max_length=12, db_index=True)
+    token_hash = models.CharField(max_length=64, unique=True)
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
 
 class ReaderInterest(models.Model):

@@ -5,6 +5,7 @@ import json
 import secrets
 import base64
 import hashlib
+import requests
 
 from rest_framework import serializers, status
 from rest_framework import generics
@@ -27,7 +28,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
+    NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -705,7 +706,8 @@ class SSOProviderStartView(APIView):
             'code_challenge': challenge,
             'code_challenge_method': 'S256',
             'discovery_url': item.discovery_url,
-            'detail': 'Complete the provider authorization redirect and callback exchange on the configured SSO adapter.',
+            'authorization_url': item.discovery_url,
+            'detail': 'Redirect the user to the configured identity provider authorization endpoint.',
         })
 
 
@@ -713,17 +715,55 @@ class SSOProviderCallbackView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, provider):
+        provider = str(provider).strip().lower()
         state = str(request.query_params.get('state', '')).strip()
         state_data = request.session.pop(f'sso_state_{state}', None)
         if not state_data or state_data.get('provider') != provider:
             return Response({'detail': 'Invalid or expired SSO state.'}, status=400)
         if not request.query_params.get('code'):
             return Response({'detail': 'The identity provider did not return an authorization code.'}, status=400)
-        return Response({
-            'provider': provider,
-            'ready': False,
-            'detail': 'Authorization code received. Configure the provider token/userinfo adapter before enabling account login.',
-        }, status=501)
+        item = get_object_or_404(SSOProvider, provider=provider, is_enabled=True)
+        if provider == 'saml':
+            return Response({'provider': provider, 'ready': False, 'detail': 'SAML requires the deployment SAML adapter and signed assertion validator.'}, status=501)
+        if not item.token_url or not item.userinfo_url or not item.client_id:
+            return Response({'detail': 'The SSO provider is missing token or userinfo configuration.'}, status=503)
+        try:
+            token_response = requests.post(item.token_url, data={
+                'grant_type': 'authorization_code',
+                'code': request.query_params['code'],
+                'client_id': item.client_id,
+                'client_secret': item.client_secret,
+                'redirect_uri': request.build_absolute_uri(f'/api/sso/{provider}/callback/'),
+                'code_verifier': (state_data or {}).get('verifier', ''),
+            }, timeout=settings.SSO_HTTP_TIMEOUT)
+            if not token_response.ok:
+                return Response({'detail': 'The identity provider rejected the authorization code.'}, status=502)
+            token_payload = token_response.json()
+            userinfo = requests.get(item.userinfo_url, headers={'Authorization': f"Bearer {token_payload.get('access_token', '')}"}, timeout=settings.SSO_HTTP_TIMEOUT)
+            if not userinfo.ok:
+                return Response({'detail': 'The identity provider user profile request failed.'}, status=502)
+            profile = userinfo.json()
+        except (requests.RequestException, ValueError):
+            return Response({'detail': 'The identity provider exchange could not be completed.'}, status=502)
+        email = str(profile.get('email') or profile.get('preferred_username') or '').strip().lower()
+        if not email:
+            return Response({'detail': 'The identity provider did not return an email address.'}, status=400)
+        user = CustomUser.objects.filter(email=email).first()
+        if not user:
+            if not item.auto_provision:
+                return Response({'detail': 'This account is not provisioned for the newsroom.'}, status=403)
+            base_username = slugify(email.split('@', 1)[0]) or 'sso-user'
+            username = base_username
+            suffix = 1
+            while CustomUser.objects.filter(username=username).exists():
+                suffix += 1
+                username = f'{base_username}-{suffix}'
+            user = CustomUser.objects.create_user(username=username, email=email, role=item.default_role, is_active=True)
+        if not user.is_active:
+            return Response({'detail': 'This account is disabled.'}, status=403)
+        login(request, user)
+        from users.views import get_tokens_for_user
+        return Response({'provider': provider, 'authenticated': True, 'user': {'id': user.id, 'username': user.username, 'email': user.email, 'role': user.role}, 'tokens': get_tokens_for_user(user, request)})
 
 
 class SSOProviderView(APIView):
@@ -734,20 +774,148 @@ class SSOProviderView(APIView):
         if request.user.role != 'Admin':
             return Response({'detail': 'Only admins can manage SSO providers.'}, status=403)
         providers = SSOProvider.objects.all()
-        return Response([{'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'is_enabled': item.is_enabled} for item in providers])
+        return Response([{'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'token_url': item.token_url, 'userinfo_url': item.userinfo_url, 'metadata_url': item.metadata_url, 'default_role': item.default_role, 'auto_provision': item.auto_provision, 'is_enabled': item.is_enabled} for item in providers])
 
     def patch(self, request):
         if request.user.role != 'Admin':
             return Response({'detail': 'Only admins can manage SSO providers.'}, status=403)
         provider = str(request.data.get('provider', '')).strip().lower()
-        if provider not in {'oidc', 'google', 'microsoft'}:
-            return Response({'detail': 'Choose oidc, google, or microsoft.'}, status=400)
+        if provider not in {'oidc', 'google', 'microsoft', 'saml'}:
+            return Response({'detail': 'Choose oidc, google, microsoft, or saml.'}, status=400)
         item, _ = SSOProvider.objects.update_or_create(provider=provider, defaults={
             'client_id': str(request.data.get('client_id', '')).strip(),
+            'client_secret': str(request.data.get('client_secret', '')).strip(),
             'discovery_url': str(request.data.get('discovery_url', '')).strip(),
+            'token_url': str(request.data.get('token_url', '')).strip(),
+            'userinfo_url': str(request.data.get('userinfo_url', '')).strip(),
+            'metadata_url': str(request.data.get('metadata_url', '')).strip(),
+            'default_role': str(request.data.get('default_role') or 'Journalist'),
+            'auto_provision': bool(request.data.get('auto_provision', True)),
             'is_enabled': bool(request.data.get('is_enabled', False)),
         })
-        return Response({'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'is_enabled': item.is_enabled})
+        return Response({'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'token_url': item.token_url, 'userinfo_url': item.userinfo_url, 'metadata_url': item.metadata_url, 'default_role': item.default_role, 'auto_provision': item.auto_provision, 'is_enabled': item.is_enabled})
+
+
+def _scim_response(user, workspace, request=None):
+    base = request.build_absolute_uri(f'/scim/v2/{workspace.slug}/Users/{user.id}') if request else ''
+    return {
+        'schemas': ['urn:ietf:params:scim:schemas:core:2.0:User'],
+        'id': str(user.id),
+        'userName': user.email,
+        'active': user.is_active,
+        'emails': [{'value': user.email, 'primary': True}],
+        'name': {'givenName': user.first_name, 'familyName': user.last_name},
+        'meta': {'resourceType': 'User', 'location': base},
+    }
+
+
+def _scim_workspace(request, slug):
+    authorization = str(request.headers.get('Authorization', ''))
+    raw_token = authorization[7:].strip() if authorization.lower().startswith('bearer ') else ''
+    if not raw_token:
+        return None, None
+    token = SCIMToken.objects.select_related('workspace').filter(
+        prefix=raw_token[:12], is_active=True, token_hash=hashlib.sha256(raw_token.encode()).hexdigest(),
+        workspace__slug=slug,
+    ).first()
+    if not token or token.expires_at and token.expires_at <= timezone.now():
+        return None, None
+    token.last_used_at = timezone.now()
+    token.save(update_fields=['last_used_at'])
+    return token.workspace, token
+
+
+class SCIMTokenView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, slug):
+        workspace = get_object_or_404(Workspace, slug=slug)
+        membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user, role__in={'owner', 'admin'}).first()
+        if request.user.role != 'Admin' and not membership:
+            return Response({'detail': 'Only workspace admins can manage SCIM tokens.'}, status=403)
+        raw = f'scim_{secrets.token_urlsafe(32)}'
+        token = SCIMToken.objects.create(workspace=workspace, prefix=raw[:12], token_hash=hashlib.sha256(raw.encode()).hexdigest(), expires_at=timezone.now() + timedelta(days=90))
+        return Response({'token': raw, 'workspace': workspace.slug, 'expires_at': token.expires_at}, status=201)
+
+    def get(self, request, slug):
+        workspace = get_object_or_404(Workspace, slug=slug)
+        membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user, role__in={'owner', 'admin'}).first()
+        if request.user.role != 'Admin' and not membership:
+            return Response({'detail': 'Only workspace admins can view SCIM tokens.'}, status=403)
+        return Response([{'id': token.id, 'prefix': token.prefix, 'is_active': token.is_active, 'expires_at': token.expires_at, 'last_used_at': token.last_used_at} for token in workspace.scim_tokens.all()])
+
+
+class SCIMUsersView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def _workspace(self, request, slug):
+        workspace, token = _scim_workspace(request, slug)
+        if not workspace:
+            return Response({'detail': 'A valid SCIM bearer token is required.'}, status=401), None
+        return None, workspace
+
+    def get(self, request, slug):
+        error, workspace = self._workspace(request, slug)
+        if error:
+            return error
+        members = workspace.memberships.select_related('user').all()
+        return Response({'schemas': ['urn:ietf:params:scim:api:messages:2.0:ListResponse'], 'totalResults': members.count(), 'Resources': [_scim_response(item.user, workspace, request) for item in members]})
+
+    def post(self, request, slug):
+        error, workspace = self._workspace(request, slug)
+        if error:
+            return error
+        emails = request.data.get('emails') or []
+        email = str((emails[0].get('value') if emails and isinstance(emails[0], dict) else request.data.get('userName')) or '').strip().lower()
+        if not email:
+            return Response({'detail': 'SCIM userName or emails[0].value is required.'}, status=400)
+        user = CustomUser.objects.filter(email=email).first()
+        if not user:
+            username = slugify(email.split('@', 1)[0]) or 'scim-user'
+            suffix = 1
+            while CustomUser.objects.filter(username=username).exists():
+                suffix += 1
+                username = f'{username}-{suffix}'
+            user = CustomUser.objects.create_user(username=username, email=email, password=secrets.token_urlsafe(24), role='Journalist', is_active=bool(request.data.get('active', True)))
+        role = str(request.data.get('role') or 'writer').lower()
+        if role not in {'viewer', 'writer', 'editor'}:
+            role = 'writer'
+        WorkspaceMembership.objects.update_or_create(workspace=workspace, user=user, defaults={'role': role})
+        return Response(_scim_response(user, workspace, request), status=201)
+
+
+class SCIMUserDetailView(SCIMUsersView):
+    def get(self, request, slug, pk):
+        error, workspace = self._workspace(request, slug)
+        if error:
+            return error
+        membership = get_object_or_404(WorkspaceMembership.objects.select_related('user'), workspace=workspace, user_id=pk)
+        return Response(_scim_response(membership.user, workspace, request))
+
+    def patch(self, request, slug, pk):
+        error, workspace = self._workspace(request, slug)
+        if error:
+            return error
+        membership = get_object_or_404(WorkspaceMembership.objects.select_related('user'), workspace=workspace, user_id=pk)
+        user = membership.user
+        if 'active' in request.data:
+            user.is_active = bool(request.data['active'])
+        emails = request.data.get('emails') or []
+        if emails and isinstance(emails[0], dict) and emails[0].get('value'):
+            user.email = str(emails[0]['value']).strip().lower()
+        user.save(update_fields=['is_active', 'email'])
+        return Response(_scim_response(user, workspace, request))
+
+    def delete(self, request, slug, pk):
+        error, workspace = self._workspace(request, slug)
+        if error:
+            return error
+        membership = get_object_or_404(WorkspaceMembership.objects.select_related('user'), workspace=workspace, user_id=pk)
+        membership.user.is_active = False
+        membership.user.save(update_fields=['is_active'])
+        return Response(status=204)
 
 
 class ReaderInterestSerializer(serializers.ModelSerializer):
