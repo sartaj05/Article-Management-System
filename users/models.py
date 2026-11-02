@@ -35,6 +35,7 @@ class CustomUser(AbstractUser):
 class Workspace(models.Model):
     """A newsroom organization that owns editorial work and memberships."""
     PLAN_CHOICES = [('starter', 'Starter'), ('team', 'Team'), ('enterprise', 'Enterprise')]
+    DATA_REGION_CHOICES = [('global', 'Global'), ('us', 'United States'), ('eu', 'European Union'), ('in', 'India')]
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True)
     description = models.TextField(blank=True)
@@ -46,6 +47,8 @@ class Workspace(models.Model):
     accent_color = models.CharField(max_length=7, default='#f28f6b')
     custom_domain = models.CharField(max_length=255, blank=True)
     email_from_name = models.CharField(max_length=120, blank=True)
+    data_region = models.CharField(max_length=12, choices=DATA_REGION_CHOICES, default='global')
+    retention_days = models.PositiveIntegerField(default=365)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

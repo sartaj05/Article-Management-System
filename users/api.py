@@ -1796,7 +1796,7 @@ class WorkspaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workspace
-        fields = ['id', 'name', 'slug', 'description', 'owner', 'owner_username', 'member_count', 'plan', 'seat_limit', 'logo_url', 'primary_color', 'accent_color', 'custom_domain', 'email_from_name', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'owner', 'owner_username', 'member_count', 'plan', 'seat_limit', 'logo_url', 'primary_color', 'accent_color', 'custom_domain', 'email_from_name', 'data_region', 'retention_days', 'created_at', 'updated_at']
         read_only_fields = ['id', 'owner', 'owner_username', 'member_count', 'created_at', 'updated_at']
 
 
@@ -2200,6 +2200,22 @@ class WorkspaceControlsView(APIView):
             },
             'analytics_scope': {'workspace_id': workspace.id, 'workspace_slug': workspace.slug},
         })
+
+    def patch(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        region = str(request.data.get('data_region', workspace.data_region)).strip().lower()
+        if region not in dict(Workspace.DATA_REGION_CHOICES):
+            return Response({'detail': 'Choose a supported data region.'}, status=400)
+        try:
+            retention_days = int(request.data.get('retention_days', workspace.retention_days))
+        except (TypeError, ValueError):
+            return Response({'detail': 'retention_days must be an integer.'}, status=400)
+        if retention_days < 30 or retention_days > 3650:
+            return Response({'detail': 'retention_days must be between 30 and 3650.'}, status=400)
+        workspace.data_region = region
+        workspace.retention_days = retention_days
+        workspace.save(update_fields=['data_region', 'retention_days', 'updated_at'])
+        return Response({'workspace': WorkspaceSerializer(workspace).data, 'updated': True})
 
 
 class WorkspaceSelectView(APIView):
