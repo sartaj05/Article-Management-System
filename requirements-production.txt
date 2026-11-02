@@ -1,0 +1,5 @@
+-r requirements-workers.txt
+
+# Optional S3-compatible media storage used when MEDIA_STORAGE_BACKEND=s3.
+django-storages==1.14.4
+boto3==1.35.81

@@ -75,3 +75,30 @@ def run_ai_job_task(self, job_id):
     from .ai_jobs import execute_ai_job
     job = execute_ai_job(job_id)
     return {'status': job.status, 'job_id': job.id}
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.create_database_backup')
+def create_database_backup_task(self):
+    from django.conf import settings
+    from .backup import create_database_backup
+    if not settings.BACKUP_ENABLED:
+        return {'status': 'disabled'}
+    return {'status': create_database_backup().status}
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.create_media_backup')
+def create_media_backup_task(self):
+    from django.conf import settings
+    from .backup import create_media_backup
+    if not settings.BACKUP_ENABLED:
+        return {'status': 'disabled'}
+    return {'status': create_media_backup().status}
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.prune_old_backups')
+def prune_old_backups_task(self):
+    from django.conf import settings
+    from .backup import prune_old_backups
+    if not settings.BACKUP_ENABLED:
+        return {'status': 'disabled', 'deleted': 0}
+    return {'status': 'completed', 'deleted': prune_old_backups()}

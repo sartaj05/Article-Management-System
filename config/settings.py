@@ -211,6 +211,27 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_MAX_UPLOAD_BYTES = int(os.getenv('MEDIA_MAX_UPLOAD_BYTES', str(10 * 1024 * 1024)))
 BACKUP_ROOT = os.getenv('BACKUP_ROOT', str(BASE_DIR / 'backups'))
 BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', '30'))
+BACKUP_ENABLED = os.getenv('BACKUP_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
+BACKUP_COMMAND_TIMEOUT = int(os.getenv('BACKUP_COMMAND_TIMEOUT', '300'))
+
+MEDIA_STORAGE_BACKEND = os.getenv('MEDIA_STORAGE_BACKEND', 'filesystem').lower()
+if MEDIA_STORAGE_BACKEND == 's3':
+    STORAGES = {
+        'default': {'BACKEND': 'storages.backends.s3.S3Storage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', '')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', '') or None
+    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', '') or None
+    AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN', '') or None
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = os.getenv('AWS_QUERYSTRING_AUTH', 'true').lower() in {'1', 'true', 'yes'}
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
 
 
 # Static files (CSS, JavaScript, images)
@@ -258,6 +279,9 @@ CELERY_BEAT_SCHEDULE = {
     'send-daily-reader-digests': {'task': 'users.send_reader_digests', 'schedule': crontab(hour=8, minute=0), 'kwargs': {'frequency': 'daily'}},
     'send-weekly-reader-digests': {'task': 'users.send_reader_digests', 'schedule': crontab(hour=8, minute=5, day_of_week='monday'), 'kwargs': {'frequency': 'weekly'}},
     'expire-pending-memberships': {'task': 'users.expire_pending_memberships', 'schedule': crontab(hour=2, minute=0)},
+    'create-database-backup': {'task': 'articles.create_database_backup', 'schedule': crontab(hour=2, minute=30)},
+    'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
+    'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
 }
 
 
