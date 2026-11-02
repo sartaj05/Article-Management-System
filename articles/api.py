@@ -2771,18 +2771,21 @@ class BackupOperationsView(APIView):
             return Response({'detail': 'Only admins can view backup operations.'}, status=403)
         from .backup import verify_database_backup
         records = BackupRecord.objects.select_related('initiated_by')[:50]
+        drills = RecoveryDrill.objects.select_related('backup')[:20]
         return Response({
             'database_engine': settings.DATABASES['default']['ENGINE'].rsplit('.', 1)[-1],
             'backup_root': str(settings.BACKUP_ROOT),
             'retention_days': settings.BACKUP_RETENTION_DAYS,
-            'records': [{'id': item.id, 'kind': item.kind, 'status': item.status, 'path': item.path, 'checksum': item.checksum, 'size_bytes': item.size_bytes, 'error': item.error, 'initiated_by': item.initiated_by.username if item.initiated_by else None, 'created_at': item.created_at, 'completed_at': item.completed_at, 'verified': verify_database_backup(item) if item.kind == 'database' else None} for item in records],
+            'records': [{'id': item.id, 'kind': item.kind, 'status': item.status, 'path': item.path, 'checksum': item.checksum, 'size_bytes': item.size_bytes, 'error': item.error, 'initiated_by': item.initiated_by.username if item.initiated_by else None, 'created_at': item.created_at, 'completed_at': item.completed_at, 'verified': verify_database_backup(item) if item.status == 'completed' else None} for item in records],
+            'recovery_drills': [{'id': item.id, 'backup_id': item.backup_id, 'status': item.status, 'details': item.details, 'checked_at': item.checked_at} for item in drills],
         })
 
     def post(self, request):
         if not self.admin_only(request):
             return Response({'detail': 'Only admins can create backups.'}, status=403)
-        from .backup import create_database_backup
-        record = create_database_backup(request.user)
+        from .backup import create_database_backup, create_media_backup
+        kind = str(request.data.get('kind', 'database')).strip().lower()
+        record = create_media_backup(request.user) if kind == 'media' else create_database_backup(request.user)
         payload = {'id': record.id, 'status': record.status, 'path': record.path, 'checksum': record.checksum, 'size_bytes': record.size_bytes, 'error': record.error}
         return Response(payload, status=201 if record.status == 'completed' else 503)
 

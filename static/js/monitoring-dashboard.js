@@ -8,6 +8,9 @@
   const operationsSummary = document.getElementById('operations-summary');
   const operationsIncidents = document.getElementById('operations-incidents');
   const operationsLastChecked = document.getElementById('operations-last-checked');
+  const queueHealth = document.getElementById('queue-health');
+  const providerHealth = document.getElementById('provider-health');
+  const runtimeStatus = document.getElementById('runtime-status');
   const token = localStorage.getItem('access_token');
   const headers = { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
@@ -34,6 +37,35 @@
       operationsLastChecked.textContent = payload.last_checked_at ? `Checked ${new Date(payload.last_checked_at).toLocaleTimeString()}` : 'Checked just now';
     } catch (error) { operationsIncidents.innerHTML = `<p class="feature-status is-error">${escapeHtml(error.message)}</p>`; }
   }
+  async function loadRuntime() {
+    try {
+      const [queueResponse, providerResponse] = await Promise.all([
+        fetch('/articles/api/v2/operations/queue/', { headers, credentials: 'same-origin' }),
+        fetch('/provider-health/', { headers, credentials: 'same-origin' }),
+      ]);
+      const queue = await queueResponse.json();
+      const providers = await providerResponse.json();
+      if (!queueResponse.ok) throw new Error(queue.detail || 'Queue health unavailable.');
+      if (!providerResponse.ok) throw new Error(providers.detail || 'Provider health unavailable.');
+      const workerCount = Object.keys(queue.workers || {}).length;
+      queueHealth.innerHTML = `<div class="operations-stat operations-stat--${queue.status === 'healthy' ? 'clear' : 'attention'}"><strong>${workerCount}</strong><span>Healthy workers</span></div><div class="operations-stat operations-stat--${queue.queue_length ? 'attention' : 'clear'}"><strong>${escapeHtml(queue.queue_length ?? '—')}</strong><span>Queued tasks</span></div><div class="operations-stat operations-stat--clear"><strong>${escapeHtml(queue.default_queue)}</strong><span>Default queue</span></div>`;
+      const providerItems = [];
+      Object.entries(providers).forEach(([group, values]) => {
+        Object.entries(values).forEach(([name, value]) => {
+          const configured = typeof value === 'object' ? value.configured : value;
+          providerItems.push(`<div class="operations-stat operations-stat--${configured ? 'clear' : 'attention'}"><strong>${configured ? 'Ready' : 'Setup'}</strong><span>${escapeHtml(group)} / ${escapeHtml(name)}</span></div>`);
+        });
+      });
+      providerHealth.innerHTML = providerItems.join('');
+      runtimeStatus.textContent = queue.status === 'healthy' ? 'Runtime ready' : 'Runtime attention required';
+      runtimeStatus.className = `feature-status ${queue.status === 'healthy' ? 'is-healthy' : 'is-error'}`;
+    } catch (error) {
+      runtimeStatus.textContent = error.message;
+      runtimeStatus.className = 'feature-status is-error';
+      queueHealth.innerHTML = '';
+      providerHealth.innerHTML = '';
+    }
+  }
   async function loadAudit() {
     auditStatus.textContent = 'Loading audit events…';
     const params = action.value.trim() ? `?action=${encodeURIComponent(action.value.trim())}` : '';
@@ -46,7 +78,7 @@
       auditStatus.textContent = `${payload.count ?? items.length} event${(payload.count ?? items.length) === 1 ? '' : 's'} shown`;
     } catch (error) { auditList.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`; auditStatus.textContent = 'Audit feed unavailable'; }
   }
-  function refresh() { loadHealth(); loadOperations(); loadAudit(); }
+  function refresh() { loadHealth(); loadRuntime(); loadOperations(); loadAudit(); }
   action.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(loadAudit, 300); });
   document.getElementById('refresh-monitoring').addEventListener('click', refresh);
   refresh();
