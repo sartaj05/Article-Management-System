@@ -124,6 +124,31 @@ class WorkspaceBillingContract(models.Model):
     class Meta:
         ordering = ['-updated_at']
 
+
+class WorkspaceIntegration(models.Model):
+    PROVIDER_CHOICES = [
+        ('slack', 'Slack'), ('teams', 'Microsoft Teams'), ('salesforce', 'Salesforce'),
+        ('cms', 'Content management system'), ('sharepoint', 'SharePoint'), ('google_drive', 'Google Drive'),
+    ]
+    STATUS_CHOICES = [('configured', 'Configured'), ('healthy', 'Healthy'), ('degraded', 'Degraded'), ('disabled', 'Disabled')]
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='integrations')
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    name = models.CharField(max_length=120)
+    endpoint_url = models.URLField(blank=True)
+    secret = models.CharField(max_length=512, blank=True)
+    config = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='configured')
+    is_active = models.BooleanField(default=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=500, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='workspace_integrations_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['provider', 'name']
+        constraints = [models.UniqueConstraint(fields=['workspace', 'name'], name='unique_workspace_integration_name')]
+
 # Profile model linked to the CustomUser model
 class Profile(models.Model):
     user = models.OneToOneField(

@@ -13,7 +13,7 @@ from .api import (
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationDeliveryView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyUsageView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, SCIMTokenView, SCIMUserDetailView, SCIMUsersView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceDataExportView, WorkspaceInviteView, WorkspaceListCreateView,
-    WorkspaceMembersView, WorkspaceBillingView, WorkspaceBillingContractView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
+    WorkspaceMembersView, WorkspaceBillingView, WorkspaceBillingContractView, WorkspaceIntegrationView, WorkspaceIntegrationDetailView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
 urlpatterns = [
     
@@ -107,6 +107,8 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('workspaces/<slug:slug>/members/', WorkspaceMembersView.as_view(), name='workspace-members'),
     path('workspaces/<slug:slug>/billing/', WorkspaceBillingView.as_view(), name='workspace-billing'),
     path('workspaces/<slug:slug>/billing/contract/', WorkspaceBillingContractView.as_view(), name='workspace-billing-contract'),
+    path('workspaces/<slug:slug>/integrations/', WorkspaceIntegrationView.as_view(), name='workspace-integrations'),
+    path('workspaces/<slug:slug>/integrations/<int:pk>/', WorkspaceIntegrationDetailView.as_view(), name='workspace-integration-detail'),
     path('workspaces/<slug:slug>/controls/', WorkspaceControlsView.as_view(), name='workspace-controls'),
     path('workspaces/<slug:slug>/export/', WorkspaceDataExportView.as_view(), name='workspace-data-export'),
     path('workspaces/<slug:slug>/scim/tokens/', SCIMTokenView.as_view(), name='scim-tokens'),

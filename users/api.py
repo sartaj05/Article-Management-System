@@ -30,7 +30,7 @@ from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
-    WorkspaceMembership, WorkspaceBillingContract,
+    WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration,
 )
 from articles.models import Article
 from .support_bot import get_support_response
@@ -1903,6 +1903,88 @@ class WorkspaceBillingContractView(APIView):
         workspace = _workspace_for_member(request, slug)
         contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
         return Response(self.payload(workspace, contract))
+
+
+def _integration_payload(integration):
+    return {
+        'id': integration.id, 'provider': integration.provider, 'name': integration.name,
+        'endpoint_url': integration.endpoint_url, 'config': integration.config,
+        'status': integration.status, 'is_active': integration.is_active,
+        'last_checked_at': integration.last_checked_at, 'last_error': integration.last_error,
+        'secret_configured': bool(integration.secret), 'created_at': integration.created_at,
+    }
+
+
+class WorkspaceIntegrationView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        return Response([_integration_payload(item) for item in workspace.integrations.all()])
+
+    def post(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        provider = str(request.data.get('provider', '')).strip().lower()
+        name = str(request.data.get('name', '')).strip()
+        if provider not in dict(WorkspaceIntegration.PROVIDER_CHOICES) or not name:
+            return Response({'detail': 'provider and name are required.'}, status=400)
+        if WorkspaceIntegration.objects.filter(workspace=workspace, name=name).exists():
+            return Response({'detail': 'An integration with this name already exists.'}, status=409)
+        integration = WorkspaceIntegration.objects.create(
+            workspace=workspace, provider=provider, name=name,
+            endpoint_url=str(request.data.get('endpoint_url', '')).strip(),
+            secret=str(request.data.get('secret', '')).strip(),
+            config=request.data.get('config') if isinstance(request.data.get('config'), dict) else {},
+            created_by=request.user,
+        )
+        return Response(_integration_payload(integration), status=201)
+
+
+class WorkspaceIntegrationDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_integration(self, request, slug, pk):
+        workspace = _workspace_admin(request, slug)
+        return workspace, get_object_or_404(WorkspaceIntegration, workspace=workspace, pk=pk)
+
+    def patch(self, request, slug, pk):
+        workspace, integration = self.get_integration(request, slug, pk)
+        for field in ('name', 'endpoint_url', 'secret'):
+            if field in request.data:
+                setattr(integration, field, str(request.data.get(field, '')).strip())
+        if 'config' in request.data and isinstance(request.data['config'], dict):
+            integration.config = request.data['config']
+        if 'is_active' in request.data:
+            integration.is_active = bool(request.data['is_active'])
+            if not integration.is_active:
+                integration.status = 'disabled'
+        integration.save()
+        return Response(_integration_payload(integration))
+
+    def post(self, request, slug, pk):
+        workspace, integration = self.get_integration(request, slug, pk)
+        if not integration.endpoint_url:
+            return Response({'detail': 'Configure an endpoint URL before testing.'}, status=400)
+        try:
+            response = requests.post(
+                integration.endpoint_url,
+                json={'text': request.data.get('message', f'Article Studio {integration.provider} integration test')},
+                headers={'Authorization': f'Bearer {integration.secret}'} if integration.secret else {},
+                timeout=getattr(settings, 'SSO_HTTP_TIMEOUT', 10),
+            )
+            response.raise_for_status()
+            integration.status = 'healthy'
+            integration.last_error = ''
+            result = {'ok': True, 'status_code': response.status_code}
+        except Exception as exc:
+            integration.status = 'degraded'
+            integration.last_error = str(exc)[:500]
+            result = {'ok': False, 'error': integration.last_error}
+        integration.last_checked_at = timezone.now()
+        integration.save(update_fields=['status', 'last_error', 'last_checked_at', 'updated_at'])
+        return Response({'integration': _integration_payload(integration), 'test': result}, status=200 if result['ok'] else 503)
 
     def patch(self, request, slug):
         workspace = _workspace_admin(request, slug)
