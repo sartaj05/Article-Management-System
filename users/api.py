@@ -1020,10 +1020,13 @@ class MembershipWebhookView(APIView):
         if isinstance(data, dict) and isinstance(data.get('object'), dict):
             data = {**data['object'], **{f'metadata_{key}': value for key, value in (data['object'].get('metadata') or {}).items()}}
         metadata = data.get('metadata') if isinstance(data.get('metadata'), dict) else {}
+        notes = data.get('notes') if isinstance(data.get('notes'), dict) else {}
         user_id = data.get('user_id') or metadata.get('user_id') or data.get('metadata_user_id')
         plan_id = data.get('plan_id') or metadata.get('plan_id') or data.get('metadata_plan_id')
         transaction_id = data.get('transaction_id') or metadata.get('transaction_id') or data.get('metadata_transaction_id')
         checkout_token = data.get('checkout_token') or metadata.get('checkout_token') or data.get('metadata_checkout_token')
+        tip_id = data.get('tip_id') or metadata.get('tip_id') or data.get('metadata_tip_id') or notes.get('tip_id')
+        tip_checkout_token = checkout_token or notes.get('checkout_token')
         provider_reference = str(data.get('provider_reference') or data.get('subscription_id') or data.get('subscription') or data.get('id') or '')[:160]
         if not event_id or not event_type:
             return Response({'detail': 'Webhook id and type are required.'}, status=400)
@@ -1047,9 +1050,30 @@ class MembershipWebhookView(APIView):
             'charge.refunded': 'canceled',
             'payment.refunded': 'canceled',
             'refund.created': 'canceled',
+            'payment.failed': 'failed',
+            'payment.canceled': 'failed',
         }
         if event_type not in status_map:
             return Response({'processed': True, 'ignored': True})
+        if tip_id or tip_checkout_token:
+            tip_query = AuthorTip.objects.all()
+            if tip_id:
+                tip_query = tip_query.filter(pk=tip_id)
+            else:
+                tip_query = tip_query.filter(checkout_token=tip_checkout_token)
+            tip = tip_query.first()
+            if not tip:
+                return Response({'processed': True, 'ignored': True, 'reason': 'tip_not_found'})
+            if event_type in {'checkout.session.completed', 'payment.captured', 'subscription.charged', 'payment.succeeded'}:
+                tip.status = 'succeeded'
+            elif event_type in {'charge.refunded', 'payment.refunded', 'refund.created'}:
+                tip.status = 'refunded'
+            else:
+                tip.status = 'failed'
+            tip.provider = provider
+            tip.provider_reference = provider_reference or tip.provider_reference
+            tip.save(update_fields=['status', 'provider', 'provider_reference', 'updated_at'])
+            return Response({'processed': True, 'tip_id': tip.id, 'status': tip.status})
         user = get_object_or_404(CustomUser, pk=user_id)
         plan = get_object_or_404(MembershipPlan, pk=plan_id, is_active=True)
         subscription_defaults = {
@@ -1156,8 +1180,8 @@ class AuthorTipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuthorTip
-        fields = ['id', 'sender', 'sender_name', 'author', 'author_name', 'amount', 'currency', 'message', 'status', 'provider', 'provider_reference', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'sender', 'author', 'sender_name', 'author_name', 'status', 'provider', 'provider_reference', 'created_at', 'updated_at']
+        fields = ['id', 'sender', 'sender_name', 'author', 'author_name', 'amount', 'currency', 'message', 'status', 'provider', 'checkout_token', 'checkout_url', 'provider_reference', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'sender', 'author', 'sender_name', 'author_name', 'status', 'provider', 'checkout_token', 'checkout_url', 'provider_reference', 'created_at', 'updated_at']
 
 
 class AuthorTipIntentView(APIView):
@@ -1170,11 +1194,33 @@ class AuthorTipIntentView(APIView):
             return Response({'detail': 'You cannot send a tip to yourself.'}, status=400)
         serializer = AuthorTipSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        tip = serializer.save(sender=request.user, author=author, status='pending', provider='manual')
+        provider = str(request.data.get('provider') or 'manual').strip().lower()
+        if provider not in {'manual', 'stripe', 'razorpay'}:
+            return Response({'detail': 'Choose manual, stripe, or razorpay.'}, status=400)
+        tip = serializer.save(
+            sender=request.user,
+            author=author,
+            status='pending',
+            provider=provider,
+            checkout_token=secrets.token_urlsafe(40),
+        )
+        checkout = {'configured': False, 'checkout_url': '', 'provider_reference': ''}
+        if provider in {'stripe', 'razorpay'}:
+            from .billing_providers import ProviderRequestError, create_tip_checkout
+            try:
+                checkout = create_tip_checkout(tip, request)
+            except ProviderRequestError as exc:
+                tip.status = 'failed'
+                tip.save(update_fields=['status', 'updated_at'])
+                return Response({'detail': str(exc), 'tip': AuthorTipSerializer(tip).data}, status=502)
+            tip.checkout_url = checkout.get('checkout_url', '')[:500]
+            tip.provider_reference = checkout.get('provider_reference', '')[:160]
+            tip.save(update_fields=['checkout_url', 'provider_reference', 'updated_at'])
         return Response({
             'tip': AuthorTipSerializer(tip).data,
             'payment_required': True,
-            'detail': 'Tip intent created. Connect a payment provider to complete the donation.',
+            'provider_configured': bool(checkout.get('configured')) if provider != 'manual' else False,
+            'detail': 'Tip checkout created. Complete payment with the configured provider.' if provider != 'manual' and checkout.get('configured') else 'Tip intent created. Complete payment with the configured provider.',
         }, status=202)
 
 

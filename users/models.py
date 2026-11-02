@@ -525,6 +525,8 @@ class AuthorTip(models.Model):
     message = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     provider = models.CharField(max_length=30, default='manual')
+    checkout_token = models.CharField(max_length=80, unique=True, null=True, blank=True)
+    checkout_url = models.URLField(blank=True)
     provider_reference = models.CharField(max_length=160, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
