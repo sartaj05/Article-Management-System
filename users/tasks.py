@@ -38,3 +38,8 @@ def retry_failed_webhooks_task(self):
 def reconcile_pending_payments_task(self):
     from .billing_providers import reconcile_pending_payments
     return reconcile_pending_payments()
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='users.apply_data_retention')
+def apply_data_retention_task(self):
+    return _run_command('apply_data_retention')

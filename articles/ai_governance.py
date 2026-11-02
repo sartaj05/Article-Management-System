@@ -63,9 +63,16 @@ def record_ai_usage(*, user, article, action, result, input_text, redacted_pii=F
     completion_tokens = int(usage.get('completion_tokens') or max(1, math.ceil(len(str(result.suggestions)) / 4)))
     total_tokens = int(usage.get('total_tokens') or prompt_tokens + completion_tokens)
     cost = Decimal(str((total_tokens / 1000) * settings.AI_ASSISTANT_COST_PER_1K_TOKENS)).quantize(Decimal('0.0001'))
+    metadata = dict(result.metadata or {})
+    metadata['redaction_audit'] = {
+        'redacted_pii': bool(redacted_pii),
+        'input_chars': len(input_text or ''),
+        'raw_prompt_stored': False,
+        'recorded_at': timezone.now().isoformat(),
+    }
     return AIUsageEvent.objects.create(
         workspace_id=article.workspace_id, user=user, article=article, job=job,
         provider=result.provider, model=result.model, action=action,
         prompt_tokens=prompt_tokens, completion_tokens=completion_tokens, total_tokens=total_tokens,
-        estimated_cost=cost, redacted_pii=redacted_pii, metadata=result.metadata or {},
+        estimated_cost=cost, redacted_pii=redacted_pii, metadata=metadata,
     )

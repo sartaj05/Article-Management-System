@@ -189,6 +189,9 @@ PUBLIC_API_KEY_RATE_LIMIT = int(os.getenv('PUBLIC_API_KEY_RATE_LIMIT', '120'))
 PUBLIC_API_MAX_PAGE_SIZE = int(os.getenv('PUBLIC_API_MAX_PAGE_SIZE', '100'))
 OPERATIONS_ERROR_RATE_THRESHOLD = float(os.getenv('OPERATIONS_ERROR_RATE_THRESHOLD', '0.10'))
 OPERATIONS_QUEUE_DELAY_MINUTES = int(os.getenv('OPERATIONS_QUEUE_DELAY_MINUTES', '15'))
+DATA_RETENTION_DAYS = int(os.getenv('DATA_RETENTION_DAYS', '365'))
+AI_USAGE_RETENTION_DAYS = int(os.getenv('AI_USAGE_RETENTION_DAYS', '180'))
+API_USAGE_RETENTION_DAYS = int(os.getenv('API_USAGE_RETENTION_DAYS', '90'))
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -322,6 +325,7 @@ CELERY_BEAT_SCHEDULE = {
     'refresh-operational-alerts': {'task': 'articles.refresh_operational_alerts', 'schedule': 300.0},
     'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
     'reconcile-pending-payments': {'task': 'users.reconcile_pending_payments', 'schedule': 900.0},
+    'apply-data-retention': {'task': 'users.apply_data_retention', 'schedule': crontab(hour=3, minute=30)},
 }
 
 

@@ -1531,6 +1531,7 @@ class PrivacyComplianceView(APIView):
 
 class PrivacyExportView(PrivacyRequestView):
     def post(self, request):
+        from articles.models import AIUsageEvent
         privacy_request = PrivacyRequest.objects.create(
             user=request.user, request_type='export', status='completed', completed_at=timezone.now(),
         )
@@ -1549,8 +1550,32 @@ class PrivacyExportView(PrivacyRequestView):
             'interests': list(ReaderInterest.objects.filter(user=request.user).values('interest_type', 'value', 'created_at')),
             'newsletter_subscriptions': list(NewsletterSubscription.objects.filter(user=request.user).values('email', 'frequency', 'categories', 'is_active')),
             'consents': PrivacyConsentSerializer(PrivacyConsent.objects.filter(user=request.user), many=True).data,
+            'ai_usage': list(AIUsageEvent.objects.filter(user=request.user).values('provider', 'model', 'action', 'total_tokens', 'estimated_cost', 'redacted_pii', 'metadata', 'created_at')),
         }
         return Response({'request_id': privacy_request.id, 'status': privacy_request.status, 'data': export_data})
+
+
+class WorkspaceDataExportView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        workspace = get_object_or_404(Workspace, slug=slug)
+        membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user).first()
+        if request.user.role != 'Admin' and not (
+            workspace.owner_id == request.user.id or membership and membership.role in {'owner', 'admin'}
+        ):
+            return Response({'detail': 'Only workspace owners and admins can export workspace data.'}, status=403)
+        from articles.models import AIUsageEvent, Article, MediaAsset
+        data = {
+            'workspace': {'id': workspace.id, 'name': workspace.name, 'slug': workspace.slug, 'plan': workspace.plan, 'created_at': workspace.created_at},
+            'members': list(workspace.memberships.select_related('user').values('user__username', 'user__email', 'role', 'joined_at')),
+            'articles': list(Article.objects.filter(workspace=workspace).values('id', 'title', 'slug', 'workflow_status', 'created_at', 'updated_at')),
+            'media_assets': list(MediaAsset.objects.filter(workspace=workspace).values('id', 'title', 'media_type', 'alt_text', 'file_hash', 'created_at', 'updated_at')),
+            'ai_usage': list(AIUsageEvent.objects.filter(workspace=workspace).values('provider', 'model', 'action', 'total_tokens', 'estimated_cost', 'redacted_pii', 'metadata', 'created_at')),
+            'exported_at': timezone.now(),
+        }
+        return Response({'status': 'completed', 'data': data})
 
 
 class PrivacyDeletionRequestView(PrivacyRequestView):

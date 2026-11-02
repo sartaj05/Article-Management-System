@@ -23,6 +23,8 @@ class AIGovernanceTests(TestCase):
         self.assertTrue(usage.redacted_pii)
         self.assertGreater(usage.total_tokens, 0)
         self.assertGreaterEqual(float(usage.estimated_cost), 0)
+        self.assertFalse(usage.metadata['redaction_audit']['raw_prompt_stored'])
+        self.assertTrue(usage.metadata['redaction_audit']['redacted_pii'])
 
     def test_policy_blocks_disallowed_action(self):
         AIWorkspacePolicy.objects.create(workspace=self.workspace, allowed_actions=['seo'])

@@ -12,7 +12,7 @@ from .api import (
     AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, ProviderHealthView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationDeliveryView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
-    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyUsageView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
+    AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyUsageView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceDataExportView, WorkspaceInviteView, WorkspaceListCreateView,
     WorkspaceMembersView, WorkspaceBillingView, WorkspaceControlsView, WorkspaceInvitationAcceptView, WorkspaceSelectView, SavedSearchView, RoleCapabilityView, FeatureFlagView, TwoFactorView, TrustedDeviceView, PasskeyView, SSOProviderView, SSOProviderStartView, SSOProviderCallbackView,
 )
 urlpatterns = [
@@ -107,6 +107,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('workspaces/<slug:slug>/members/', WorkspaceMembersView.as_view(), name='workspace-members'),
     path('workspaces/<slug:slug>/billing/', WorkspaceBillingView.as_view(), name='workspace-billing'),
     path('workspaces/<slug:slug>/controls/', WorkspaceControlsView.as_view(), name='workspace-controls'),
+    path('workspaces/<slug:slug>/export/', WorkspaceDataExportView.as_view(), name='workspace-data-export'),
     path('workspaces/<slug:slug>/select/', WorkspaceSelectView.as_view(), name='workspace-select'),
     path('workspaces/select/', WorkspaceSelectView.as_view(), name='workspace-clear'),
     path('workspaces/<slug:slug>/invite/', WorkspaceInviteView.as_view(), name='workspace-invite'),
