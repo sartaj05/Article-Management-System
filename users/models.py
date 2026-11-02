@@ -586,6 +586,7 @@ class WebhookDelivery(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [models.Index(fields=['status', 'attempts'], name='webhook_retry_idx')]
 
 
 class PrivacyPreference(models.Model):

@@ -136,6 +136,7 @@ if os.getenv('DATABASE_ENGINE', 'sqlite3').lower() == 'postgresql':
             'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
             'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
             'PORT': os.getenv('POSTGRES_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', '60')),
         }
     }
 else:
@@ -143,6 +144,27 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CACHE_BACKEND = os.getenv('CACHE_BACKEND', 'redis' if importlib.util.find_spec('redis') else 'locmem')
+if CACHE_BACKEND == 'redis':
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': int(os.getenv('CACHE_DEFAULT_TIMEOUT', '300')),
+            'KEY_PREFIX': os.getenv('CACHE_KEY_PREFIX', 'article-studio'),
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'article-studio-local-cache',
+            'TIMEOUT': int(os.getenv('CACHE_DEFAULT_TIMEOUT', '300')),
+            'KEY_PREFIX': os.getenv('CACHE_KEY_PREFIX', 'article-studio'),
         }
     }
 
@@ -263,7 +285,7 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', os.getenv('REDIS_URL', 'redis://localhost:6379/0'))
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', REDIS_URL)
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 300

@@ -119,6 +119,7 @@ class Article(models.Model):
             models.Index(fields=['is_visible', '-publish_date'], name='article_visible_publish_idx'),
             models.Index(fields=['author', 'workflow_status'], name='article_author_workflow_idx'),
             models.Index(fields=['category', 'workflow_status', '-publish_date'], name='article_search_filters_idx'),
+            models.Index(fields=['workflow_status', 'is_visible', '-published_at'], name='article_public_feed_idx'),
         ]
 
     def clean(self):
@@ -725,6 +726,7 @@ class DistributionJob(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [models.Index(fields=['status', 'scheduled_for'], name='distribution_retry_idx')]
 
 
 class ArticleAssignment(models.Model):

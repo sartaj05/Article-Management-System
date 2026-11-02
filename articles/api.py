@@ -2639,7 +2639,11 @@ class ReportExportView(APIView):
         if report_type == 'audit':
             queryset = AuditLog.objects.select_related('actor', 'article').all()
             return queryset if self.request.user.role in {'Editor', 'Admin'} else queryset.filter(actor=self.request.user)
-        queryset = Article.objects.select_related('author').prefetch_related('views', 'likes')
+        queryset = Article.objects.select_related('author').annotate(
+            view_count=Count('views', distinct=True),
+            like_count=Count('likes', distinct=True),
+            comment_count=Count('comments', distinct=True),
+        )
         return queryset if self.request.user.role in {'Editor', 'Admin'} else queryset.filter(author=self.request.user)
 
     def get(self, request, report_type):
@@ -2656,7 +2660,7 @@ class ReportExportView(APIView):
         elif report_type == 'analytics':
             writer.writerow(['article_id', 'title', 'views', 'likes', 'comments', 'workflow_status'])
             for item in queryset:
-                writer.writerow([item.id, item.title, item.views.count(), item.likes.count(), item.comments.count(), item.workflow_status])
+                writer.writerow([item.id, item.title, item.view_count, item.like_count, item.comment_count, item.workflow_status])
         else:
             writer.writerow(['id', 'title', 'author', 'category', 'workflow_status', 'is_featured', 'published_at', 'created_at'])
             for item in queryset:
