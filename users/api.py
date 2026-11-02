@@ -30,7 +30,7 @@ from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
-    WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration,
+    WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration, SupportTicket, SupportTicketMessage,
 )
 from articles.models import Article
 from .support_bot import get_support_response
@@ -1904,6 +1904,44 @@ class WorkspaceBillingContractView(APIView):
         contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
         return Response(self.payload(workspace, contract))
 
+    def patch(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
+        for field in ('contract_type', 'status', 'currency', 'tax_id', 'purchase_order', 'invoice_email'):
+            if field in request.data:
+                value = str(request.data.get(field, '')).strip()
+                choices = dict(WorkspaceBillingContract.CONTRACT_TYPES if field == 'contract_type' else WorkspaceBillingContract.STATUS_CHOICES) if field in {'contract_type', 'status'} else None
+                if choices is not None and value not in choices:
+                    return Response({'detail': f'Invalid {field}.'}, status=400)
+                setattr(contract, field, value.upper() if field == 'currency' else value)
+        for field in ('seat_commitment', 'payment_terms_days'):
+            if field in request.data:
+                try:
+                    value = int(request.data[field])
+                except (TypeError, ValueError):
+                    return Response({'detail': f'{field} must be a non-negative integer.'}, status=400)
+                if value < 0 or (field == 'seat_commitment' and value < workspace.memberships.count()):
+                    return Response({'detail': f'{field} is below the current requirement.'}, status=400)
+                setattr(contract, field, value)
+        if 'monthly_commitment' in request.data:
+            try:
+                amount = Decimal(str(request.data['monthly_commitment']))
+            except Exception:
+                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
+            if amount < 0:
+                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
+            contract.monthly_commitment = amount
+        for field in ('starts_at', 'ends_at', 'renewal_at'):
+            if field in request.data:
+                parsed = parse_date(str(request.data.get(field) or ''))
+                if request.data.get(field) and not parsed:
+                    return Response({'detail': f'{field} must use YYYY-MM-DD.'}, status=400)
+                setattr(contract, field, parsed)
+        contract.save()
+        from articles.audit import record_audit_event
+        record_audit_event(actor=request.user, workspace=workspace, action='billing_contract_updated', target_model='WorkspaceBillingContract', target_id=contract.id, details={'status': contract.status, 'contract_type': contract.contract_type})
+        return Response(self.payload(workspace, contract))
+
 
 def _integration_payload(integration):
     return {
@@ -1986,44 +2024,115 @@ class WorkspaceIntegrationDetailView(APIView):
         integration.save(update_fields=['status', 'last_error', 'last_checked_at', 'updated_at'])
         return Response({'integration': _integration_payload(integration), 'test': result}, status=200 if result['ok'] else 503)
 
-    def patch(self, request, slug):
-        workspace = _workspace_admin(request, slug)
-        contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
-        for field in ('contract_type', 'status', 'currency', 'tax_id', 'purchase_order', 'invoice_email'):
-            if field in request.data:
-                value = str(request.data.get(field, '')).strip()
-                choices = dict(WorkspaceBillingContract.CONTRACT_TYPES if field == 'contract_type' else WorkspaceBillingContract.STATUS_CHOICES) if field in {'contract_type', 'status'} else None
-                if choices is not None and value not in choices:
-                    return Response({'detail': f'Invalid {field}.'}, status=400)
-                setattr(contract, field, value.upper() if field == 'currency' else value)
-        for field in ('seat_commitment', 'payment_terms_days'):
-            if field in request.data:
-                try:
-                    value = int(request.data[field])
-                except (TypeError, ValueError):
-                    return Response({'detail': f'{field} must be a non-negative integer.'}, status=400)
-                if value < 0 or (field == 'seat_commitment' and value < workspace.memberships.count()):
-                    return Response({'detail': f'{field} is below the current requirement.'}, status=400)
-                setattr(contract, field, value)
-        if 'monthly_commitment' in request.data:
-            try:
-                amount = Decimal(str(request.data['monthly_commitment']))
-            except Exception:
-                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
-            if amount < 0:
-                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
-            contract.monthly_commitment = amount
-        for field in ('starts_at', 'ends_at', 'renewal_at'):
-            if field in request.data:
-                parsed = parse_date(str(request.data.get(field) or ''))
-                if request.data.get(field) and not parsed:
-                    return Response({'detail': f'{field} must use YYYY-MM-DD.'}, status=400)
-                setattr(contract, field, parsed)
-        contract.save()
-        from articles.audit import record_audit_event
-        record_audit_event(actor=request.user, workspace=workspace, action='billing_contract_updated', target_model='WorkspaceBillingContract', target_id=contract.id, details={'status': contract.status, 'contract_type': contract.contract_type})
-        return Response(self.payload(workspace, contract))
 
+def _support_payload(ticket):
+    return {
+        'id': ticket.id, 'workspace': ticket.workspace.slug, 'requester': ticket.requester.username,
+        'assigned_to': ticket.assigned_to.username if ticket.assigned_to else None,
+        'subject': ticket.subject, 'description': ticket.description, 'priority': ticket.priority,
+        'status': ticket.status, 'sla_due_at': ticket.sla_due_at, 'first_response_at': ticket.first_response_at,
+        'resolved_at': ticket.resolved_at, 'created_at': ticket.created_at, 'updated_at': ticket.updated_at,
+        'messages': [{'id': item.id, 'author': item.author.username if item.author else 'System', 'body': item.body, 'is_internal': item.is_internal, 'created_at': item.created_at} for item in ticket.messages.select_related('author').all()],
+    }
+
+
+def _support_workspace(request):
+    slug = request.headers.get('X-Workspace-Slug') or request.data.get('workspace_slug') or request.query_params.get('workspace')
+    if not slug:
+        return None
+    return _workspace_for_member(request, slug)
+
+
+class SupportTicketView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace = _support_workspace(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        tickets = SupportTicket.objects.filter(workspace=workspace)
+        membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user).first()
+        if request.user.role not in {'Admin'} and (not membership or membership.role not in {'owner', 'admin'}):
+            tickets = tickets.filter(requester=request.user)
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            tickets = tickets.filter(status=status_filter)
+        return Response([_support_payload(ticket) for ticket in tickets.select_related('requester', 'assigned_to')[:100]])
+
+    def post(self, request):
+        workspace = _support_workspace(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        subject = str(request.data.get('subject', '')).strip()
+        description = str(request.data.get('description', '')).strip()
+        priority = str(request.data.get('priority', 'normal')).strip().lower()
+        if not subject or not description:
+            return Response({'detail': 'subject and description are required.'}, status=400)
+        if priority not in dict(SupportTicket.PRIORITY_CHOICES):
+            return Response({'detail': 'Invalid priority.'}, status=400)
+        sla_hours = {'low': 72, 'normal': 24, 'high': 8, 'urgent': 4}[priority]
+        ticket = SupportTicket.objects.create(
+            workspace=workspace, requester=request.user, subject=subject, description=description,
+            priority=priority, sla_due_at=timezone.now() + timedelta(hours=sla_hours),
+        )
+        SupportTicketMessage.objects.create(ticket=ticket, author=request.user, body=description)
+        return Response(_support_payload(ticket), status=201)
+
+
+class SupportTicketDetailView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_ticket(self, request, pk):
+        workspace = _support_workspace(request)
+        if workspace is None:
+            return None, Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        ticket = get_object_or_404(SupportTicket.objects.select_related('workspace', 'requester', 'assigned_to'), workspace=workspace, pk=pk)
+        membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user).first()
+        is_admin = request.user.role == 'Admin' or membership and membership.role in {'owner', 'admin'}
+        if not is_admin and ticket.requester_id != request.user.id:
+            return None, Response({'detail': 'You cannot access this support ticket.'}, status=403)
+        return ticket, None
+
+    def get(self, request, pk):
+        ticket, error = self.get_ticket(request, pk)
+        if error:
+            return error
+        return Response(_support_payload(ticket))
+
+    def patch(self, request, pk):
+        ticket, error = self.get_ticket(request, pk)
+        if error:
+            return error
+        membership = WorkspaceMembership.objects.filter(workspace=ticket.workspace, user=request.user).first()
+        is_admin = request.user.role == 'Admin' or membership and membership.role in {'owner', 'admin'}
+        if not is_admin:
+            return Response({'detail': 'Only workspace admins can update support tickets.'}, status=403)
+        if 'status' in request.data:
+            status_value = str(request.data['status']).strip().lower()
+            if status_value not in dict(SupportTicket.STATUS_CHOICES):
+                return Response({'detail': 'Invalid status.'}, status=400)
+            ticket.status = status_value
+            if status_value in {'resolved', 'closed'}:
+                ticket.resolved_at = timezone.now()
+        if 'priority' in request.data:
+            priority = str(request.data['priority']).strip().lower()
+            if priority not in dict(SupportTicket.PRIORITY_CHOICES):
+                return Response({'detail': 'Invalid priority.'}, status=400)
+            ticket.priority = priority
+        if 'assigned_to' in request.data:
+            assignee = get_object_or_404(CustomUser, pk=request.data['assigned_to'])
+            if not WorkspaceMembership.objects.filter(workspace=ticket.workspace, user=assignee).exists():
+                return Response({'detail': 'Assignee must belong to this workspace.'}, status=400)
+            ticket.assigned_to = assignee
+        message = str(request.data.get('message', '')).strip()
+        if message:
+            SupportTicketMessage.objects.create(ticket=ticket, author=request.user, body=message, is_internal=bool(request.data.get('is_internal', False)))
+            if ticket.first_response_at is None:
+                ticket.first_response_at = timezone.now()
+        ticket.save()
+        return Response(_support_payload(ticket))
 
 class WorkspaceControlsView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]

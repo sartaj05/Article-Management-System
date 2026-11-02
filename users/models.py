@@ -149,6 +149,37 @@ class WorkspaceIntegration(models.Model):
         ordering = ['provider', 'name']
         constraints = [models.UniqueConstraint(fields=['workspace', 'name'], name='unique_workspace_integration_name')]
 
+
+class SupportTicket(models.Model):
+    PRIORITY_CHOICES = [('low', 'Low'), ('normal', 'Normal'), ('high', 'High'), ('urgent', 'Urgent')]
+    STATUS_CHOICES = [('open', 'Open'), ('pending', 'Pending'), ('resolved', 'Resolved'), ('closed', 'Closed')]
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name='support_tickets')
+    requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='support_tickets_requested')
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='support_tickets_assigned')
+    subject = models.CharField(max_length=180)
+    description = models.TextField()
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='normal')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='open')
+    sla_due_at = models.DateTimeField()
+    first_response_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['status', 'sla_due_at', '-created_at']
+
+
+class SupportTicketMessage(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name='messages')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='support_ticket_messages')
+    body = models.TextField()
+    is_internal = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
 # Profile model linked to the CustomUser model
 class Profile(models.Model):
     user = models.OneToOneField(
