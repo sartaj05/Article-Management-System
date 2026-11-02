@@ -45,6 +45,19 @@ test('logout blocks Chrome Back from reopening a workspace page', async ({ page 
   await expect(page).toHaveURL(/login-template/);
 });
 
+test('analytics dashboard presents the executive overview and newsroom pulse', async ({ page }) => {
+  await loginAs(page, 'editor');
+  await page.goto('/articles/workspace/analytics/');
+  await expect(page.locator('.analytics-page')).toBeVisible();
+  await expect(page.locator('.analytics-stat')).toHaveCount(13);
+  await expect(page.locator('#analytics-pulse')).toBeVisible();
+  await expect(page.locator('#analytics-pulse .analytics-pulse__row')).toHaveCount(3);
+  await expect(page.locator('#executive-summary article')).toHaveCount(4);
+  await expect(page.locator('.analytics-quick-actions')).toBeVisible();
+  const dimensions = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+  expect(dimensions.width, 'analytics dashboard overflows horizontally').toBeLessThanOrEqual(dimensions.viewport + 1);
+});
+
 async function expectUsablePage(page, path, heading) {
   await page.goto(path);
   await expect(page.locator('h1')).toContainText(heading);

@@ -8,24 +8,35 @@
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1">
     <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
-    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
+    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261102-analytics-refresh-1">
 </head>
 <body class="dashboard-shell">
     {% include 'partials/workspace_header.html' with active_nav='analytics' %}
-    {% if False %}
-    <header class="workspace-topbar">
-        <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>{{ request.user.role }} workspace</small></span></a>
-        <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a class="is-active" href="{% url 'analytics-dashboard-page' %}">Analytics</a><a href="{% url 'workspace-search-page' %}">Search</a><a href="{% url 'notification-center-page' %}">Notifications</a>{% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}">Assignments</a><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a>{% endif %}</nav>
-    </header>
-    {% endif %}
-    <main class="feature-page">
-        <header class="feature-page__heading"><div><span class="feature-eyebrow">Performance overview</span><h1>Editorial analytics</h1><p>Understand publishing output and reader engagement in one place.</p></div><button class="button button--secondary button--small" id="refresh-analytics" type="button">Refresh</button></header>
-        <p class="feature-status" id="analytics-status" role="status" aria-live="polite">Loading analytics…</p>
+    <main class="feature-page analytics-page">
+        <header class="feature-page__heading analytics-heading">
+            <div class="analytics-heading__copy">
+                <div class="analytics-heading__eyebrow"><span class="feature-eyebrow">Performance overview</span><span class="analytics-live"><i aria-hidden="true"></i>Live newsroom data</span></div>
+                <h1>Editorial analytics</h1>
+                <p>See what your newsroom is publishing, how readers respond, and where the next opportunity is.</p>
+            </div>
+            <div class="analytics-heading__actions"><span class="analytics-period">Last 30 days</span><button class="button button--secondary button--small" id="refresh-analytics" type="button"><span aria-hidden="true">↻</span> Refresh data</button></div>
+        </header>
+        <p class="feature-status analytics-status" id="analytics-status" role="status" aria-live="polite">Loading analytics…</p>
         <section class="analytics-stats" id="analytics-stats"></section>
-        <section class="analytics-panel"><h2>Author performance comparison</h2><div class="analytics-authors" id="analytics-authors"></div></section>
-        <section class="analytics-panel analytics-panel--wide"><h2>Reader funnel · last 7 days</h2><div class="analytics-funnel" id="analytics-funnel"></div></section>
+        <section class="analytics-pulse" aria-labelledby="pulse-title">
+            <div class="analytics-pulse__card">
+                <div class="analytics-section-heading"><div><span class="feature-eyebrow">Newsroom pulse</span><h2 id="pulse-title">What needs attention today</h2></div><span id="analytics-health" class="analytics-health">Checking</span></div>
+                <div id="analytics-pulse" class="analytics-pulse__rows"></div>
+            </div>
+            <aside class="analytics-quick-actions" aria-labelledby="quick-actions-title"><span class="feature-eyebrow">Move faster</span><h2 id="quick-actions-title">Quick actions</h2><a href="{% url 'workspace-search-page' %}"><span>Explore your stories</span><b aria-hidden="true">→</b></a>{% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}"><span>Review assignments</span><b aria-hidden="true">→</b></a><a href="{% url 'monitoring-dashboard-page' %}"><span>Check system health</span><b aria-hidden="true">→</b></a>{% endif %}</aside>
+        </section>
         <section class="executive-analytics" aria-labelledby="executive-title"><div class="executive-analytics__heading"><div><span class="feature-eyebrow">Client demo snapshot</span><h2 id="executive-title">Executive performance view</h2><p>Connect editorial output, reader behavior, memberships, and distribution health.</p></div><span id="executive-updated" class="feature-status">Loading snapshot…</span></div><div id="executive-summary" class="executive-summary"></div><div id="executive-panels" class="executive-panels"></div></section>
+        <section class="analytics-detail-grid" aria-label="Detailed analytics">
+            <section class="analytics-panel"><div class="analytics-panel__heading"><div><span class="feature-eyebrow">Editorial output</span><h2>Author performance comparison</h2></div><span class="analytics-panel__hint">Top contributors</span></div><div class="analytics-authors" id="analytics-authors"></div></section>
+            <section class="analytics-panel"><div class="analytics-panel__heading"><div><span class="feature-eyebrow">Reader journey</span><h2>Reader funnel · last 7 days</h2></div><span class="analytics-panel__hint">Engagement</span></div><div class="analytics-funnel" id="analytics-funnel"></div></section>
+        </section>
     </main>
-    <script src="{% static 'js/analytics-dashboard.js' %}" defer></script><script src="{% static 'js/notification-badge.js' %}" defer></script>
+    <script src="{% static 'js/analytics-dashboard.js' %}?v=20261102-analytics-refresh-1" defer></script>
+    <script src="{% static 'js/notification-badge.js' %}" defer></script>
 </body>
 </html>
