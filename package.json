@@ -5,7 +5,8 @@
     "test:unit": "venv/Scripts/python.exe manage.py test --noinput",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
-    "test:e2e:smoke": "playwright test tests/e2e/new-features.spec.js --project=chromium"
+    "test:e2e:smoke": "playwright test tests/e2e/new-features.spec.js --project=chromium",
+    "test:e2e:client-demo": "playwright test tests/e2e/client-demo-readiness.spec.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1"
