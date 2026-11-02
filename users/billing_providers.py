@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 import requests
+from urllib.parse import quote
 from django.conf import settings
 
 
@@ -19,6 +20,35 @@ def create_checkout(transaction, request):
     if transaction.provider == 'razorpay':
         return _create_razorpay_order(transaction)
     return {'configured': False, 'checkout_url': '', 'provider_reference': ''}
+
+
+def cancel_remote_subscription(subscription):
+    """Cancel a remote subscription when explicit remote lifecycle control is enabled."""
+    if not settings.PAYMENT_REMOTE_CANCELLATION_ENABLED or not subscription.provider_reference:
+        return {'configured': False, 'canceled': False}
+    reference = quote(subscription.provider_reference, safe='')
+    if subscription.provider == 'stripe':
+        if not settings.STRIPE_SECRET_KEY:
+            return {'configured': False, 'canceled': False}
+        response = requests.delete(
+            f'https://api.stripe.com/v1/subscriptions/{reference}',
+            auth=(settings.STRIPE_SECRET_KEY, ''),
+            timeout=settings.PAYMENT_HTTP_TIMEOUT,
+        )
+    elif subscription.provider == 'razorpay':
+        if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+            return {'configured': False, 'canceled': False}
+        response = requests.post(
+            f'https://api.razorpay.com/v1/subscriptions/{reference}/cancel',
+            json={'cancel_at_cycle_end': 1},
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+            timeout=settings.PAYMENT_HTTP_TIMEOUT,
+        )
+    else:
+        return {'configured': False, 'canceled': False}
+    if not response.ok:
+        raise ProviderRequestError(f'{subscription.provider.title()} subscription cancellation failed with HTTP {response.status_code}.')
+    return {'configured': True, 'canceled': True, 'provider_response': response.json() if response.content else {}}
 
 
 def _create_stripe_checkout(transaction, request):

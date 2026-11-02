@@ -9,7 +9,7 @@ from .views import (
 )
 from . import views
 from .api import (
-    AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, RevenueEntitlementView,
+    AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, ProviderHealthView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationDeliveryView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceInviteView, WorkspaceListCreateView,
@@ -86,6 +86,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('membership/entitlements/', RevenueEntitlementView.as_view(), name='membership-entitlements'),
     path('membership/cancel/', MembershipCancelView.as_view(), name='membership-cancel'),
     path('membership/webhook/', MembershipWebhookView.as_view(), name='membership-webhook'),
+    path('provider-health/', ProviderHealthView.as_view(), name='provider-health'),
     path('authors/<int:user_id>/', PublicAuthorView.as_view(), name='public-author'),
     path('authors/<int:author_id>/tips/', AuthorTipIntentView.as_view(), name='author-tip-intent'),
     path('tips/', AuthorTipHistoryView.as_view(), name='author-tip-history'),

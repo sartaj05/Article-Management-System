@@ -974,10 +974,28 @@ class MembershipCancelView(APIView):
         subscription = MembershipSubscription.objects.filter(user=request.user, status='active').order_by('-created_at').first()
         if not subscription:
             return Response({'detail': 'No active membership found.'}, status=404)
+        try:
+            from .billing_providers import cancel_remote_subscription
+            remote = cancel_remote_subscription(subscription)
+        except Exception as error:
+            return Response({'detail': str(error)}, status=502)
         subscription.status = 'canceled'
         subscription.auto_renew = False
         subscription.save(update_fields=['status', 'auto_renew', 'updated_at'])
-        return Response(MembershipSubscriptionSerializer(subscription).data)
+        response = MembershipSubscriptionSerializer(subscription).data
+        response['remote_cancellation'] = remote
+        return Response(response)
+
+
+class ProviderHealthView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view provider health.'}, status=403)
+        from .provider_health import provider_health
+        return Response(provider_health())
 
 
 class MembershipWebhookView(APIView):

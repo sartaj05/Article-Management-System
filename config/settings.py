@@ -326,6 +326,7 @@ RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
 PAYMENT_SUCCESS_URL = os.getenv('PAYMENT_SUCCESS_URL', '')
 PAYMENT_CANCEL_URL = os.getenv('PAYMENT_CANCEL_URL', '')
 PAYMENT_HTTP_TIMEOUT = float(os.getenv('PAYMENT_HTTP_TIMEOUT', '10'))
+PAYMENT_REMOTE_CANCELLATION_ENABLED = os.getenv('PAYMENT_REMOTE_CANCELLATION_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
