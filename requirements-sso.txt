@@ -1,0 +1,2 @@
+# Optional SAML service-provider support for production SSO.
+pysaml2==7.5.0

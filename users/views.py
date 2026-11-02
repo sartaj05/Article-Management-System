@@ -31,7 +31,7 @@ from datetime import timedelta
 from django.conf import settings
 from datetime import datetime
 from django.core.mail import send_mail
-from users.models import CustomUser as User, NewsletterCampaignAttribution, NewsletterEdition, SecurityEvent, SecuritySession, TwoFactorAuth, TrustedDevice
+from users.models import AuthenticationPolicy, CustomUser as User, NewsletterCampaignAttribution, NewsletterEdition, SecurityEvent, SecuritySession, TwoFactorAuth, TrustedDevice
 from rest_framework.exceptions import ValidationError
 from articles.permissions import IsAdmin
 from users.decorators import role_required
@@ -39,6 +39,10 @@ from users.decorators import role_required
 # Utility function for generating tokens
 def get_tokens_for_user(user, request=None):
     refresh = RefreshToken.for_user(user)
+    policy = AuthenticationPolicy.objects.filter(is_active=True).first()
+    session_lifetime = settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+    if policy:
+        session_lifetime = min(session_lifetime, timedelta(minutes=policy.max_session_minutes))
     if request is not None:
         now = timezone.now()
         SecuritySession.objects.create(
@@ -48,7 +52,7 @@ def get_tokens_for_user(user, request=None):
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
             created_at=now,
             last_seen_at=now,
-            expires_at=now + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
+            expires_at=now + session_lifetime,
         )
     return {
         'refresh': str(refresh),
@@ -133,6 +137,9 @@ class UserLoginView(APIView):
             raise
         user = serializer.validated_data['user']
         two_factor = TwoFactorAuth.objects.filter(user=user).first()
+        auth_policy = AuthenticationPolicy.objects.filter(is_active=True).first()
+        if auth_policy and auth_policy.require_mfa and not (two_factor and two_factor.is_enabled):
+            return Response({'detail': 'Multi-factor authentication must be enabled for this organization.', 'mfa_setup_required': True}, status=status.HTTP_403_FORBIDDEN)
         trusted_token = str(request.data.get('trusted_device') or request.COOKIES.get('trusted_device') or '').strip()
         trusted_device = TrustedDevice.objects.filter(
             user=user, token_hash=hashlib.sha256(trusted_token.encode()).hexdigest(),
@@ -157,7 +164,10 @@ class UserLoginView(APIView):
         # Keep the browser workspace protected by Django's session as well as JWT.
         login(request, user)
         if 'remember' in request.data:
-            request.session.set_expiry(settings.SESSION_COOKIE_AGE if request.data['remember'] is True else 0)
+            session_age = settings.SESSION_COOKIE_AGE
+            if auth_policy:
+                session_age = min(session_age, auth_policy.max_session_minutes * 60)
+            request.session.set_expiry(session_age if request.data['remember'] is True else 0)
         token = get_tokens_for_user(user, request)
         SecurityEvent.objects.create(
             user=user, username=user.username, event_type='login_success',

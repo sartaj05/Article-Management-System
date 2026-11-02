@@ -9,7 +9,7 @@ from .views import (
 )
 from . import views
 from .api import (
-    AccessibilityPreferenceView, AlertRuleView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, ProviderHealthView, RevenueEntitlementView,
+    AccessibilityPreferenceView, AlertRuleView, AuthenticationPolicyView, DemoModeView, MembershipCancelView, MembershipCheckoutView, MembershipCheckoutStatusView, MembershipWebhookView, PaymentTransactionView, ProviderHealthView, RevenueEntitlementView,
     MembershipMeView, MembershipPlanView, NewsletterConversionAnalyticsView, NewsletterEditionView, NewsletterPreviewView, NewsletterSubscriptionView,
     NotificationDeliveryView, NotificationPreferenceView, PublicAuthorView, PushSubscriptionView, ReaderDigestDeliveryView, SupportChatView,
     AuthorTipHistoryView, AuthorTipIntentView, DeveloperAPIDocumentationView, PrivacyComplianceView, PrivacyConsentView, PrivacyDeletionRequestView, PrivacyExportView, PrivacyPreferenceView, PrivacyRequestView, PublicAPIKeyDetailView, PublicAPIKeyUsageView, PublicAPIKeyView, ReaderInterestView, PersonalizationPreferenceView, SCIMTokenView, SCIMUserDetailView, SCIMUsersView, UserProfileView, WebhookDeliveryView, WebhookEndpointRotateSecretView, WebhookEndpointView, WorkspaceDataExportView, WorkspaceInviteView, WorkspaceListCreateView,
@@ -69,6 +69,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('role-capabilities/', RoleCapabilityView.as_view(), name='role-capabilities'),
     path('feature-flags/', FeatureFlagView.as_view(), name='feature-flags'),
     path('two-factor/', TwoFactorView.as_view(), name='two-factor'),
+    path('security/authentication-policy/', AuthenticationPolicyView.as_view(), name='authentication-policy'),
     path('trusted-devices/', TrustedDeviceView.as_view(), name='trusted-devices'),
     path('trusted-devices/<int:pk>/', TrustedDeviceView.as_view(), name='trusted-device-detail'),
     path('passkeys/', PasskeyView.as_view(), name='passkeys'),

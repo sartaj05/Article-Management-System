@@ -27,7 +27,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from .models import (
-    AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
+    AccessibilityPreference, AlertRule, AuthorTip, AuthenticationPolicy, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration, SupportTicket, SupportTicketMessage,
@@ -608,6 +608,34 @@ class TwoFactorView(APIView):
         return Response({'enabled': False})
 
 
+class AuthenticationPolicyView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        policy, _ = AuthenticationPolicy.objects.get_or_create(name='default')
+        return Response({'require_mfa': policy.require_mfa, 'max_session_minutes': policy.max_session_minutes, 'max_idle_minutes': policy.max_idle_minutes, 'require_sso': policy.require_sso, 'is_active': policy.is_active})
+
+    def patch(self, request):
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only admins can manage authentication policy.'}, status=403)
+        policy, _ = AuthenticationPolicy.objects.get_or_create(name='default')
+        for field in ('require_mfa', 'require_sso', 'is_active'):
+            if field in request.data:
+                setattr(policy, field, bool(request.data[field]))
+        for field in ('max_session_minutes', 'max_idle_minutes'):
+            if field in request.data:
+                try:
+                    value = int(request.data[field])
+                except (TypeError, ValueError):
+                    return Response({'detail': f'{field} must be a positive integer.'}, status=400)
+                if value <= 0:
+                    return Response({'detail': f'{field} must be a positive integer.'}, status=400)
+                setattr(policy, field, value)
+        policy.save()
+        return self.get(request)
+
+
 class TrustedDeviceView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
@@ -721,31 +749,36 @@ class SSOProviderCallbackView(APIView):
         state_data = request.session.pop(f'sso_state_{state}', None)
         if not state_data or state_data.get('provider') != provider:
             return Response({'detail': 'Invalid or expired SSO state.'}, status=400)
-        if not request.query_params.get('code'):
+        if provider != 'saml' and not request.query_params.get('code'):
             return Response({'detail': 'The identity provider did not return an authorization code.'}, status=400)
+        if provider == 'saml' and not request.query_params.get('SAMLResponse'):
+            return Response({'detail': 'The identity provider did not return a SAML response.'}, status=400)
         item = get_object_or_404(SSOProvider, provider=provider, is_enabled=True)
         if provider == 'saml':
-            return Response({'provider': provider, 'ready': False, 'detail': 'SAML requires the deployment SAML adapter and signed assertion validator.'}, status=501)
-        if not item.token_url or not item.userinfo_url or not item.client_id:
+            try:
+                from .saml import SAMLConfigurationError, validate_saml_response
+                profile = validate_saml_response(item, request)
+            except SAMLConfigurationError as exc:
+                return Response({'detail': str(exc)}, status=503)
+        elif not item.token_url or not item.userinfo_url or not item.client_id:
             return Response({'detail': 'The SSO provider is missing token or userinfo configuration.'}, status=503)
-        try:
-            token_response = requests.post(item.token_url, data={
-                'grant_type': 'authorization_code',
-                'code': request.query_params['code'],
-                'client_id': item.client_id,
-                'client_secret': item.client_secret,
-                'redirect_uri': request.build_absolute_uri(f'/api/sso/{provider}/callback/'),
-                'code_verifier': (state_data or {}).get('verifier', ''),
-            }, timeout=settings.SSO_HTTP_TIMEOUT)
-            if not token_response.ok:
-                return Response({'detail': 'The identity provider rejected the authorization code.'}, status=502)
-            token_payload = token_response.json()
-            userinfo = requests.get(item.userinfo_url, headers={'Authorization': f"Bearer {token_payload.get('access_token', '')}"}, timeout=settings.SSO_HTTP_TIMEOUT)
-            if not userinfo.ok:
-                return Response({'detail': 'The identity provider user profile request failed.'}, status=502)
-            profile = userinfo.json()
-        except (requests.RequestException, ValueError):
-            return Response({'detail': 'The identity provider exchange could not be completed.'}, status=502)
+        else:
+            try:
+                token_response = requests.post(item.token_url, data={
+                    'grant_type': 'authorization_code', 'code': request.query_params['code'],
+                    'client_id': item.client_id, 'client_secret': item.client_secret,
+                    'redirect_uri': request.build_absolute_uri(f'/api/sso/{provider}/callback/'),
+                    'code_verifier': (state_data or {}).get('verifier', ''),
+                }, timeout=settings.SSO_HTTP_TIMEOUT)
+                if not token_response.ok:
+                    return Response({'detail': 'The identity provider rejected the authorization code.'}, status=502)
+                token_payload = token_response.json()
+                userinfo = requests.get(item.userinfo_url, headers={'Authorization': f"Bearer {token_payload.get('access_token', '')}"}, timeout=settings.SSO_HTTP_TIMEOUT)
+                if not userinfo.ok:
+                    return Response({'detail': 'The identity provider user profile request failed.'}, status=502)
+                profile = userinfo.json()
+            except (requests.RequestException, ValueError):
+                return Response({'detail': 'The identity provider exchange could not be completed.'}, status=502)
         email = str(profile.get('email') or profile.get('preferred_username') or '').strip().lower()
         if not email:
             return Response({'detail': 'The identity provider did not return an email address.'}, status=400)

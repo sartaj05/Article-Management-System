@@ -273,6 +273,18 @@ class SecuritySession(models.Model):
         return f'{self.user.username} session {self.refresh_jti[:8]}'
 
 
+class AuthenticationPolicy(models.Model):
+    """Organization-wide authentication and session requirements."""
+
+    name = models.CharField(max_length=80, default='default', unique=True)
+    require_mfa = models.BooleanField(default=False)
+    max_session_minutes = models.PositiveIntegerField(default=1440)
+    max_idle_minutes = models.PositiveIntegerField(default=60)
+    require_sso = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class NewsletterSubscription(models.Model):
     FREQUENCY_CHOICES = [('daily', 'Daily'), ('weekly', 'Weekly')]
 
