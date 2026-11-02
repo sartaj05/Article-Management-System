@@ -55,6 +55,15 @@
     } finally { signingOut = false; }
   }
 
+  // Chrome may restore an authenticated page from the back/forward cache
+  // without making a new request. After logout, force those restored pages
+  // through the login guard instead of displaying stale workspace content.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted && !localStorage.getItem("access_token") && !localStorage.getItem("refresh_token")) {
+      window.location.replace("/login-template/");
+    }
+  });
+
   function init() {
     if (initialized) return;
     initialized = true;

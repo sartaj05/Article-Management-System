@@ -33,6 +33,18 @@ test('editor keeps the full workspace header when opening Search', async ({ page
   await expect(page.locator('header.workspace-topbar')).not.toContainText('Workspace');
 });
 
+test('logout blocks Chrome Back from reopening a workspace page', async ({ page }) => {
+  await loginAs(page, 'editor');
+  await page.goto('/articles/editor/assignments/');
+  await expect(page.locator('script[src*="workspace-ui.js"]')).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => typeof window.WorkspaceUI)).toBe('object');
+  await page.getByRole('link', { name: 'Log out', exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('access_token'))).toBeNull();
+  await page.goBack();
+  await expect(page).toHaveURL(/login-template/);
+});
+
 async function expectUsablePage(page, path, heading) {
   await page.goto(path);
   await expect(page.locator('h1')).toContainText(heading);

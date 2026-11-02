@@ -1,3 +1,4 @@
+{% load static %}
 <header class="workspace-topbar">
     <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}">
         <span class="workspace-topbar__mark">✦</span>
@@ -29,6 +30,7 @@
         {% if request.user.role == 'Editor' %}
             <a href="{% url 'editor-dashboard' %}?section=published-articles-page">Published</a>
         {% endif %}
-        <a class="workspace-logout" href="{% url 'home' %}">Log out</a>
+        <a class="workspace-logout" href="#" data-dashboard-logout>Log out</a>
     </nav>
 </header>
+<script src="{% static 'js/workspace-ui.js' %}?v=20261102-logout-1" defer></script>
