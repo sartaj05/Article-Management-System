@@ -54,7 +54,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, LegalHold, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule, WorkspaceApprovalPolicy, WorkspaceRolePermission
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, LegalHold, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule, WorkspaceApprovalPolicy, WorkspaceReliabilityPolicy, WorkspaceRolePermission
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -2301,6 +2301,80 @@ class WorkspaceSecurityPolicyView(WorkspaceScopeMixin, APIView):
             )
         record_audit_event(actor=request.user, workspace=workspace, action='workspace_security_policy_updated', target_model='WorkspaceApprovalPolicy', target_id=policy.id, details={'changed': changed})
         return self.get(request)
+
+
+class ReliabilityStatusView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        policy, _ = WorkspaceReliabilityPolicy.objects.get_or_create(workspace=workspace)
+        latest_backup = BackupRecord.objects.filter(status='completed').first()
+        drills = RecoveryDrill.objects.all()
+        return Response({
+            'workspace': workspace.slug,
+            'objectives': {'rto_minutes': policy.rto_minutes, 'rpo_minutes': policy.rpo_minutes},
+            'backup': {'region': policy.backup_region, 'latest_completed_at': latest_backup.completed_at if latest_backup else None, 'latest_checksum': latest_backup.checksum if latest_backup else None},
+            'restore_verification': {'last_verified_at': policy.restore_verified_at, 'passed_drills': drills.filter(status='passed').count(), 'failed_drills': drills.filter(status='failed').count()},
+            'deployment': {'strategy': 'zero-downtime-compatible', 'health_checks': ['/health/', '/status/']},
+            'status_page_enabled': policy.status_page_enabled,
+        })
+
+    def patch(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        policy, _ = WorkspaceReliabilityPolicy.objects.get_or_create(workspace=workspace)
+        for field in ('rto_minutes', 'rpo_minutes'):
+            if field in request.data:
+                try:
+                    value = int(request.data[field])
+                except (TypeError, ValueError):
+                    return Response({'detail': f'{field} must be a positive integer.'}, status=400)
+                if value <= 0:
+                    return Response({'detail': f'{field} must be a positive integer.'}, status=400)
+                setattr(policy, field, value)
+        for field in ('backup_region',):
+            if field in request.data:
+                setattr(policy, field, str(request.data[field]).strip()[:80])
+        if 'status_page_enabled' in request.data:
+            policy.status_page_enabled = bool(request.data['status_page_enabled'])
+        if 'restore_verified_at' in request.data:
+            value = request.data.get('restore_verified_at')
+            parsed = parse_datetime(str(value)) if value else None
+            if value and not parsed:
+                return Response({'detail': 'restore_verified_at must be an ISO datetime.'}, status=400)
+            policy.restore_verified_at = parsed
+        policy.save()
+        record_audit_event(actor=request.user, workspace=workspace, action='reliability_policy_updated', target_model='WorkspaceReliabilityPolicy', target_id=policy.id, details={'rto_minutes': policy.rto_minutes, 'rpo_minutes': policy.rpo_minutes})
+        return self.get(request)
+
+
+class PublicStatusView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        checks = {}
+        try:
+            connection.ensure_connection()
+            checks['database'] = 'operational'
+        except Exception:
+            checks['database'] = 'degraded'
+        try:
+            cache_key = 'public-status-check'
+            cache.set(cache_key, 'ok', timeout=10)
+            checks['cache'] = 'operational' if cache.get(cache_key) == 'ok' else 'degraded'
+        except Exception:
+            checks['cache'] = 'degraded'
+        try:
+            default_storage.listdir('')
+            checks['storage'] = 'operational'
+        except Exception:
+            checks['storage'] = 'degraded'
+        overall = 'operational' if all(value == 'operational' for value in checks.values()) else 'degraded'
+        return Response({'status': overall, 'services': checks, 'checked_at': timezone.now()})
 
 
 class ArticleTrashView(APIView):

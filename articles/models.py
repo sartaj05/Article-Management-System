@@ -743,6 +743,16 @@ class WorkspaceApprovalPolicy(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class WorkspaceReliabilityPolicy(models.Model):
+    workspace = models.OneToOneField('users.Workspace', on_delete=models.CASCADE, related_name='reliability_policy')
+    rto_minutes = models.PositiveIntegerField(default=240)
+    rpo_minutes = models.PositiveIntegerField(default=60)
+    backup_region = models.CharField(max_length=80, default='primary')
+    restore_verified_at = models.DateTimeField(null=True, blank=True)
+    status_page_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class BackupRecord(models.Model):
     STATUS_CHOICES = [('running', 'Running'), ('completed', 'Completed'), ('failed', 'Failed')]
     KIND_CHOICES = [('database', 'Database'), ('media_manifest', 'Media manifest')]
