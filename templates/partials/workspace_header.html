@@ -1,0 +1,34 @@
+<header class="workspace-topbar">
+    <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}">
+        <span class="workspace-topbar__mark">✦</span>
+        <span>Article Studio<small>{{ request.user.role }} workspace</small></span>
+    </a>
+    <nav class="workspace-topbar__actions" aria-label="Workspace navigation">
+        {% if request.user.role == 'Editor' %}
+            <a href="{% url 'editor-dashboard' %}?section=home-section">Home</a>
+            <a href="{% url 'editor-dashboard' %}?section=article-list-page">Manage</a>
+            <a href="{% url 'editor-dashboard' %}?section=approve-articles-page">Approve</a>
+            <a href="{% url 'editor-dashboard' %}?section=reject-articles-page">Review</a>
+        {% elif request.user.role == 'Admin' %}
+            <a href="{% url 'admin-dashboard' %}">Home</a>
+            <a href="{% url 'admin-dashboard' %}?page=articles">Articles</a>
+            <a href="{% url 'admin-dashboard' %}?page=users">Users</a>
+        {% else %}
+            <a href="{% url 'journalist-dashboard' %}">Home</a>
+            <a href="{% url 'journalist-dashboard' %}#article-list-page">Articles</a>
+            <a href="{% url 'journalist-dashboard' %}#create-article-page" class="workspace-topbar__primary">New article</a>
+        {% endif %}
+        <a class="{% if active_nav == 'search' %}is-active{% endif %}" {% if active_nav == 'search' %}aria-current="page"{% endif %} href="{% url 'workspace-search-page' %}">Search</a>
+        <a class="{% if active_nav == 'media' %}is-active{% endif %}" {% if active_nav == 'media' %}aria-current="page"{% endif %} href="{% url 'media-library-page' %}">Media</a>
+        <a class="{% if active_nav == 'notifications' %}is-active{% endif %}" {% if active_nav == 'notifications' %}aria-current="page"{% endif %} href="{% url 'notification-center-page' %}">Notifications</a>
+        <a class="{% if active_nav == 'analytics' %}is-active{% endif %}" {% if active_nav == 'analytics' %}aria-current="page"{% endif %} href="{% url 'analytics-dashboard-page' %}">Analytics</a>
+        {% if request.user.role != 'Journalist' %}
+            <a class="{% if active_nav == 'monitoring' %}is-active{% endif %}" {% if active_nav == 'monitoring' %}aria-current="page"{% endif %} href="{% url 'monitoring-dashboard-page' %}">Monitoring</a>
+            <a class="{% if active_nav == 'assignments' %}is-active{% endif %}" {% if active_nav == 'assignments' %}aria-current="page"{% endif %} href="{% url 'assignment-board-page' %}">Assignments</a>
+        {% endif %}
+        {% if request.user.role == 'Editor' %}
+            <a href="{% url 'editor-dashboard' %}?section=published-articles-page">Published</a>
+        {% endif %}
+        <a class="workspace-logout" href="{% url 'home' %}">Log out</a>
+    </nav>
+</header>

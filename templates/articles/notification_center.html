@@ -11,10 +11,13 @@
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
 </head>
 <body class="dashboard-shell">
+    {% include 'partials/workspace_header.html' with active_nav='notifications' %}
+    {% if False %}
     <header class="workspace-topbar">
         <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>{{ request.user.role }} workspace</small></span></a>
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a class="is-active" href="{% url 'notification-center-page' %}">Notifications</a><a href="{% url 'workspace-search-page' %}">Search</a><a href="{% url 'analytics-dashboard-page' %}">Analytics</a>{% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}"><span>Assignments</span></a><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a>{% endif %}</nav>
     </header>
+    {% endif %}
     <main class="feature-page">
         <header class="feature-page__heading"><div><span class="feature-eyebrow">Editorial inbox</span><h1>Notifications</h1><p>Stay up to date with assignments, reviews, comments, publishing events, and reader alerts.</p></div><div><button class="button button--secondary button--small" id="mark-all-notifications-read" type="button">Mark all read</button> <button class="button button--secondary button--small" id="refresh-notifications" type="button">Refresh</button></div></header>
         <p class="feature-status" id="notification-status" role="status" aria-live="polite">Loading notifications…</p>

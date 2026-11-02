@@ -11,10 +11,13 @@
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261030-operations-1">
 </head>
 <body class="dashboard-shell">
+    {% include 'partials/workspace_header.html' with active_nav='monitoring' %}
+    {% if False %}
     <header class="workspace-topbar">
         <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% else %}{% url 'editor-dashboard' %}{% endif %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>{{ request.user.role }} workspace</small></span></a>
         <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a class="is-active" href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a href="{% url 'analytics-dashboard-page' %}">Analytics</a><a href="{% url 'notification-center-page' %}">Notifications</a><a href="{% url 'workspace-search-page' %}">Search</a></nav>
     </header>
+    {% endif %}
     <main class="feature-page">
         <header class="feature-page__heading"><div><span class="feature-eyebrow">Reliability center</span><h1>Monitoring &amp; audit</h1><p>Check dependencies, workflow health, and important editorial activity.</p></div><div class="feature-toolbar"><a class="button button--secondary button--small" href="/articles/api/v2/reports/audit/">Export audit CSV</a><button class="button button--small" id="refresh-monitoring" type="button">Refresh</button></div></header>
         <section class="health-panel"><div><span class="feature-eyebrow">System health</span><h2 id="health-status">Checking services…</h2></div><div class="health-checks" id="health-checks"></div><div class="health-metadata" id="health-metadata"></div><small id="health-request-id"></small></section>

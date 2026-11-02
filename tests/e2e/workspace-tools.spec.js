@@ -16,6 +16,23 @@ async function loginAs(page, role) {
   await expect(page).toHaveURL(new RegExp(account.dashboard.replaceAll('/', '\\/') + '$'), { timeout: 15_000 });
 }
 
+test('editor keeps the full workspace header when opening Search', async ({ page }) => {
+  await loginAs(page, 'editor');
+  await page.goto('/editor/dashboard/');
+  const expectedLinks = ['Home', 'Manage', 'Approve', 'Review', 'Search', 'Media', 'Notifications', 'Analytics', 'Monitoring', 'Assignments', 'Published', 'Log out'];
+  for (const label of expectedLinks) {
+    await expect(page.locator('header.workspace-topbar').getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
+  }
+
+  await page.getByRole('link', { name: /^Search/ }).click();
+  await expect(page).toHaveURL(/\/articles\/workspace\/search\/$/);
+  for (const label of expectedLinks) {
+    await expect(page.locator('header.workspace-topbar').getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
+  }
+  await expect(page.locator('header.workspace-topbar a[aria-current="page"]')).toHaveText('Search');
+  await expect(page.locator('header.workspace-topbar')).not.toContainText('Workspace');
+});
+
 async function expectUsablePage(page, path, heading) {
   await page.goto(path);
   await expect(page.locator('h1')).toContainText(heading);

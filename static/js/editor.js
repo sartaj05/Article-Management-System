@@ -58,7 +58,10 @@ $(document).ready(function () {
     for (const [link, section] of Object.entries(sections)) $('#' + link).on('click', function (event) {
         event.preventDefault(); showSection(section); if (section !== 'home-section') refresh();
     });
-    const initialSection = localStorage.getItem('editorActiveSection') || 'home-section';
+    const requestedSection = new URLSearchParams(window.location.search).get('section');
+    const initialSection = (requestedSection && Object.values(sections).includes(requestedSection))
+        ? requestedSection
+        : (localStorage.getItem('editorActiveSection') || 'home-section');
     showSection(initialSection);
     if (initialSection !== 'home-section') refresh();
     $('.page input[type="text"]').on('input', function () {
