@@ -291,6 +291,24 @@ class AuthenticationPolicy(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
+class ImpersonationSession(models.Model):
+    """Short-lived, browser-session-only admin impersonation context."""
+
+    admin = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='impersonation_sessions_started')
+    target = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='impersonation_sessions_received')
+    token_hash = models.CharField(max_length=64, unique=True)
+    reason = models.CharField(max_length=240)
+    started_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    start_ip = models.GenericIPAddressField(null=True, blank=True)
+    end_ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+
 class NewsletterSubscription(models.Model):
     FREQUENCY_CHOICES = [('daily', 'Daily'), ('weekly', 'Weekly')]
 

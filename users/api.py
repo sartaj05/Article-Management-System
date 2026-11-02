@@ -30,11 +30,13 @@ from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, AuthenticationPolicy, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
-    WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration, SupportTicket, SupportTicketMessage,
+    WorkspaceMembership, WorkspaceBillingContract, WorkspaceIntegration, SupportTicket, SupportTicketMessage, ImpersonationSession,
 )
 from articles.models import Article
 from .support_bot import get_support_response
 from .integration_secrets import decrypt_integration_secret, encrypt_integration_secret, IntegrationSecretError
+from .impersonation import SESSION_ID_KEY, SESSION_TOKEN_KEY, hash_impersonation_token
+from articles.audit import record_audit_event
 
 
 class SupportChatView(APIView):
@@ -635,6 +637,66 @@ class AuthenticationPolicyView(APIView):
                 setattr(policy, field, value)
         policy.save()
         return self.get(request)
+
+
+class AdminImpersonationView(APIView):
+    authentication_classes = [SessionAuthentication, JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def _ip(request):
+        return (request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip() or request.META.get('REMOTE_ADDR', ''))[:45]
+
+    def get(self, request):
+        session = getattr(request, 'impersonation_session', None)
+        if not getattr(request, 'impersonating', False) or session is None:
+            return Response({'active': False})
+        return Response({'active': True, 'session_id': session.id, 'admin': request.impersonator.username, 'target': request.user.username, 'expires_at': session.expires_at, 'reason': session.reason})
+
+    def post(self, request):
+        if getattr(request, 'impersonating', False):
+            return Response({'detail': 'End the current impersonation before starting another.'}, status=409)
+        if request.user.role != 'Admin':
+            return Response({'detail': 'Only platform admins can impersonate users.'}, status=403)
+        target = get_object_or_404(CustomUser, pk=request.data.get('user_id'), is_active=True)
+        if target.pk == request.user.pk:
+            return Response({'detail': 'An admin cannot impersonate their own account.'}, status=400)
+        reason = str(request.data.get('reason', '')).strip()[:240]
+        if len(reason) < 5:
+            return Response({'detail': 'A support or incident reason is required.'}, status=400)
+        try:
+            duration_minutes = min(max(int(request.data.get('duration_minutes', 30)), 5), 60)
+        except (TypeError, ValueError):
+            return Response({'detail': 'duration_minutes must be an integer between 5 and 60.'}, status=400)
+        raw_token = secrets.token_urlsafe(32)
+        session = ImpersonationSession.objects.create(
+            admin=request.user,
+            target=target,
+            token_hash=hash_impersonation_token(raw_token),
+            reason=reason,
+            expires_at=timezone.now() + timedelta(minutes=duration_minutes),
+            start_ip=self._ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+        )
+        request.session[SESSION_ID_KEY] = session.id
+        request.session[SESSION_TOKEN_KEY] = raw_token
+        request.session.modified = True
+        record_audit_event(actor=request.user, action='impersonation_started', target_model='CustomUser', target_id=target.id, details={'session_id': session.id, 'reason': reason, 'expires_at': session.expires_at.isoformat()})
+        return Response({'active': True, 'session_id': session.id, 'target': {'id': target.id, 'username': target.username, 'email': target.email}, 'expires_at': session.expires_at, 'reason': reason}, status=201)
+
+    def delete(self, request):
+        session = getattr(request, 'impersonation_session', None)
+        if not getattr(request, 'impersonating', False) or session is None:
+            return Response({'detail': 'No active impersonation session.'}, status=400)
+        admin = request.impersonator
+        session.ended_at = timezone.now()
+        session.end_ip = self._ip(request)
+        session.save(update_fields=['ended_at', 'end_ip'])
+        request.session.pop(SESSION_ID_KEY, None)
+        request.session.pop(SESSION_TOKEN_KEY, None)
+        request.session.modified = True
+        record_audit_event(actor=admin, action='impersonation_ended', target_model='CustomUser', target_id=request.user.id, details={'session_id': session.id, 'reason': session.reason})
+        return Response({'active': False, 'ended': True})
 
 
 class TrustedDeviceView(APIView):

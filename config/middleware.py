@@ -6,6 +6,7 @@ from django.http import JsonResponse
 
 from .observability import request_id_context
 from .workspace_scope import resolve_workspace
+from users.impersonation import activate_impersonation
 
 
 class RequestIDMiddleware:
@@ -57,4 +58,15 @@ class WorkspaceScopeMiddleware:
             resolve_workspace(request, strict=False)
         except PermissionDenied as exc:
             return JsonResponse({'detail': str(exc)}, status=403)
+        return self.get_response(request)
+
+
+class ImpersonationMiddleware:
+    """Apply an audited admin impersonation to session-authenticated requests."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        activate_impersonation(request)
         return self.get_response(request)
