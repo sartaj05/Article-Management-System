@@ -10,6 +10,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
+        ref_name = 'ArticleComment'
         fields = ['id', 'article', 'user', 'content', 'created_at']
         read_only_fields = ['id', 'article', 'user', 'created_at']
 

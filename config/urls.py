@@ -23,10 +23,30 @@ from articles.api import HealthCheckView, PublicStatusView
 from config.metrics import metrics_view
 from articles.distribution import ArticleSitemap, ArticleFeed, LocalizedArticleFeed, LocalizedArticleSitemap, robots_txt
 from django.contrib.sitemaps.views import sitemap
+from django.template import TemplateDoesNotExist
+
+
+def openapi_json_fallback(request):
+    return JsonResponse({
+        'openapi': '3.0.0',
+        'info': {'title': 'Article Studio API', 'version': 'v2', 'description': 'Install drf-yasg in production for the complete generated schema.'},
+        'paths': {},
+    })
+
+
+def openapi_docs_fallback(request):
+    return HttpResponse('<!doctype html><title>Article Studio API docs</title><h1>Article Studio API</h1><p>Install drf-yasg to enable interactive Swagger and ReDoc documentation.</p>')
+
+
 try:
     from rest_framework import permissions
     from drf_yasg import openapi
     from drf_yasg.views import get_schema_view
+    from django.template.loader import get_template
+
+    # Some minimal deployments include drf-yasg for schema generation but omit
+    # its UI templates. Use the stable fallback routes instead of returning 500.
+    get_template('drf-yasg/swagger-ui.html')
 
     schema_view = get_schema_view(
         openapi.Info(
@@ -38,18 +58,8 @@ try:
         public=True,
         permission_classes=(permissions.AllowAny,),
     )
-except ImportError:
+except (ImportError, TemplateDoesNotExist):
     schema_view = None
-
-    def openapi_json_fallback(request):
-        return JsonResponse({
-            'openapi': '3.0.0',
-            'info': {'title': 'Article Studio API', 'version': 'v2', 'description': 'Install drf-yasg in production for the complete generated schema.'},
-            'paths': {},
-        })
-
-    def openapi_docs_fallback(request):
-        return HttpResponse('<!doctype html><title>Article Studio API docs</title><h1>Article Studio API</h1><p>Install drf-yasg to enable interactive Swagger and ReDoc documentation.</p>')
 # Redirect root URL to login page
 urlpatterns = [
     path('admin/', admin.site.urls),

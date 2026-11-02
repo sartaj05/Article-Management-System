@@ -10,6 +10,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
+        ref_name = 'ApiComment'
         fields = ['id', 'article', 'parent', 'author', 'author_name', 'content', 'is_editorial', 'moderation_status', 'moderation_reason', 'replies_count', 'created_at', 'updated_at']
         read_only_fields = ['id', 'article', 'author', 'author_name', 'is_editorial', 'moderation_status', 'moderation_reason', 'created_at', 'updated_at']
 
