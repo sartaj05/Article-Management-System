@@ -2745,6 +2745,21 @@ class OperationsOverviewView(APIView):
         })
 
 
+class OperationsQueueView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can view queue health.'}, status=status.HTTP_403_FORBIDDEN)
+        from .queue_health import inspect_workers
+        snapshot = inspect_workers()
+        return Response({
+            **snapshot,
+            'checked_at': timezone.now(),
+            'default_queue': getattr(settings, 'CELERY_TASK_DEFAULT_QUEUE', 'celery'),
+        }, status=status.HTTP_200_OK if snapshot['status'] in {'healthy', 'not_configured'} else status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
 class BackupOperationsView(APIView):
     permission_classes = [IsAuthenticated]
 

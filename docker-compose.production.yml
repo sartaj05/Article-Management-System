@@ -62,7 +62,7 @@ services:
 
   worker:
     build: .
-    command: ["celery", "-A", "config.celery", "worker", "--loglevel=INFO", "--concurrency=2"]
+    command: ["celery", "-A", "config.celery", "worker", "--loglevel=INFO", "--concurrency=2", "--hostname=worker@%h", "--max-tasks-per-child=100"]
     environment: *app_environment
     volumes:
       - media_data:/app/media
@@ -72,6 +72,13 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "python", "manage.py", "check_worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   beat:
     build: .
@@ -83,6 +90,7 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    stop_grace_period: 30s
 
   nginx:
     image: nginx:1.27-alpine
