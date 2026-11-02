@@ -1523,3 +1523,182 @@ html:not(.theme-dark) .site-footer { background: linear-gradient(145deg, #181b3b
   html:not(.theme-dark) .feature-page__heading,
   html:not(.theme-dark) .operations-panel { animation: none !important; }
 }
+
+/* Home reading desk: high-contrast, fluid presentation for client demos. */
+.site-main .reading-desk--home {
+  width: min(1240px, calc(100% - 48px));
+  padding-block: clamp(28px, 5vw, 64px) 24px;
+}
+
+.site-main .reading-desk--home .reading-content {
+  width: min(100%, 1080px);
+}
+
+.site-main .reading-desk--home .desk-masthead {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(28px, 5vw, 58px);
+  border: 1px solid #dfe3ff;
+  border-radius: 24px;
+  color: #20254a;
+  background:
+    radial-gradient(circle at 92% 10%, rgb(255 172 141 / 42%), transparent 27%),
+    linear-gradient(135deg, #eef0ff 0%, #f8f5ff 52%, #fff5ef 100%);
+  box-shadow: 0 24px 60px rgb(57 64 145 / 12%);
+}
+
+.site-main .reading-desk--home .desk-masthead::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: -72px;
+  bottom: -122px;
+  width: 300px;
+  height: 300px;
+  border: 1px solid rgb(91 92 226 / 18%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgb(91 92 226 / 5%), 0 0 0 58px rgb(91 92 226 / 4%);
+}
+
+.site-main .reading-desk--home .desk-kicker {
+  color: #68719a;
+}
+
+.site-main .reading-desk--home .desk-kicker > span:last-child {
+  color: #858bad;
+}
+
+.site-main .reading-desk--home .desk-masthead h1 {
+  max-width: 760px;
+  margin-block: clamp(30px, 5vw, 54px) 20px;
+  color: #20254a;
+  font-size: clamp(3rem, 8vw, 6.4rem);
+  line-height: .94;
+}
+
+.site-main .reading-desk--home .desk-masthead h1 > span {
+  color: #ef7650;
+}
+
+.site-main .reading-desk--home .desk-intro {
+  align-items: flex-end;
+}
+
+.site-main .reading-desk--home .desk-intro p {
+  max-width: 460px;
+  color: #5f6886;
+  font-size: clamp(.92rem, 1.5vw, 1.08rem);
+  line-height: 1.7;
+}
+
+.site-main .reading-desk--home .desk-masthead .button--light {
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff !important;
+  background: #5b5ce2;
+  box-shadow: 0 12px 24px rgb(91 92 226 / 24%);
+}
+
+.site-main .reading-desk--home .desk-masthead .button--light:hover {
+  color: #fff !important;
+  background: #4546bd;
+  transform: translateY(-2px);
+}
+
+.site-main .reading-desk--home .feed-section {
+  padding-top: clamp(38px, 6vw, 70px);
+}
+
+.site-main .reading-desk--home .section-heading h2 {
+  color: #20254a;
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+}
+
+.site-main .reading-desk--home .feed-controls {
+  grid-template-columns: auto minmax(240px, 1fr);
+  gap: 14px;
+}
+
+.site-main .reading-desk--home .feed-controls .feed-switcher {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.site-main .reading-desk--home .feed-controls .feed-switcher button {
+  white-space: nowrap;
+}
+
+.site-main .reading-desk--home .search-field {
+  min-width: 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgb(52 61 111 / 6%);
+}
+
+.site-main .reading-desk--home .article-card {
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgb(52 61 111 / 7%);
+}
+
+.site-main .reading-desk--home .article-card:hover {
+  transform: translateY(-4px);
+  border-color: rgb(91 92 226 / 42%);
+  box-shadow: 0 22px 46px rgb(52 61 111 / 13%);
+}
+
+@media (max-width: 720px) {
+  .site-main .reading-desk--home {
+    width: min(100% - 28px, 620px);
+    padding-block: 24px 16px;
+  }
+
+  .site-main .reading-desk--home .desk-masthead {
+    padding: 26px 22px;
+    border-radius: 18px;
+  }
+
+  .site-main .reading-desk--home .desk-masthead h1 {
+    margin-block: 28px 18px;
+    font-size: clamp(2.75rem, 15vw, 4.4rem);
+  }
+
+  .site-main .reading-desk--home .desk-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .site-main .reading-desk--home .desk-intro p br {
+    display: none;
+  }
+
+  .site-main .reading-desk--home .desk-masthead .button--light {
+    width: 100%;
+  }
+
+  .site-main .reading-desk--home .feed-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-main .reading-desk--home .feed-controls .feed-switcher {
+    width: 100%;
+  }
+
+  .site-main .reading-desk--home .feed-controls .feed-switcher button {
+    flex: 1 0 auto;
+  }
+
+  .site-main .reading-desk--home .article-card {
+    border-radius: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-main .reading-desk--home .article-card:hover {
+    transform: none;
+  }
+}
