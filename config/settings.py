@@ -37,6 +37,11 @@ SECRET_KEY = os.getenv(
     'DJANGO_SECRET_KEY',
     'local-development-key-change-this-before-deployment-5f3b4a9c2d1e7f8a',
 )
+SECRET_KEY_FALLBACKS = [
+    key.strip()
+    for key in os.getenv('DJANGO_SECRET_KEY_FALLBACKS', '').split(',')
+    if key.strip()
+]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Local development serves app static files through Django's staticfiles finder.
@@ -384,6 +389,7 @@ SENTRY_DSN = os.getenv('SENTRY_DSN', '')
 SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', 'production' if not DEBUG else 'development')
 SENTRY_TRACES_SAMPLE_RATE = float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0'))
 METRICS_TOKEN = os.getenv('METRICS_TOKEN', '')
+ENFORCE_PRODUCTION_SECURITY = os.getenv('ENFORCE_PRODUCTION_SECURITY', 'false').lower() in {'1', 'true', 'yes'}
 
 from config.observability import init_sentry
 init_sentry()

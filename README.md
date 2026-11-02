@@ -48,6 +48,12 @@ variables. The health endpoint is available at
 `/health/` and verifies database connectivity. Set `DATABASE_ENGINE=postgresql` and the `POSTGRES_*`
 environment variables in production.
 
+Set `ENFORCE_PRODUCTION_SECURITY=true` only after HTTPS is active and the public host,
+CSRF origin, metrics token, PostgreSQL, and secure-cookie settings are configured. The
+container entrypoint then runs `python manage.py check_security` before migrations and
+refuses to start if a required production control is unsafe. `DJANGO_SECRET_KEY_FALLBACKS`
+supports staged secret rotation.
+
 The CI workflow validates tests, migrations, production security checks, dependency integrity, and the
 container build. Version tags or a manual release can publish an image to GitHub Container Registry. Set
 the repository variable `DEPLOYMENT_BASE_URL` to enable the post-release health smoke test.

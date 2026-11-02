@@ -31,14 +31,23 @@ jobs:
       - name: Validate Django deployment configuration
         env:
           DJANGO_DEBUG: "false"
-          DJANGO_SECRET_KEY: release-validation-secret-only
+          DJANGO_SECRET_KEY: release-validation-secret-only-0123456789-abcdefghijklmnopqrstuvwxyz
           DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+          DATABASE_ENGINE: postgresql
+          POSTGRES_DB: release_validation
+          POSTGRES_USER: release_validation
+          POSTGRES_PASSWORD: release_validation_password
+          POSTGRES_HOST: localhost
           SECURE_SSL_REDIRECT: "true"
           SESSION_COOKIE_SECURE: "true"
           CSRF_COOKIE_SECURE: "true"
-          SECURE_HSTS_SECONDS: "3600"
+          SECURE_HSTS_SECONDS: "31536000"
+          CSRF_TRUSTED_ORIGINS: https://localhost
+          METRICS_TOKEN: release-metrics-token
+          ENFORCE_PRODUCTION_SECURITY: "true"
         run: |
           python manage.py check --deploy
+          python manage.py check_security
           python manage.py makemigrations --check --dry-run
           python manage.py test --noinput
 
