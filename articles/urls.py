@@ -4,7 +4,7 @@ from .distribution import public_article, public_article_translation
 from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
-    ArticleAnalyticsView, BackupOperationsView, ExecutiveAnalyticsView, OperationsAlertsView, OperationsOverviewView, OperationsQueueView, RecoveryDrillView, WorkspaceContentMigrationView, WorkflowRuleView, DistributionJobView,
+    ArticleAnalyticsView, BackupOperationsView, ExecutiveAnalyticsView, ExecutiveReportExportView, OperationsAlertsView, OperationsOverviewView, OperationsQueueView, RecoveryDrillView, WorkspaceContentMigrationView, WorkflowRuleView, DistributionJobView,
     ArticleWorkflowTimelineView,
     CurrentUserCapabilitiesView,
     ArticleExportView,
@@ -252,6 +252,7 @@ urlpatterns = [
     path('api/v2/articles/<int:article_id>/<str:action>/', ArticleWorkflowActionView.as_view(), name='article-workflow-action'),
     path('api/v2/analytics/', ArticleAnalyticsView.as_view(), name='analytics'),
     path('api/v2/analytics/executive/', ExecutiveAnalyticsView.as_view(), name='executive-analytics'),
+    path('api/v2/analytics/executive/export/', ExecutiveReportExportView.as_view(), name='executive-analytics-export'),
     path('api/v2/analytics/<int:article_id>/', ArticleAnalyticsView.as_view(), name='article-analytics'),
     path('api/v2/permissions/me/', CurrentUserCapabilitiesView.as_view(), name='current-user-capabilities'),
 

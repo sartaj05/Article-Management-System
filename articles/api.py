@@ -3379,15 +3379,54 @@ class ExecutiveAnalyticsView(WorkspaceScopeMixin, APIView):
         if request.workspace is not None:
             subscriptions = subscriptions.filter(user_id__in=member_ids)
         notification_attempts = notifications.count()
+        author_rows = articles.values('author__username').annotate(
+            articles=Count('id'), published=Count('id', filter=Q(workflow_status='published')),
+        ).order_by('-published', '-articles')[:10]
+        feedback = AIFeedback.objects.filter(article__in=articles)
+        usage = AIUsageEvent.objects.filter(article__in=articles)
+        usage_totals = usage.aggregate(tokens=Sum('total_tokens'), cost=Sum('estimated_cost'))
+        alerts = OperationalAlert.objects.all()
+        if request.workspace is not None:
+            alerts = alerts.filter(details__workspace=request.workspace.slug)
+        incident_trend = []
+        for offset in range(6, -1, -1):
+            day = (now - timedelta(days=offset)).date()
+            incident_trend.append({'date': day, 'alerts': alerts.filter(last_seen_at__date=day).count()})
         return Response({
             'generated_at': now,
+            'workspace_scope': request.workspace.slug if request.workspace is not None else 'all',
             'content': {'published': articles.filter(workflow_status='published').count(), 'in_review': articles.filter(workflow_status='submitted').count(), 'views': sum(item.views.count() for item in articles), 'shares_7d': events.filter(event_type='share').count()},
             'reader': {'active_7d': events.exclude(user__isnull=True).values('user_id').distinct().count(), 'returning_7d': events.exclude(user__isnull=True).filter(user_id__in=ArticleEngagementEvent.objects.filter(created_at__lt=window_start).values('user_id')).values('user_id').distinct().count(), 'completion_rate': round(completed * 100 / starts, 1) if starts else 0, 'starts_7d': starts, 'completed_7d': completed},
             'workflow': {'draft': articles.filter(workflow_status='draft').count(), 'submitted': articles.filter(workflow_status='submitted').count(), 'approved': articles.filter(workflow_status='approved').count(), 'published': articles.filter(workflow_status='published').count()},
             'membership': {'active_subscriptions': subscriptions.count(), 'paid_transactions': paid_transactions, 'paid_invoices': invoices.count(), 'conversion_rate': round(paid_transactions * 100 / max(payments.count(), 1), 1)},
             'distribution': {'total': distribution_total, 'delivered': distribution_delivered, 'failed': distributions.filter(status='failed').count(), 'queued': distributions.filter(status__in={'queued', 'processing', 'awaiting_provider'}).count(), 'delivery_rate': round(distribution_delivered * 100 / max(distribution_total, 1), 1)},
             'notifications': {'attempts': notification_attempts, 'sent': notifications.filter(status='sent').count(), 'failed': notifications.filter(status='failed').count(), 'delivery_rate': round(notifications.filter(status='sent').count() * 100 / max(notification_attempts, 1), 1)},
+            'productivity': {'authors': [{'username': row['author__username'], 'articles': row['articles'], 'published': row['published']} for row in author_rows]},
+            'incidents': {'open': alerts.filter(status='open').count(), 'critical': alerts.filter(severity='critical', status__in={'open', 'acknowledged'}).count(), 'trend_7d': incident_trend},
+            'ai': {'total_tokens': usage_totals['tokens'] or 0, 'estimated_cost': str(usage_totals['cost'] or 0), 'feedback_total': feedback.count(), 'feedback_accepted': feedback.filter(feedback_type='accepted').count(), 'feedback_rejected': feedback.filter(feedback_type='rejected').count()},
         })
+
+
+class ExecutiveReportExportView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only editors and admins can export executive analytics.'}, status=403)
+        snapshot = ExecutiveAnalyticsView().get(request)
+        if snapshot.status_code != 200:
+            return snapshot
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="executive-report.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['section', 'metric', 'value'])
+        for section, values in snapshot.data.items():
+            if isinstance(values, dict):
+                for metric, value in values.items():
+                    writer.writerow([section, metric, json.dumps(value, default=str) if isinstance(value, (dict, list)) else value])
+            else:
+                writer.writerow([section, '', values])
+        return response
 
 
 class ArticleEngagementView(APIView):
