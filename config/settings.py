@@ -237,6 +237,10 @@ EMAIL_BACKEND = (
 STATIC_URL = '/static/'
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_MAX_UPLOAD_BYTES = int(os.getenv('MEDIA_MAX_UPLOAD_BYTES', str(10 * 1024 * 1024)))
+MEDIA_PROCESSING_ASYNC = os.getenv('MEDIA_PROCESSING_ASYNC', 'true' if not DEBUG else 'false').lower() in {'1', 'true', 'yes'}
+MEDIA_TRANSCODE_ENABLED = os.getenv('MEDIA_TRANSCODE_ENABLED', 'true' if not DEBUG else 'false').lower() in {'1', 'true', 'yes'}
+MEDIA_CDN_URL = os.getenv('MEDIA_CDN_URL', '').rstrip('/')
+MEDIA_PROCESSING_TIMEOUT = int(os.getenv('MEDIA_PROCESSING_TIMEOUT', '300'))
 BACKUP_ROOT = os.getenv('BACKUP_ROOT', str(BASE_DIR / 'backups'))
 BACKUP_RETENTION_DAYS = int(os.getenv('BACKUP_RETENTION_DAYS', '30'))
 BACKUP_ENABLED = os.getenv('BACKUP_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
@@ -310,6 +314,7 @@ CELERY_BEAT_SCHEDULE = {
     'create-database-backup': {'task': 'articles.create_database_backup', 'schedule': crontab(hour=2, minute=30)},
     'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
     'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
+    'cleanup-media-assets': {'task': 'articles.cleanup_media_assets', 'schedule': crontab(hour=3, minute=15)},
     'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
     'reconcile-pending-payments': {'task': 'users.reconcile_pending_payments', 'schedule': 900.0},
 }

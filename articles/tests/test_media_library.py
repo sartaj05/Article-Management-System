@@ -1,3 +1,7 @@
+from contextlib import nullcontext
+from io import BytesIO
+from unittest.mock import Mock
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.core.management import call_command
@@ -7,6 +11,7 @@ from rest_framework.test import APIClient
 
 from users.models import CustomUser
 from ..models import Article, ArticleAsset, MediaAsset
+from ..media_processing import MediaProcessingError, scan_media_file
 
 
 class MediaLibraryFeatureTests(TestCase):
@@ -75,3 +80,11 @@ class MediaLibraryFeatureTests(TestCase):
         call_command('cleanup_media_assets', '--days', '30', '--apply')
         orphan.refresh_from_db()
         self.assertTrue(orphan.is_archived)
+
+    def test_eicar_signature_is_rejected_before_processing(self):
+        asset = Mock(file=Mock())
+        asset.file.open.return_value = nullcontext(BytesIO(
+            b'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
+        ))
+        with self.assertRaises(MediaProcessingError):
+            scan_media_file(asset)

@@ -68,7 +68,7 @@ from .reader_personalization import generate_reader_recommendations
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
-from .media_processing import generate_image_variants
+from .media_processing import MediaProcessingError, process_media_asset
 
 
 class ArticlePagination(PageNumberPagination):
@@ -3305,15 +3305,15 @@ class MediaAssetLibraryView(APIView):
                 'size_bytes': uploaded_file.size,
             }
             asset.save(update_fields=['metadata', 'updated_at'])
-            if asset.media_type == 'image':
+            if settings.MEDIA_PROCESSING_ASYNC:
+                from .tasks import process_media_asset_task
+                process_media_asset_task.delay(asset.id)
+            else:
                 try:
-                    generate_image_variants(asset)
-                    asset.processing_status = 'ready'
-                    asset.processed_at = timezone.now()
-                    asset.save(update_fields=['processing_status', 'processed_at', 'updated_at'])
-                except (OSError, ValueError):
+                    process_media_asset(asset)
+                except (MediaProcessingError, OSError, ValueError):
                     asset.processing_status = 'failed'
-                    asset.processing_error = 'Image derivative generation failed.'
+                    asset.processing_error = 'Media processing failed.'
                     asset.metadata = {**(asset.metadata or {}), 'processing': 'failed'}
                     asset.save(update_fields=['metadata', 'processing_status', 'processing_error', 'updated_at'])
         return Response(MediaAssetSerializer(asset, context={'request': request}).data, status=201)
@@ -3349,8 +3349,12 @@ class MediaAssetDetailView(APIView):
         if not self.can_manage(request, asset):
             return Response({'detail': 'You cannot process this asset.'}, status=403)
         try:
-            generate_image_variants(asset)
-        except (OSError, ValueError):
+            if settings.MEDIA_PROCESSING_ASYNC:
+                from .tasks import process_media_asset_task
+                task = process_media_asset_task.delay(asset.id)
+                return Response({'status': 'queued', 'task_id': getattr(task, 'id', None), 'asset': MediaAssetSerializer(asset, context={'request': request}).data}, status=202)
+            process_media_asset(asset)
+        except (MediaProcessingError, OSError, ValueError):
             return Response({'detail': 'The image could not be processed.'}, status=400)
         return Response(MediaAssetSerializer(asset, context={'request': request}).data)
 

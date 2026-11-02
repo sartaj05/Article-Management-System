@@ -35,6 +35,22 @@ def ingest_source_task(self, source_id):
     return {'status': document.status, 'source_id': source_id, 'document_id': document.id}
 
 
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.process_media_asset')
+def process_media_asset_task(self, asset_id):
+    from .media_processing import process_media_asset
+    from .models import MediaAsset
+    asset = MediaAsset.objects.get(pk=asset_id)
+    asset = process_media_asset(asset)
+    return {'status': asset.processing_status, 'asset_id': asset.id}
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.cleanup_media_assets')
+def cleanup_media_assets_task(self):
+    from django.core.management import call_command
+    call_command('cleanup_media_assets', '--apply')
+    return {'status': 'completed', 'job': 'cleanup_media_assets'}
+
+
 @shared_task(
     bind=True,
     autoretry_for=(Exception,),
