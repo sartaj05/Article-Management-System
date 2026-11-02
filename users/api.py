@@ -21,6 +21,7 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from datetime import timedelta
 from decimal import Decimal
@@ -29,7 +30,7 @@ from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
     NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, SCIMToken, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
-    WorkspaceMembership,
+    WorkspaceMembership, WorkspaceBillingContract,
 )
 from articles.models import Article
 from .support_bot import get_support_response
@@ -1870,6 +1871,76 @@ class WorkspaceBillingView(APIView):
         workspace.seat_limit = seat_limit
         workspace.save(update_fields=['plan', 'seat_limit', 'primary_color', 'accent_color', 'logo_url', 'custom_domain', 'email_from_name', 'updated_at'])
         return self.get(request, slug)
+
+
+class WorkspaceBillingContractView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def payload(self, workspace, contract):
+        members = workspace.memberships.count()
+        return {
+            'workspace': workspace.slug,
+            'contract': {
+                'id': contract.id,
+                'contract_type': contract.contract_type,
+                'status': contract.status,
+                'seat_commitment': contract.seat_commitment,
+                'monthly_commitment': contract.monthly_commitment,
+                'currency': contract.currency,
+                'tax_id': contract.tax_id,
+                'purchase_order': contract.purchase_order,
+                'invoice_email': contract.invoice_email,
+                'payment_terms_days': contract.payment_terms_days,
+                'starts_at': contract.starts_at,
+                'ends_at': contract.ends_at,
+                'renewal_at': contract.renewal_at,
+            },
+            'seat_usage': {'used': members, 'committed': contract.seat_commitment, 'overage': max(members - contract.seat_commitment, 0)},
+        }
+
+    def get(self, request, slug):
+        workspace = _workspace_for_member(request, slug)
+        contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
+        return Response(self.payload(workspace, contract))
+
+    def patch(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        contract, _ = WorkspaceBillingContract.objects.get_or_create(workspace=workspace, defaults={'seat_commitment': workspace.seat_limit})
+        for field in ('contract_type', 'status', 'currency', 'tax_id', 'purchase_order', 'invoice_email'):
+            if field in request.data:
+                value = str(request.data.get(field, '')).strip()
+                choices = dict(WorkspaceBillingContract.CONTRACT_TYPES if field == 'contract_type' else WorkspaceBillingContract.STATUS_CHOICES) if field in {'contract_type', 'status'} else None
+                if choices is not None and value not in choices:
+                    return Response({'detail': f'Invalid {field}.'}, status=400)
+                setattr(contract, field, value.upper() if field == 'currency' else value)
+        for field in ('seat_commitment', 'payment_terms_days'):
+            if field in request.data:
+                try:
+                    value = int(request.data[field])
+                except (TypeError, ValueError):
+                    return Response({'detail': f'{field} must be a non-negative integer.'}, status=400)
+                if value < 0 or (field == 'seat_commitment' and value < workspace.memberships.count()):
+                    return Response({'detail': f'{field} is below the current requirement.'}, status=400)
+                setattr(contract, field, value)
+        if 'monthly_commitment' in request.data:
+            try:
+                amount = Decimal(str(request.data['monthly_commitment']))
+            except Exception:
+                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
+            if amount < 0:
+                return Response({'detail': 'monthly_commitment must be a non-negative amount.'}, status=400)
+            contract.monthly_commitment = amount
+        for field in ('starts_at', 'ends_at', 'renewal_at'):
+            if field in request.data:
+                parsed = parse_date(str(request.data.get(field) or ''))
+                if request.data.get(field) and not parsed:
+                    return Response({'detail': f'{field} must use YYYY-MM-DD.'}, status=400)
+                setattr(contract, field, parsed)
+        contract.save()
+        from articles.audit import record_audit_event
+        record_audit_event(actor=request.user, workspace=workspace, action='billing_contract_updated', target_model='WorkspaceBillingContract', target_id=contract.id, details={'status': contract.status, 'contract_type': contract.contract_type})
+        return Response(self.payload(workspace, contract))
 
 
 class WorkspaceControlsView(APIView):

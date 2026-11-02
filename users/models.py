@@ -98,6 +98,32 @@ class WorkspaceInvitation(models.Model):
     def is_expired(self):
         return timezone.now() >= self.expires_at
 
+
+class WorkspaceBillingContract(models.Model):
+    CONTRACT_TYPES = [
+        ('trial', 'Trial'), ('subscription', 'Subscription'),
+        ('enterprise', 'Enterprise contract'), ('purchase_order', 'Purchase order'),
+    ]
+    STATUS_CHOICES = [('draft', 'Draft'), ('active', 'Active'), ('past_due', 'Past due'), ('canceled', 'Canceled'), ('expired', 'Expired')]
+    workspace = models.OneToOneField(Workspace, on_delete=models.CASCADE, related_name='billing_contract')
+    contract_type = models.CharField(max_length=20, choices=CONTRACT_TYPES, default='subscription')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    seat_commitment = models.PositiveIntegerField(default=0)
+    monthly_commitment = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    currency = models.CharField(max_length=3, default='INR')
+    tax_id = models.CharField(max_length=80, blank=True)
+    purchase_order = models.CharField(max_length=120, blank=True)
+    invoice_email = models.EmailField(blank=True)
+    payment_terms_days = models.PositiveIntegerField(default=30)
+    starts_at = models.DateField(null=True, blank=True)
+    ends_at = models.DateField(null=True, blank=True)
+    renewal_at = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
 # Profile model linked to the CustomUser model
 class Profile(models.Model):
     user = models.OneToOneField(
