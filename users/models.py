@@ -135,7 +135,10 @@ class WorkspaceIntegration(models.Model):
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
     name = models.CharField(max_length=120)
     endpoint_url = models.URLField(blank=True)
+    # Legacy plaintext storage is retained only for a backwards-compatible
+    # migration window. New writes use encrypted_secret exclusively.
     secret = models.CharField(max_length=512, blank=True)
+    encrypted_secret = models.TextField(blank=True)
     config = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='configured')
     is_active = models.BooleanField(default=True)

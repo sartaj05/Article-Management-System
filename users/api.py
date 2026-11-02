@@ -34,6 +34,7 @@ from .models import (
 )
 from articles.models import Article
 from .support_bot import get_support_response
+from .integration_secrets import decrypt_integration_secret, encrypt_integration_secret, IntegrationSecretError
 
 
 class SupportChatView(APIView):
@@ -1982,7 +1983,7 @@ def _integration_payload(integration):
         'endpoint_url': integration.endpoint_url, 'config': integration.config,
         'status': integration.status, 'is_active': integration.is_active,
         'last_checked_at': integration.last_checked_at, 'last_error': integration.last_error,
-        'secret_configured': bool(integration.secret), 'created_at': integration.created_at,
+        'secret_configured': bool(integration.encrypted_secret or integration.secret), 'created_at': integration.created_at,
     }
 
 
@@ -2005,7 +2006,7 @@ class WorkspaceIntegrationView(APIView):
         integration = WorkspaceIntegration.objects.create(
             workspace=workspace, provider=provider, name=name,
             endpoint_url=str(request.data.get('endpoint_url', '')).strip(),
-            secret=str(request.data.get('secret', '')).strip(),
+            encrypted_secret=encrypt_integration_secret(request.data.get('secret', '')),
             config=request.data.get('config') if isinstance(request.data.get('config'), dict) else {},
             created_by=request.user,
         )
@@ -2022,9 +2023,12 @@ class WorkspaceIntegrationDetailView(APIView):
 
     def patch(self, request, slug, pk):
         workspace, integration = self.get_integration(request, slug, pk)
-        for field in ('name', 'endpoint_url', 'secret'):
+        for field in ('name', 'endpoint_url'):
             if field in request.data:
                 setattr(integration, field, str(request.data.get(field, '')).strip())
+        if 'secret' in request.data:
+            integration.encrypted_secret = encrypt_integration_secret(request.data.get('secret', ''))
+            integration.secret = ''
         if 'config' in request.data and isinstance(request.data['config'], dict):
             integration.config = request.data['config']
         if 'is_active' in request.data:
@@ -2039,10 +2043,20 @@ class WorkspaceIntegrationDetailView(APIView):
         if not integration.endpoint_url:
             return Response({'detail': 'Configure an endpoint URL before testing.'}, status=400)
         try:
+            try:
+                integration_secret = decrypt_integration_secret(integration.encrypted_secret)
+            except IntegrationSecretError as exc:
+                integration.status = 'degraded'
+                integration.last_error = str(exc)
+                integration.last_checked_at = timezone.now()
+                integration.save(update_fields=['status', 'last_error', 'last_checked_at', 'updated_at'])
+                return Response({'integration': _integration_payload(integration), 'test': {'ok': False, 'error': integration.last_error}}, status=503)
+            if not integration_secret and integration.secret:
+                integration_secret = integration.secret
             response = requests.post(
                 integration.endpoint_url,
                 json={'text': request.data.get('message', f'Article Studio {integration.provider} integration test')},
-                headers={'Authorization': f'Bearer {integration.secret}'} if integration.secret else {},
+                headers={'Authorization': f'Bearer {integration_secret}'} if integration_secret else {},
                 timeout=getattr(settings, 'SSO_HTTP_TIMEOUT', 10),
             )
             response.raise_for_status()
