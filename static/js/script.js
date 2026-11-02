@@ -11,6 +11,12 @@ $(document).ready(function () {
   const $userrole = $("#role");
   const $homeArticleList = $("#home-article-list");
   const $articleList = $("#article-list");
+  const articlePager = WorkflowUI.createTablePagination({
+    container: document.getElementById('article-table'),
+    paginationContainer: document.getElementById('journalist-article-pagination'),
+    pageSize: 10,
+    label: 'articles',
+  });
   const $articleForm = $("#article-form");
   const $articleDetailModal = $("#article-detail-modal");
   const $articleDetailContent = $("#article-detail-content");
@@ -296,8 +302,9 @@ $(document).on('keydown', function (event) {
   $('#search-bar').on('input', function () {
     const query = this.value.trim().toLowerCase();
     $('#article-list tr').each(function () {
-      $(this).toggle($(this).text().toLowerCase().includes(query));
+      this.dataset.searchMatch = !query || this.textContent.toLowerCase().includes(query) ? '1' : '0';
     });
+    articlePager.reset();
   });
 $(document).ready(function () {
     // Edit Article (Dynamic Content Event Delegation)

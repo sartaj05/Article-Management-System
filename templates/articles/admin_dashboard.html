@@ -7,8 +7,8 @@
     <title>Admin Dashboard</title>
     <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
     <script src="{% static 'vendor/jquery-3.7.1.min.js' %}"></script>
-    <script src="{% static 'js/workflow-ui.js' %}?v=20261014-1"></script>
-    <script src="{% static 'js/admin.js' %}?v=20261014-1"></script>
+    <script src="{% static 'js/workflow-ui.js' %}?v=20261102-pagination-1"></script>
+    <script src="{% static 'js/admin.js' %}?v=20261102-pagination-1"></script>
     <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
     <script src="{% static 'js/notification-badge.js' %}" defer></script>
     <script src="{% static 'js/responsive-tables.js' %}"></script>
@@ -63,6 +63,7 @@
                     </thead>
                     <tbody id="articles-list"></tbody>
                 </table>
+                <nav class="table-pagination" id="admin-article-pagination" aria-label="Admin article pages"></nav>
                 <p id="no-articles-message" style="display: none;">No articles available.</p>
             </section>
 
@@ -79,6 +80,7 @@
                     </thead>
                     <tbody id="user-list"></tbody>
                 </table>
+                <nav class="table-pagination" id="admin-user-pagination" aria-label="User pages"></nav>
                 <p id="no-users-message" style="display: none;">No users available.</p>
             </section>
         </div>

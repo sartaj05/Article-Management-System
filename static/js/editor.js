@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    const {escapeHtml: escape, request, allArticles, statusBadge, editArticle} = WorkflowUI;
+    const {escapeHtml: escape, request, allArticles, createTablePagination, statusBadge, editArticle} = WorkflowUI;
     let articles = [];
     const tables = [
         ['article-list', 'no-articles-message', null],
@@ -7,6 +7,12 @@ $(document).ready(function () {
         ['reject-article-list', 'no-reject-articles-message', 'rejected'],
         ['published-article-list', 'no-published-articles-message', 'published'],
     ];
+    const tablePagers = Object.fromEntries(tables.map(([id]) => [id, createTablePagination({
+        container: document.getElementById(id)?.closest('table'),
+        paginationContainer: document.getElementById(id + '-pagination'),
+        pageSize: 10,
+        label: 'articles',
+    })]));
     function actions(article) {
         const button = (name, label) => `<button type="button" class="${name}-btn" data-id="${article.id}">${label}</button>`;
         let html = button('view', 'View') + button('edit', 'Edit');
@@ -25,6 +31,10 @@ $(document).ready(function () {
                 return `<tr data-article-id="${article.id}">${common}${end}</tr>`;
             }).join('');
             document.getElementById(empty).style.display = rows.length ? 'none' : '';
+            document.getElementById(id).querySelectorAll('tr').forEach((row) => {
+                row.dataset.searchMatch = !query || row.textContent.toLowerCase().includes(query) ? '1' : '0';
+            });
+            tablePagers[id].reset();
         }
         $('.page input[type="text"]').trigger('input');
     }
@@ -47,8 +57,13 @@ $(document).ready(function () {
     });
     showSection('home-section');
     $('.page input[type="text"]').on('input', function () {
-        const query = this.value.toLowerCase();
-        $(this).closest('.page').find('tbody tr').each(function () { $(this).toggle($(this).text().toLowerCase().includes(query)); });
+        const query = this.value.trim().toLowerCase();
+        const table = $(this).closest('.page').find('tbody')[0];
+        if (!table) return;
+        table.querySelectorAll('tr').forEach((row) => {
+            row.dataset.searchMatch = !query || row.textContent.toLowerCase().includes(query) ? '1' : '0';
+        });
+        tablePagers[table.id]?.reset();
     });
     $(document).on('click', '.view-btn', function () {
         const article = articles.find(item => item.id === Number(this.dataset.id));

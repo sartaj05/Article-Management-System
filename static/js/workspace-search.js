@@ -16,7 +16,7 @@
   const headers = () => ({ Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) });
 
   function queryString(page = 1) {
-    const params = new URLSearchParams({ page, page_size: 12 });
+    const params = new URLSearchParams({ page, page_size: 10 });
     Object.entries(fields).forEach(([key, field]) => { if (field.value.trim()) params.set(key === 'status' ? 'workflow_status' : key, field.value.trim()); });
     return params;
   }
@@ -48,7 +48,7 @@
   }
 
   function renderPagination(payload) {
-    const pageSize = Number(payload.results?.length || 12);
+    const pageSize = Number(payload.results?.length || 10);
     const pages = Math.max(1, Math.ceil((payload.count || 0) / pageSize));
     pagination.innerHTML = pages <= 1 ? '' : `<button class="button button--secondary button--small" type="button" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">Previous</button><span>Page ${currentPage} of ${pages}</span><button class="button button--secondary button--small" type="button" ${currentPage >= pages ? 'disabled' : ''} data-page="${currentPage + 1}">Next</button>`;
   }

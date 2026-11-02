@@ -1,6 +1,18 @@
 $(document).ready(function () {
-    const {escapeHtml: escape, request, allArticles, statusBadge, editArticle} = WorkflowUI;
+    const {escapeHtml: escape, request, allArticles, createTablePagination, statusBadge, editArticle} = WorkflowUI;
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const articlePager = createTablePagination({
+        container: document.querySelector('.articles-table'),
+        paginationContainer: document.getElementById('admin-article-pagination'),
+        pageSize: 10,
+        label: 'articles',
+    });
+    const userPager = createTablePagination({
+        container: document.querySelector('.users-table'),
+        paginationContainer: document.getElementById('admin-user-pagination'),
+        pageSize: 10,
+        label: 'users',
+    });
     async function fetchArticles() {
         try {
             const articles = await allArticles();
@@ -13,6 +25,7 @@ $(document).ready(function () {
                 ${article.available_actions?.includes('publish') ? `<button class="publish-btn" data-id="${article.id}">Publish</button>` : ''}
                 <button class="delete-article-btn" data-id="${article.id}">Move to trash</button></td></tr>`).join(''));
             $('#no-articles-message').toggle(!articles.length);
+            articlePager.reset();
         } catch (error) { alert(error.message); }
     }
     async function fetchUsers() {
@@ -21,6 +34,7 @@ $(document).ready(function () {
             while (url) { const data = await request(url); users.push(...(data.results || data)); url = data.next; }
             $('#user-list').html(users.map(account => `<tr><td>${escape(account.username)}</td><td>${escape(account.email)}</td><td>${escape(account.role)}</td><td>${account.username === user.username ? 'Current account' : `<button class="delete-user-btn" data-id="${account.id}">Delete</button>`}</td></tr>`).join(''));
             $('#no-users-message').toggle(!users.length);
+            userPager.reset();
         } catch (error) { alert(error.message); }
     }
     $('.nav-link[data-page]').on('click', function (event) {

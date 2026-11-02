@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
   <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
   <script src="{% static 'vendor/jquery-3.7.1.min.js' %}"></script>
-  <script src="{% static 'js/workflow-ui.js' %}?v=20261014-1"></script>
+  <script src="{% static 'js/workflow-ui.js' %}?v=20261102-pagination-1"></script>
   <script src="{% static 'js/editor.js' %}?v=20261102-nav-state-1"></script>
   <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
   <script src="{% static 'js/responsive-tables.js' %}"></script>
@@ -87,6 +87,7 @@
       </thead>
       <tbody id="article-list"></tbody>
   </table>
+  <nav class="table-pagination" id="article-list-pagination" aria-label="Manage article pages"></nav>
   <p id="no-articles-message" class="empty-message" style="display: none;">No articles available.</p>
 </section>
 <!-- Article Details Modal -->
@@ -133,6 +134,7 @@
       <!-- Articles will be dynamically loaded here -->
     </tbody>
   </table>
+  <nav class="table-pagination" id="approve-article-list-pagination" aria-label="Approval article pages"></nav>
   <p id="no-approve-articles-message" class="empty-message" style="display: none;">No articles pending approval.</p>
 </section>
 
@@ -158,6 +160,7 @@
     </thead>
     <tbody id="reject-article-list"></tbody>
   </table>
+  <nav class="table-pagination" id="reject-article-list-pagination" aria-label="Review article pages"></nav>
   <p id="no-reject-articles-message" class="empty-message" style="display: none;">No rejected articles available.</p>
 </section>
       <!-- Notification Modal for Approval/Reject -->
@@ -191,6 +194,7 @@
           </thead>
           <tbody id="published-article-list"></tbody>
         </table>
+        <nav class="table-pagination" id="published-article-list-pagination" aria-label="Published article pages"></nav>
         <p id="no-published-articles-message" class="empty-message" style="display: none;">No published articles available.</p>
       </section>
     </main>

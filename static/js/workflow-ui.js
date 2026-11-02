@@ -76,6 +76,85 @@
     return articles;
   }
 
+  function createPagination({container, onPage, pageSize = 10, label = 'items'}) {
+    let items = [];
+    let currentPage = 1;
+
+    function render() {
+      const total = items.length;
+      const pages = Math.max(1, Math.ceil(total / pageSize));
+      currentPage = Math.min(Math.max(currentPage, 1), pages);
+      const offset = (currentPage - 1) * pageSize;
+      onPage(items.slice(offset, offset + pageSize), {page: currentPage, pages, total, pageSize, offset});
+      if (!container) return;
+      container.innerHTML = total <= pageSize ? (total ? `<span class="table-pagination__summary">${total} ${label}</span>` : '') : `
+        <span class="table-pagination__summary">${offset + 1}–${Math.min(offset + pageSize, total)} of ${total} ${label}</span>
+        <div class="table-pagination__controls">
+          <button type="button" class="button button--secondary button--small" data-pager-page="1" ${currentPage === 1 ? 'disabled' : ''} aria-label="First page">«</button>
+          <button type="button" class="button button--secondary button--small" data-pager-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+          <span aria-current="page">Page ${currentPage} of ${pages}</span>
+          <button type="button" class="button button--secondary button--small" data-pager-page="${currentPage + 1}" ${currentPage === pages ? 'disabled' : ''}>Next</button>
+          <button type="button" class="button button--secondary button--small" data-pager-page="${pages}" ${currentPage === pages ? 'disabled' : ''} aria-label="Last page">»</button>
+        </div>`;
+    }
+
+    container?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-pager-page]');
+      if (!button || button.disabled) return;
+      currentPage = Number(button.dataset.pagerPage) || 1;
+      render();
+    });
+
+    return {
+      setItems(nextItems) { items = Array.isArray(nextItems) ? nextItems : []; currentPage = 1; render(); },
+      refresh() { render(); },
+      getPage() { return currentPage; },
+    };
+  }
+
+  function createTablePagination({container, paginationContainer, pageSize = 10, label = 'items'}) {
+    let rows = [];
+    let currentPage = 1;
+
+    function render() {
+      const filtered = rows.filter((row) => row.dataset.searchMatch !== '0');
+      const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      currentPage = Math.min(Math.max(currentPage, 1), pages);
+      const offset = (currentPage - 1) * pageSize;
+      const visible = new Set(filtered.slice(offset, offset + pageSize));
+      rows.forEach((row) => { row.hidden = !visible.has(row); });
+      if (!paginationContainer) return;
+      paginationContainer.innerHTML = filtered.length <= pageSize
+        ? (filtered.length ? '<span class="table-pagination__summary">' + filtered.length + ' ' + label + '</span>' : '')
+        : '<span class="table-pagination__summary">' + (offset + 1) + '–' + Math.min(offset + pageSize, filtered.length) + ' of ' + filtered.length + ' ' + label + '</span>' +
+          '<div class="table-pagination__controls">' +
+          '<button type="button" class="button button--secondary button--small" data-pager-page="1" ' + (currentPage === 1 ? 'disabled' : '') + ' aria-label="First page">«</button>' +
+          '<button type="button" class="button button--secondary button--small" data-pager-page="' + (currentPage - 1) + '" ' + (currentPage === 1 ? 'disabled' : '') + '>Previous</button>' +
+          '<span aria-current="page">Page ' + currentPage + ' of ' + pages + '</span>' +
+          '<button type="button" class="button button--secondary button--small" data-pager-page="' + (currentPage + 1) + '" ' + (currentPage === pages ? 'disabled' : '') + '>Next</button>' +
+          '<button type="button" class="button button--secondary button--small" data-pager-page="' + pages + '" ' + (currentPage === pages ? 'disabled' : '') + ' aria-label="Last page">»</button>' +
+          '</div>';
+    }
+
+    paginationContainer?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-pager-page]');
+      if (!button || button.disabled) return;
+      currentPage = Number(button.dataset.pagerPage) || 1;
+      render();
+    });
+
+    return {
+      refresh() {
+        rows = container ? [...container.querySelectorAll('tbody tr')] : [];
+        render();
+      },
+      reset() {
+        currentPage = 1;
+        this.refresh();
+      },
+    };
+  }
+
   async function editArticle(id, onSave) {
     try {
       const article = await request(`/articles/api/v2/articles/${id}/`);
@@ -116,5 +195,5 @@
     } catch (error) { window.alert(error.message); }
   }
 
-  window.WorkflowUI = { escapeHtml, statusBadge, timeline, actionButtons, request, allArticles, editArticle };
+  window.WorkflowUI = { escapeHtml, statusBadge, timeline, actionButtons, request, allArticles, createPagination, createTablePagination, editArticle };
 })(window);
