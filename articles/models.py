@@ -936,6 +936,25 @@ class EditorialAssistantRun(models.Model):
         ordering = ['-created_at']
 
 
+class AIFeedback(models.Model):
+    FEEDBACK_CHOICES = [('accepted', 'Accepted'), ('rejected', 'Rejected'), ('corrected', 'Corrected'), ('comment', 'Comment')]
+
+    run = models.ForeignKey(EditorialAssistantRun, on_delete=models.CASCADE, related_name='feedback')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='ai_feedback')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='ai_feedback_given')
+    action = models.CharField(max_length=30)
+    feedback_type = models.CharField(max_length=20, choices=FEEDBACK_CHOICES)
+    field = models.CharField(max_length=60, blank=True)
+    original_value = models.TextField(blank=True)
+    corrected_value = models.TextField(blank=True)
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['action', 'feedback_type', 'created_at'])]
+
+
 class AIPromptVersion(models.Model):
     name = models.CharField(max_length=80, default='editorial-copilot')
     version = models.CharField(max_length=40)

@@ -12,6 +12,11 @@
 .ai-copilot__suggestion p { margin: 0; color: var(--ink, #17243a); line-height: 1.55; white-space: pre-wrap; }
 .ai-copilot__footer { align-items: center; }
 .ai-copilot__footer small { color: var(--muted, #65748a); }
+.ai-copilot__feedback { display: flex; align-items: end; gap: 10px; flex-wrap: wrap; padding: 12px; border-top: 1px solid #dfebf4; }
+.ai-copilot__feedback label { display: grid; gap: 5px; color: var(--muted, #65748a); font-size: .76rem; font-weight: 700; }
+.ai-copilot__feedback select, .ai-copilot__feedback input { min-height: 36px; padding: 7px 10px; border: 1px solid #cbdbea; border-radius: 9px; background: #fff; }
+.ai-copilot__feedback > input { flex: 1 1 220px; }
+.ai-copilot__feedback > div { display: flex; gap: 6px; }
 #ai-copilot-status[data-state="error"] { color: #b33e4b; }
 .ai-fact-check__claim { display: grid; gap: 8px; }
 .ai-fact-check__claim label { color: var(--muted, #65748a); font-size: .8rem; }

@@ -8,6 +8,7 @@
   const result = document.getElementById("ai-copilot-result");
   const status = document.getElementById("ai-copilot-status");
   const metadata = document.getElementById("ai-copilot-meta");
+  const feedbackBox = document.getElementById("ai-copilot-feedback");
   let latestRun = null;
 
   if (!articleId || !runButton) return;
@@ -49,6 +50,40 @@
     });
     result.hidden = false;
     applyButton.disabled = false;
+    renderFeedback(Object.keys(suggestions).filter((field) => field !== "headlines"));
+  }
+
+  function renderFeedback(fields) {
+    if (!feedbackBox) return;
+    feedbackBox.replaceChildren();
+    const label = document.createElement("label");
+    label.textContent = "Feedback on";
+    const select = document.createElement("select");
+    fields.forEach((field) => { const option = document.createElement("option"); option.value = field; option.textContent = field.replaceAll("_", " "); select.appendChild(option); });
+    const note = document.createElement("input");
+    note.placeholder = "Optional correction or note";
+    note.maxLength = 2000;
+    const actions = document.createElement("div");
+    ["accepted", "rejected", "corrected"].forEach((type) => {
+      const button = document.createElement("button");
+      button.type = "button"; button.className = "btn btn-secondary"; button.textContent = type;
+      button.addEventListener("click", () => sendFeedback(type, select.value, note.value));
+      actions.appendChild(button);
+    });
+    label.appendChild(select); feedbackBox.append(label, note, actions); feedbackBox.hidden = false;
+  }
+
+  async function sendFeedback(feedbackType, field, note) {
+    if (!latestRun) return;
+    try {
+      const response = await fetch(`/articles/api/v2/assistant/runs/${latestRun.run_id}/feedback/`, {
+        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken() },
+        body: JSON.stringify({ feedback_type: feedbackType, field, corrected_value: feedbackType === "corrected" ? note : "", note }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Feedback could not be recorded.");
+      setStatus(`Feedback recorded: ${data.feedback_type}.`);
+    } catch (error) { setStatus(error.message, true); }
   }
 
   function syncArticleForm(suggestions) {

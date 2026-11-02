@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIInsight, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -483,6 +483,45 @@ class AIObservabilityView(APIView):
             'runs': {'total': runs.count(), 'average_latency_ms': round(runs.aggregate(value=Avg('latency_ms'))['value'] or 0, 2), 'providers': provider_breakdown, 'fallbacks': runs.filter(provider__contains='fallback').count()},
             'latest_evaluation': {'score': float(latest_eval.score), 'passed_cases': latest_eval.passed_cases, 'total_cases': latest_eval.total_cases, 'prompt_version': latest_eval.prompt_version} if latest_eval else None,
         })
+
+
+class AIFeedbackView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, run_id):
+        run = get_object_or_404(EditorialAssistantRun.objects.select_related('article'), pk=run_id)
+        if run.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot provide feedback for this AI run.'}, status=403)
+        feedback_type = str(request.data.get('feedback_type', '')).strip().lower()
+        if feedback_type not in {'accepted', 'rejected', 'corrected', 'comment'}:
+            return Response({'detail': 'feedback_type must be accepted, rejected, corrected, or comment.'}, status=400)
+        field = str(request.data.get('field', ''))[:60]
+        original = run.suggestions.get(field, '') if field else ''
+        feedback = AIFeedback.objects.create(
+            run=run, article=run.article, user=request.user, action=run.action,
+            feedback_type=feedback_type, field=field, original_value=str(original),
+            corrected_value=str(request.data.get('corrected_value', '')), note=str(request.data.get('note', ''))[:2000],
+        )
+        record_audit_event(actor=request.user, action='ai_feedback_recorded', article=run.article, details={'run_id': run.id, 'feedback_id': feedback.id, 'feedback_type': feedback_type, 'field': field})
+        return Response({'id': feedback.id, 'run_id': run.id, 'feedback_type': feedback.feedback_type, 'field': feedback.field}, status=201)
+
+    def get(self, request, run_id):
+        run = get_object_or_404(EditorialAssistantRun.objects.select_related('article'), pk=run_id)
+        if run.article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'You cannot view feedback for this AI run.'}, status=403)
+        return Response([{'id': item.id, 'feedback_type': item.feedback_type, 'field': item.field, 'corrected_value': item.corrected_value, 'note': item.note, 'created_at': item.created_at} for item in run.feedback.all()])
+
+
+class AIFeedbackSummaryView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        rows = AIFeedback.objects.values('action', 'feedback_type').annotate(count=Count('id')).order_by('action', 'feedback_type')
+        return Response({'feedback': list(rows), 'corrected_count': AIFeedback.objects.filter(feedback_type='corrected').count(), 'rejected_count': AIFeedback.objects.filter(feedback_type='rejected').count()})
 
 
 class ArticleIntelligenceView(APIView):
