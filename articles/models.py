@@ -707,6 +707,26 @@ class RecoveryDrill(models.Model):
         ordering = ['-checked_at']
 
 
+class OperationalAlert(models.Model):
+    STATUS_CHOICES = [('open', 'Open'), ('acknowledged', 'Acknowledged'), ('resolved', 'Resolved')]
+    SEVERITY_CHOICES = [('low', 'Low'), ('medium', 'Medium'), ('high', 'High'), ('critical', 'Critical')]
+    fingerprint = models.CharField(max_length=160, unique=True)
+    area = models.CharField(max_length=80)
+    severity = models.CharField(max_length=20, choices=SEVERITY_CHOICES, default='medium')
+    message = models.CharField(max_length=500)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    occurrences = models.PositiveIntegerField(default=1)
+    details = models.JSONField(default=dict, blank=True)
+    first_seen_at = models.DateTimeField(default=timezone.now)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-last_seen_at']
+        indexes = [models.Index(fields=['status', '-last_seen_at'], name='ops_alert_status_seen_idx')]
+
+
 class DistributionJob(models.Model):
     CHANNEL_CHOICES = [('rss', 'RSS'), ('newsletter', 'Newsletter'), ('webhook', 'Webhook'), ('social', 'Social')]
     STATUS_CHOICES = [('queued', 'Queued'), ('processing', 'Processing'), ('delivered', 'Delivered'), ('failed', 'Failed'), ('awaiting_provider', 'Awaiting provider')]

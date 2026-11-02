@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -2750,12 +2750,52 @@ class OperationsOverviewView(APIView):
             incidents.append({'severity': 'medium', 'area': 'Editorial SLA', 'message': f"{summary['overdue_assignments']} assignment(s) are overdue.", 'action_url': '/articles/editor/assignments/'})
         if summary['distribution_queued'] > 10:
             incidents.append({'severity': 'low', 'area': 'Queue', 'message': f"{summary['distribution_queued']} distribution job(s) are waiting for processing.", 'action_url': '/articles/workspace/integrations/'})
+        from .operations import refresh_operational_alerts
+        alert_snapshot = refresh_operational_alerts()
         return Response({
             'status': 'attention' if incidents else 'clear',
             'summary': summary,
             'incidents': incidents,
+            'alerts': [
+                {'id': alert.id, 'fingerprint': alert.fingerprint, 'area': alert.area, 'severity': alert.severity, 'message': alert.message, 'status': alert.status, 'occurrences': alert.occurrences, 'details': alert.details, 'first_seen_at': alert.first_seen_at, 'last_seen_at': alert.last_seen_at}
+                for alert in alert_snapshot['alerts']
+            ],
             'last_checked_at': now,
         })
+
+
+class OperationsAlertsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def _allowed(self, request):
+        return request.user.role in {'Editor', 'Admin'}
+
+    def get(self, request):
+        if not self._allowed(request):
+            return Response({'detail': 'Only editors and admins can view operational alerts.'}, status=403)
+        alerts = OperationalAlert.objects.all()
+        if request.query_params.get('status'):
+            alerts = alerts.filter(status=request.query_params['status'])
+        return Response([
+            {'id': item.id, 'fingerprint': item.fingerprint, 'area': item.area, 'severity': item.severity, 'message': item.message, 'status': item.status, 'occurrences': item.occurrences, 'details': item.details, 'first_seen_at': item.first_seen_at, 'last_seen_at': item.last_seen_at, 'resolved_at': item.resolved_at}
+            for item in alerts[:100]
+        ])
+
+    def post(self, request):
+        if not self._allowed(request):
+            return Response({'detail': 'Only editors and admins can update operational alerts.'}, status=403)
+        alert = get_object_or_404(OperationalAlert, pk=request.data.get('alert_id'))
+        action = request.data.get('action')
+        if action == 'acknowledge':
+            alert.status = 'acknowledged'
+            alert.acknowledged_at = timezone.now()
+        elif action == 'resolve':
+            alert.status = 'resolved'
+            alert.resolved_at = timezone.now()
+        else:
+            return Response({'detail': 'Action must be acknowledge or resolve.'}, status=400)
+        alert.save(update_fields=['status', 'acknowledged_at', 'resolved_at'])
+        return Response({'id': alert.id, 'status': alert.status})
 
 
 class OperationsQueueView(APIView):

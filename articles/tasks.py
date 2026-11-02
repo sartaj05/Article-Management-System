@@ -51,6 +51,13 @@ def cleanup_media_assets_task(self):
     return {'status': 'completed', 'job': 'cleanup_media_assets'}
 
 
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.refresh_operational_alerts')
+def refresh_operational_alerts_task(self):
+    from .operations import refresh_operational_alerts
+    snapshot = refresh_operational_alerts()
+    return {'status': 'completed', 'open_alerts': len(snapshot['alerts'])}
+
+
 @shared_task(
     bind=True,
     autoretry_for=(Exception,),

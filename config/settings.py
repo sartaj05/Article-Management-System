@@ -187,6 +187,8 @@ REST_FRAMEWORK = {
 }
 PUBLIC_API_KEY_RATE_LIMIT = int(os.getenv('PUBLIC_API_KEY_RATE_LIMIT', '120'))
 PUBLIC_API_MAX_PAGE_SIZE = int(os.getenv('PUBLIC_API_MAX_PAGE_SIZE', '100'))
+OPERATIONS_ERROR_RATE_THRESHOLD = float(os.getenv('OPERATIONS_ERROR_RATE_THRESHOLD', '0.10'))
+OPERATIONS_QUEUE_DELAY_MINUTES = int(os.getenv('OPERATIONS_QUEUE_DELAY_MINUTES', '15'))
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -317,6 +319,7 @@ CELERY_BEAT_SCHEDULE = {
     'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
     'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
     'cleanup-media-assets': {'task': 'articles.cleanup_media_assets', 'schedule': crontab(hour=3, minute=15)},
+    'refresh-operational-alerts': {'task': 'articles.refresh_operational_alerts', 'schedule': 300.0},
     'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
     'reconcile-pending-payments': {'task': 'users.reconcile_pending_payments', 'schedule': 900.0},
 }

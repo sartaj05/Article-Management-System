@@ -46,10 +46,32 @@ class JsonFormatter(logging.Formatter):
 
 
 def record_request(method, path, status_code, duration_seconds):
+    from django.core.cache import cache
+    bucket = int(time.time() // 60)
+    total_key = f'ops:http-total:{bucket}'
+    error_key = f'ops:http-errors:{bucket}'
+    try:
+        cache.add(total_key, 0, timeout=600)
+        cache.incr(total_key)
+        if int(status_code) >= 500:
+            cache.add(error_key, 0, timeout=600)
+            cache.incr(error_key)
+    except Exception:
+        pass
     if REQUEST_COUNT is not None:
         REQUEST_COUNT.labels(method=method, status=str(status_code)).inc()
     if REQUEST_LATENCY is not None:
         REQUEST_LATENCY.labels(method=method).observe(duration_seconds)
+
+
+def request_error_rate(window_minutes=5):
+    from django.core.cache import cache
+    now_bucket = int(time.time() // 60)
+    total = errors = 0
+    for bucket in range(now_bucket - max(1, window_minutes) + 1, now_bucket + 1):
+        total += int(cache.get(f'ops:http-total:{bucket}', 0) or 0)
+        errors += int(cache.get(f'ops:http-errors:{bucket}', 0) or 0)
+    return {'total': total, 'errors': errors, 'rate': errors / total if total else 0.0}
 
 
 def metrics_payload():
