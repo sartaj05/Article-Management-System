@@ -4,6 +4,7 @@ import json
 import requests
 
 from users.delivery import dispatch_webhook_event
+from config.resilience import call_with_circuit
 
 
 class ProviderNotConfigured(Exception):
@@ -30,7 +31,7 @@ def _article_payload(job):
 def _http_delivery(url, token, payload):
     if not url or not token:
         raise ProviderNotConfigured
-    response = requests.post(url, json=payload, headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}, timeout=settings.DISTRIBUTION_HTTP_TIMEOUT)
+    response = call_with_circuit('distribution', lambda: requests.post(url, json=payload, headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}, timeout=settings.DISTRIBUTION_HTTP_TIMEOUT))
     if response.status_code >= 400:
         raise ProviderDeliveryError(f'Provider returned HTTP {response.status_code}.')
     if isinstance(response.content, (bytes, bytearray)) and response.content:

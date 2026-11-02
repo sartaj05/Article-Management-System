@@ -288,6 +288,7 @@ CELERY_BEAT_SCHEDULE = {
     'create-database-backup': {'task': 'articles.create_database_backup', 'schedule': crontab(hour=2, minute=30)},
     'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
     'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
+    'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
 }
 
 
@@ -327,6 +328,10 @@ PAYMENT_SUCCESS_URL = os.getenv('PAYMENT_SUCCESS_URL', '')
 PAYMENT_CANCEL_URL = os.getenv('PAYMENT_CANCEL_URL', '')
 PAYMENT_HTTP_TIMEOUT = float(os.getenv('PAYMENT_HTTP_TIMEOUT', '10'))
 PAYMENT_REMOTE_CANCELLATION_ENABLED = os.getenv('PAYMENT_REMOTE_CANCELLATION_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
+PROVIDER_MAX_ATTEMPTS = int(os.getenv('PROVIDER_MAX_ATTEMPTS', '5'))
+PROVIDER_RETRY_BASE_SECONDS = int(os.getenv('PROVIDER_RETRY_BASE_SECONDS', '60'))
+PROVIDER_CIRCUIT_FAILURE_THRESHOLD = int(os.getenv('PROVIDER_CIRCUIT_FAILURE_THRESHOLD', '5'))
+PROVIDER_CIRCUIT_COOLDOWN_SECONDS = int(os.getenv('PROVIDER_CIRCUIT_COOLDOWN_SECONDS', '60'))
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')

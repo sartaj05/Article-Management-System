@@ -11,6 +11,7 @@ from django.utils import timezone
 import requests
 
 from .models import AlertRule, NotificationDelivery, NotificationPreference, PushSubscription, SavedSearch, WebhookDelivery, WebhookEndpoint
+from config.resilience import call_with_circuit
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ def dispatch_webhook_event(*, owner, event_type, payload):
         signature = hmac.new(endpoint.secret.encode('utf-8'), body, hashlib.sha256).hexdigest()
         delivery.attempts = 1
         try:
-            response = requests.post(
+            response = call_with_circuit('webhook', lambda: requests.post(
                 endpoint.url,
                 data=body,
                 headers={
@@ -39,7 +40,7 @@ def dispatch_webhook_event(*, owner, event_type, payload):
                     'X-Webhook-Signature': f'sha256={signature}',
                 },
                 timeout=5,
-            )
+            ))
             delivery.response_code = response.status_code
             delivery.status = 'sent' if 200 <= response.status_code < 300 else 'failed'
             if delivery.status == 'sent':
@@ -61,11 +62,11 @@ def retry_webhook_delivery(delivery):
     signature = hmac.new(delivery.endpoint.secret.encode('utf-8'), body, hashlib.sha256).hexdigest()
     delivery.attempts += 1
     try:
-        response = requests.post(
+        response = call_with_circuit('webhook', lambda: requests.post(
             delivery.endpoint.url, data=body,
             headers={'Content-Type': 'application/json', 'X-Webhook-Event': delivery.event_type, 'X-Webhook-Id': str(delivery.event_id), 'X-Webhook-Signature': f'sha256={signature}'},
             timeout=5,
-        )
+        ))
         delivery.response_code = response.status_code
         delivery.status = 'sent' if 200 <= response.status_code < 300 else 'failed'
         delivery.last_error = '' if delivery.status == 'sent' else f'Endpoint returned HTTP {response.status_code}'
@@ -75,6 +76,15 @@ def retry_webhook_delivery(delivery):
         delivery.last_error = str(exc)[:500]
     delivery.save(update_fields=['attempts', 'response_code', 'status', 'last_error', 'delivered_at'])
     return delivery
+
+
+def retry_failed_webhook_deliveries(limit=50):
+    retried = sent = 0
+    for delivery in WebhookDelivery.objects.filter(status='failed', attempts__lt=settings.PROVIDER_MAX_ATTEMPTS).select_related('endpoint')[:limit]:
+        retried += 1
+        if retry_webhook_delivery(delivery).status == 'sent':
+            sent += 1
+    return {'retried': retried, 'sent': sent}
 
 
 def send_web_push(subscription, payload):

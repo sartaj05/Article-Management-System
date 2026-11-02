@@ -26,3 +26,9 @@ def expire_pending_memberships_task(self):
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 3}, name='users.send_newsletter')
 def send_newsletter_task(self, frequency='weekly'):
     return _run_command('send_newsletter', frequency=frequency)
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='users.retry_failed_webhooks')
+def retry_failed_webhooks_task(self):
+    from .delivery import retry_failed_webhook_deliveries
+    return retry_failed_webhook_deliveries()

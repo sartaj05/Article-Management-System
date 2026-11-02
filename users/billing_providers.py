@@ -3,6 +3,7 @@ from decimal import Decimal
 import requests
 from urllib.parse import quote
 from django.conf import settings
+from config.resilience import call_with_circuit
 
 
 class ProviderRequestError(Exception):
@@ -30,20 +31,20 @@ def cancel_remote_subscription(subscription):
     if subscription.provider == 'stripe':
         if not settings.STRIPE_SECRET_KEY:
             return {'configured': False, 'canceled': False}
-        response = requests.delete(
+        response = call_with_circuit('stripe', lambda: requests.delete(
             f'https://api.stripe.com/v1/subscriptions/{reference}',
             auth=(settings.STRIPE_SECRET_KEY, ''),
             timeout=settings.PAYMENT_HTTP_TIMEOUT,
-        )
+        ))
     elif subscription.provider == 'razorpay':
         if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
             return {'configured': False, 'canceled': False}
-        response = requests.post(
+        response = call_with_circuit('razorpay', lambda: requests.post(
             f'https://api.razorpay.com/v1/subscriptions/{reference}/cancel',
             json={'cancel_at_cycle_end': 1},
             auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
             timeout=settings.PAYMENT_HTTP_TIMEOUT,
-        )
+        ))
     else:
         return {'configured': False, 'canceled': False}
     if not response.ok:
