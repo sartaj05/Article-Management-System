@@ -3142,7 +3142,7 @@ class HeadlessArticleFeedView(APIView):
 
     def get(self, request):
         raw_key = request.headers.get('X-API-Key', '')
-        owner = resolve_public_api_key(raw_key, required_scope='articles:read') if raw_key else None
+        owner = resolve_public_api_key(raw_key, required_scope='articles:read', endpoint=request.path, method=request.method) if raw_key else None
         if raw_key and not owner:
             return Response({'detail': 'Invalid, revoked, unauthorized, or rate-limited API key.'}, status=401)
 
@@ -3158,7 +3158,7 @@ class HeadlessArticleFeedView(APIView):
         except ValueError:
             limit = 20
         articles = queryset.order_by('-published_at', '-created_at')[:limit]
-        return Response({
+        response = Response({
             'count': queryset.count(),
             'results': [
                 {
@@ -3177,6 +3177,8 @@ class HeadlessArticleFeedView(APIView):
                 for article in articles
             ],
         })
+        response['X-API-Version'] = 'v2'
+        return response
 
 
 class StorySeriesListView(APIView):

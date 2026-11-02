@@ -27,7 +27,7 @@ from decimal import Decimal
 from .models import (
     AccessibilityPreference, AlertRule, AuthorTip, CustomUser, FeatureFlag, has_active_membership, MembershipPlan,
     MembershipSubscription, MembershipWebhookEvent, MembershipInvoice, PaymentTransaction, NewsletterCampaignAttribution, NewsletterEdition, NewsletterSubscription, NotificationPreference, Profile,
-    NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
+    NotificationDelivery, PrivacyConsent, PrivacyPreference, PrivacyRequest, PublicAPIKey, PublicAPIKeyUsage, PushSubscription, ReaderDigestDelivery, ReaderInterest, RoleCapabilityOverride, SavedSearch, SSOProvider, PasskeyCredential, TrustedDevice, TwoFactorAuth, WebhookDelivery, WebhookEndpoint, Workspace, WorkspaceInvitation, PersonalizationPreference,
     WorkspaceMembership,
 )
 from articles.models import Article
@@ -1250,6 +1250,26 @@ class PublicAPIKeyDetailView(APIView):
         return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data})
 
 
+class PublicAPIKeyUsageView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        key = get_object_or_404(PublicAPIKey, pk=pk, owner=request.user)
+        events = PublicAPIKeyUsage.objects.filter(api_key=key)
+        recent = events[:100]
+        status_counts = {}
+        for code in events.values_list('status_code', flat=True):
+            status_counts[str(code)] = status_counts.get(str(code), 0) + 1
+        return Response({
+            'key_id': key.id,
+            'prefix': key.prefix,
+            'request_count': events.count(),
+            'status_counts': status_counts,
+            'recent': [{'endpoint': item.endpoint, 'method': item.method, 'status_code': item.status_code, 'response_ms': item.response_ms, 'created_at': item.created_at} for item in recent],
+        })
+
+
 class WebhookEndpointSerializer(serializers.ModelSerializer):
     secret = serializers.CharField(required=False, write_only=True)
 
@@ -1331,11 +1351,13 @@ class DeveloperAPIDocumentationView(APIView):
                 'sitemap': '/sitemap.xml',
                 'webhooks': '/api/developer/webhooks/',
             },
+            'version': 'v2',
+            'examples': {'curl': 'curl -H "X-API-Key: as_..." https://news.example.com/api/v2/public/articles/'},
             'events': ['article.published', 'article.updated', 'article.deleted'],
         })
 
 
-def resolve_public_api_key(raw_key, required_scope=None):
+def resolve_public_api_key(raw_key, required_scope=None, endpoint='', method='GET'):
     if not raw_key:
         return None
     key = PublicAPIKey.objects.filter(
@@ -1353,6 +1375,8 @@ def resolve_public_api_key(raw_key, required_scope=None):
         if requests_in_window >= 120:
             return None
         cache.set(rate_key, requests_in_window + 1, timeout=70)
+        if getattr(settings, 'API_KEY_USAGE_LOGGING_ENABLED', True):
+            PublicAPIKeyUsage.objects.create(api_key=key, endpoint=endpoint[:160], method=method[:10], status_code=200)
         key.last_used_at = timezone.now()
         key.save(update_fields=['last_used_at'])
         return key.owner

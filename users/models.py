@@ -554,6 +554,19 @@ class PublicAPIKey(models.Model):
         return f'{self.name} ({self.prefix}...)'
 
 
+class PublicAPIKeyUsage(models.Model):
+    api_key = models.ForeignKey(PublicAPIKey, on_delete=models.CASCADE, related_name='usage_events')
+    endpoint = models.CharField(max_length=160, blank=True)
+    method = models.CharField(max_length=10, default='GET')
+    status_code = models.PositiveSmallIntegerField(default=200)
+    response_ms = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['api_key', '-created_at'], name='api_key_usage_recent_idx')]
+
+
 class WebhookEndpoint(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='webhook_endpoints')
     url = models.URLField()
