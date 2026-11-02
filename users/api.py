@@ -1003,11 +1003,15 @@ class MembershipWebhookView(APIView):
 
     def post(self, request):
         secret = settings.PAYMENT_WEBHOOK_SECRET
-        if not secret:
+        provider = str(request.headers.get('X-Payment-Provider') or '').strip().lower()
+        if not secret and not (
+            provider == 'stripe' and request.headers.get('Stripe-Signature') and settings.STRIPE_WEBHOOK_SECRET
+        ) and not (
+            provider == 'razorpay' and request.headers.get('X-Razorpay-Signature') and settings.RAZORPAY_WEBHOOK_SECRET
+        ):
             return Response({'detail': 'Payment webhook is not configured.'}, status=503)
-        signature = request.headers.get('X-Payment-Signature', '')
-        expected = 'sha256=' + hmac.new(secret.encode(), request.body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(signature, expected):
+        from .billing_providers import verify_payment_webhook_signature
+        if not verify_payment_webhook_signature(provider or request.data.get('provider'), request.body, request.headers):
             return Response({'detail': 'Invalid payment webhook signature.'}, status=403)
         try:
             payload = json.loads(request.body.decode('utf-8'))

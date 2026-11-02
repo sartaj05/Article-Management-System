@@ -1,10 +1,13 @@
 from unittest.mock import Mock, patch
+import hashlib
+import hmac
+import time
 
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
-from users.billing_providers import cancel_remote_subscription
-from users.models import CustomUser, MembershipPlan, MembershipSubscription
+from users.billing_providers import cancel_remote_subscription, reconcile_pending_payments, verify_payment_webhook_signature
+from users.models import CustomUser, MembershipInvoice, MembershipPlan, MembershipSubscription, PaymentTransaction
 
 
 class ProviderIntegrationTests(TestCase):
@@ -28,3 +31,30 @@ class ProviderIntegrationTests(TestCase):
         result = cancel_remote_subscription(subscription)
         self.assertTrue(result['canceled'])
         delete.assert_called_once()
+
+    @override_settings(STRIPE_WEBHOOK_SECRET='stripe-hook-secret')
+    def test_stripe_native_signature_is_verified(self):
+        body = b'{"id":"evt_1"}'
+        timestamp = str(int(time.time()))
+        digest = hmac.new(b'stripe-hook-secret', f'{timestamp}.{{"id":"evt_1"}}'.encode(), hashlib.sha256).hexdigest()
+        self.assertTrue(verify_payment_webhook_signature('stripe', body, {
+            'Stripe-Signature': f't={timestamp},v1={digest}',
+        }))
+
+    @override_settings(STRIPE_SECRET_KEY='stripe-secret')
+    @patch('users.billing_providers.requests.get')
+    def test_reconciliation_marks_paid_transaction_and_invoice(self, get):
+        transaction = PaymentTransaction.objects.create(
+            user=self.user, plan=self.plan, provider='stripe', checkout_token='reconcile-token',
+            provider_reference='cs_reconcile', amount=self.plan.price, currency=self.plan.currency,
+        )
+        MembershipInvoice.objects.create(
+            invoice_number='INV-RECONCILE', user=self.user, plan=self.plan,
+            transaction=transaction, amount=self.plan.price, currency=self.plan.currency,
+        )
+        get.return_value = Mock(ok=True, json=lambda: {'payment_status': 'paid', 'status': 'complete'})
+        summary = reconcile_pending_payments()
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.status, 'succeeded')
+        self.assertEqual(transaction.invoice.status, 'paid')
+        self.assertEqual(summary['succeeded'], 1)

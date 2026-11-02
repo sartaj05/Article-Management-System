@@ -32,3 +32,9 @@ def send_newsletter_task(self, frequency='weekly'):
 def retry_failed_webhooks_task(self):
     from .delivery import retry_failed_webhook_deliveries
     return retry_failed_webhook_deliveries()
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='users.reconcile_pending_payments')
+def reconcile_pending_payments_task(self):
+    from .billing_providers import reconcile_pending_payments
+    return reconcile_pending_payments()

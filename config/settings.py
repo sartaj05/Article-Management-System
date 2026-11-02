@@ -311,6 +311,7 @@ CELERY_BEAT_SCHEDULE = {
     'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
     'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
     'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
+    'reconcile-pending-payments': {'task': 'users.reconcile_pending_payments', 'schedule': 900.0},
 }
 
 
@@ -343,6 +344,9 @@ DISTRIBUTION_SITE_URL = os.getenv('DISTRIBUTION_SITE_URL', '')
 DISTRIBUTION_HTTP_TIMEOUT = float(os.getenv('DISTRIBUTION_HTTP_TIMEOUT', '10'))
 ACCESSIBILITY_PUBLISH_GATE = os.getenv('ACCESSIBILITY_PUBLISH_GATE', 'false').lower() in {'1', 'true', 'yes'}
 PAYMENT_WEBHOOK_SECRET = os.getenv('PAYMENT_WEBHOOK_SECRET', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
+PAYMENT_WEBHOOK_TOLERANCE_SECONDS = int(os.getenv('PAYMENT_WEBHOOK_TOLERANCE_SECONDS', '300'))
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
