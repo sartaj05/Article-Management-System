@@ -179,6 +179,9 @@ test('editor navigation highlights the active workspace section', async ({ page 
   await expect(page.locator('#approve-articles-btn')).toHaveClass(/is-active/);
   await expect(page.locator('#approve-articles-btn')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#home-btn')).not.toHaveAttribute('aria-current', 'page');
+  await page.reload();
+  await expect(page.locator('#approve-articles-page')).toBeVisible();
+  await expect(page.locator('#approve-articles-btn')).toHaveAttribute('aria-current', 'page');
 });
 
 test('journalist articles table and detail modal remain usable on narrow screens', async ({ page }) => {

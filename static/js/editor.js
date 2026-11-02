@@ -22,6 +22,8 @@ $(document).ready(function () {
     }
     function render() {
         for (const [id, empty, status] of tables) {
+            const page = document.getElementById(id)?.closest('.page');
+            const query = page?.querySelector('input[type="text"]')?.value.trim().toLowerCase() || '';
             const rows = articles.filter(article => !status || article.workflow_status === status);
             document.getElementById(id).innerHTML = rows.map((article, index) => {
                 const image = article.image ? `<img src="${escape(article.image)}" alt="${escape(article.title)}" width="50">` : '<span class="image-placeholder">No image</span>';
@@ -44,6 +46,7 @@ $(document).ready(function () {
     }
     function showSection(id) {
         $('#home-section, .page').hide(); $('#' + id).show();
+        localStorage.setItem('editorActiveSection', id);
         for (const [link, section] of Object.entries(sections)) {
             const active = section === id;
             $('#' + link)
@@ -55,7 +58,9 @@ $(document).ready(function () {
     for (const [link, section] of Object.entries(sections)) $('#' + link).on('click', function (event) {
         event.preventDefault(); showSection(section); if (section !== 'home-section') refresh();
     });
-    showSection('home-section');
+    const initialSection = localStorage.getItem('editorActiveSection') || 'home-section';
+    showSection(initialSection);
+    if (initialSection !== 'home-section') refresh();
     $('.page input[type="text"]').on('input', function () {
         const query = this.value.trim().toLowerCase();
         const table = $(this).closest('.page').find('tbody')[0];
