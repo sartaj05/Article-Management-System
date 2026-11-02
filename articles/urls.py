@@ -46,7 +46,7 @@ from .api import (
     TagDetailView,
     TagListCreateView,
 )
-from .api import AIEvaluationView, AIFactCheckApplyView, AIFactCheckView, AIGovernancePolicyView, AIJobDetailView, AIJobView, AIUsageView, AIPromptVersionView, ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleIntelligenceView, ArticleSourceEvidenceView, ArticleSourceIngestionView, AIStreamingView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView, NewsroomIntelligenceView
+from .api import AIEvaluationView, AIFactCheckApplyView, AIFactCheckView, AIGovernancePolicyView, AIJobDetailView, AIJobView, AIObservabilityView, AIUsageView, AIPromptVersionView, ArticleAccessibilityView, ArticleAssistantView, ArticleCollaborationView, ArticleCorrectionDetailView, ArticleCorrectionView, ArticleEngagementView, ArticleEvidenceView, ArticleFactCheckView, ArticleIntelligenceView, ArticleSourceEvidenceView, ArticleSourceIngestionView, AIStreamingView, ArticleAssetView, ArticleLiveUpdateDetailView, ArticleLiveUpdateView, ArticleMediaDeleteView, ArticleMediaProcessView, ArticleMediaView, ArticleProvenanceView, ArticleSourceView, AssignmentBoardView, ContentExperimentDetailView, ContentExperimentListView, EditorialAIHealthView, EditorialAssistantApplyView, ExperimentAssignmentView, ExperimentCompleteView, ExperimentEventView, ExperimentResultsView, ExperimentStartView, ExperimentVariantView, HeadlessArticleFeedView, MediaAssetDetailView, MediaAssetLibraryView, PersonalizedFeedView, ReaderPersonalizationInsightsView, ReadingCollectionArticleView, ReadingCollectionDetailView, ReadingCollectionsView, StorySeriesArticleDeleteView, StorySeriesDetailView, StorySeriesListView, NewsroomIntelligenceView
 urlpatterns = [
     path('read/<slug:slug>/', public_article, name='public-article'),
     path('read/<slug:slug>/<str:language_code>/', public_article_translation, name='public-article-translation'),
@@ -110,6 +110,7 @@ urlpatterns = [
     path('workspace/notifications/', views.notification_center, name='notification-center-page'),
     path('workspace/analytics/', views.analytics_dashboard, name='analytics-dashboard-page'),
     path('workspace/monitoring/', views.monitoring_dashboard, name='monitoring-dashboard-page'),
+    path('workspace/ai-observability/', views.ai_observability_dashboard, name='ai-observability-page'),
     path('workspace/backups/', views.backup_center, name='backup-center-page'),
     path('workspace/comments/', views.comment_moderation, name='comment-moderation-page'),
     path('workspace/translations/', views.translation_workspace, name='translation-workspace-page'),
@@ -136,6 +137,7 @@ urlpatterns = [
     path('api/v2/assistant/jobs/<int:job_id>/', AIJobDetailView.as_view(), name='ai-job-detail'),
     path('api/v2/assistant/governance/policy/', AIGovernancePolicyView.as_view(), name='ai-governance-policy'),
     path('api/v2/assistant/governance/usage/', AIUsageView.as_view(), name='ai-governance-usage'),
+    path('api/v2/assistant/observability/', AIObservabilityView.as_view(), name='ai-observability'),
     path('api/v2/articles/<int:article_id>/intelligence/', ArticleIntelligenceView.as_view(), name='article-intelligence'),
     path('api/v2/assistant/intelligence/', NewsroomIntelligenceView.as_view(), name='newsroom-intelligence'),
     path('api/v2/assistant/runs/<int:run_id>/apply/', EditorialAssistantApplyView.as_view(), name='assistant-run-apply'),

@@ -1,0 +1,11 @@
+.ai-observability-page { max-width: 1240px; }
+.ai-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 22px 0; }
+.ai-metric { padding: 18px; border: 1px solid var(--line, #d8e6f2); border-radius: 16px; background: var(--surface, #fff); box-shadow: 0 12px 28px rgba(48,80,120,.07); }
+.ai-metric strong { display: block; margin-top: 8px; color: var(--ink, #17243a); font-size: 1.65rem; }
+.ai-metric small { color: var(--muted, #65748a); }
+.ai-observability-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.ai-observability-card { min-height: 150px; padding: 20px; border: 1px solid var(--line, #d8e6f2); border-radius: 16px; background: var(--surface, #fff); }
+.ai-observability-card h2 { margin: 6px 0 14px; color: var(--ink, #17243a); font-size: 1.1rem; }
+.ai-observability-card ul { margin: 0; padding-left: 18px; color: var(--muted, #65748a); line-height: 1.8; }
+@media (max-width: 900px) { .ai-metric-grid, .ai-observability-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .ai-metric-grid, .ai-observability-grid { grid-template-columns: 1fr; } }

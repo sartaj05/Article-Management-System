@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI observability</title>
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/ai-observability.css' %}">
+</head>
+<body class="dashboard-shell">
+    <header class="workspace-topbar"><a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% else %}{% url 'editor-dashboard' %}{% endif %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>AI observability</small></span></a><nav class="workspace-topbar__actions"><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a class="is-active" href="{% url 'ai-observability-page' %}">AI health</a><a href="{% url 'analytics-dashboard-page' %}">Analytics</a></nav></header>
+    <main class="feature-page ai-observability-page">
+        <header class="feature-page__heading"><div><span class="feature-eyebrow">AI operations</span><h1>Quality, cost &amp; reliability</h1><p>Track model behavior before it affects editorial trust or workspace budgets.</p></div><button class="button button--small" id="refresh-ai-observability" type="button">Refresh</button></header>
+        <p id="ai-observability-status" class="feature-status" role="status" aria-live="polite">Loading AI telemetry…</p>
+        <section class="ai-metric-grid" id="ai-metric-grid"></section>
+        <section class="ai-observability-grid"><article class="ai-observability-card"><span class="feature-eyebrow">Jobs</span><h2>Processing status</h2><div id="ai-job-status"></div></article><article class="ai-observability-card"><span class="feature-eyebrow">Providers</span><h2>Traffic split</h2><div id="ai-provider-status"></div></article><article class="ai-observability-card"><span class="feature-eyebrow">Evaluation</span><h2>Latest regression run</h2><div id="ai-evaluation-status"></div></article></section>
+    </main>
+    <script src="{% static 'js/ai-observability.js' %}" defer></script>
+</body>
+</html>

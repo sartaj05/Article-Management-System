@@ -64,6 +64,11 @@ def monitoring_dashboard(request):
 
 
 @role_required('Editor', 'Admin')
+def ai_observability_dashboard(request):
+    return render(request, 'articles/ai_observability.html')
+
+
+@role_required('Editor', 'Admin')
 def comment_moderation(request):
     return render(request, 'articles/comment_moderation.html')
 

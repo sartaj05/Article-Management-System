@@ -451,6 +451,40 @@ class AIUsageView(APIView):
         return Response({'workspace_slug': workspace.slug, 'period_start': start, 'event_count': events.count(), 'prompt_tokens': totals['prompt_tokens'] or 0, 'completion_tokens': totals['completion_tokens'] or 0, 'total_tokens': totals['total_tokens'] or 0, 'estimated_cost': str(totals['estimated_cost'] or 0)})
 
 
+class AIObservabilityView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Editor access is required.'}, status=403)
+        workspace = None
+        slug = request.query_params.get('workspace')
+        if slug:
+            workspace = Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
+            if not workspace:
+                return Response({'detail': 'Editor workspace access is required.'}, status=403)
+        start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        usage = AIUsageEvent.objects.filter(created_at__gte=start)
+        jobs = AIJob.objects.filter(created_at__gte=start)
+        runs = EditorialAssistantRun.objects.filter(created_at__gte=start)
+        if workspace:
+            usage = usage.filter(workspace=workspace)
+            jobs = jobs.filter(article__workspace=workspace)
+            runs = runs.filter(article__workspace=workspace)
+        usage_totals = usage.aggregate(prompt_tokens=Sum('prompt_tokens'), completion_tokens=Sum('completion_tokens'), total_tokens=Sum('total_tokens'), estimated_cost=Sum('estimated_cost'))
+        job_status = {row['status']: row['count'] for row in jobs.values('status').annotate(count=Count('id'))}
+        provider_breakdown = {row['provider']: row['count'] for row in runs.values('provider').annotate(count=Count('id'))}
+        latest_eval = AIEvaluationRun.objects.filter(created_at__gte=start).first()
+        return Response({
+            'period_start': start, 'workspace_slug': workspace.slug if workspace else None,
+            'usage': {'events': usage.count(), 'prompt_tokens': usage_totals['prompt_tokens'] or 0, 'completion_tokens': usage_totals['completion_tokens'] or 0, 'total_tokens': usage_totals['total_tokens'] or 0, 'estimated_cost': str(usage_totals['estimated_cost'] or 0)},
+            'jobs': {'total': jobs.count(), 'by_status': job_status},
+            'runs': {'total': runs.count(), 'average_latency_ms': round(runs.aggregate(value=Avg('latency_ms'))['value'] or 0, 2), 'providers': provider_breakdown, 'fallbacks': runs.filter(provider__contains='fallback').count()},
+            'latest_evaluation': {'score': float(latest_eval.score), 'passed_cases': latest_eval.passed_cases, 'total_cases': latest_eval.total_cases, 'prompt_version': latest_eval.prompt_version} if latest_eval else None,
+        })
+
+
 class ArticleIntelligenceView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
