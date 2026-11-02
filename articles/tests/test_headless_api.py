@@ -27,6 +27,9 @@ class HeadlessAPIFeatureTests(TestCase):
         response = self.client.get('/articles/api/v2/public/articles/', HTTP_X_API_KEY=raw_key)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['results'][0]['slug'], self.article.slug)
+        self.assertEqual(response.data['page'], 1)
+        self.assertIn('next_page', response.data)
+        self.assertEqual(response.headers['X-API-Version'], 'v2')
 
     def test_invalid_key_is_rejected_and_docs_are_public(self):
         response = self.client.get('/articles/api/v2/public/articles/', HTTP_X_API_KEY='as_invalid')

@@ -79,6 +79,7 @@ The versioned `/articles/api/v2/` API now supports:
 
 Useful endpoints include `/articles/api/v2/articles/search/`,
 `/articles/api/v2/notifications/`, and `/articles/api/v2/analytics/`.
+Public API client examples are documented in [`docs/api-client.md`](docs/api-client.md).
 
 ## Branch workflow
 

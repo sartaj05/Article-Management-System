@@ -3163,12 +3163,23 @@ class HeadlessArticleFeedView(APIView):
         if search:
             queryset = queryset.filter(Q(title__icontains=search) | Q(summary__icontains=search) | Q(content__icontains=search))
         try:
-            limit = min(max(int(request.query_params.get('limit', 20)), 1), 100)
+            limit = min(max(int(request.query_params.get('limit', 20)), 1), settings.PUBLIC_API_MAX_PAGE_SIZE)
         except ValueError:
             limit = 20
-        articles = queryset.order_by('-published_at', '-created_at')[:limit]
+        try:
+            page = max(int(request.query_params.get('page', 1)), 1)
+        except ValueError:
+            page = 1
+        total = queryset.count()
+        pages = max((total + limit - 1) // limit, 1)
+        page = min(page, pages)
+        articles = queryset.order_by('-published_at', '-created_at')[(page - 1) * limit:page * limit]
         response = Response({
-            'count': queryset.count(),
+            'count': total,
+            'page': page,
+            'page_size': limit,
+            'next_page': page + 1 if page < pages else None,
+            'previous_page': page - 1 if page > 1 else None,
             'results': [
                 {
                     'id': article.id,

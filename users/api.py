@@ -1243,10 +1243,12 @@ class AuthorTipHistoryView(APIView):
 
 
 class PublicAPIKeySerializer(serializers.ModelSerializer):
+    API_SCOPE_CHOICES = ['articles:read', 'articles:search', 'analytics:read']
     scopes = serializers.ListField(
-        child=serializers.ChoiceField(choices=['articles:read']),
+        child=serializers.ChoiceField(choices=API_SCOPE_CHOICES),
         required=False,
         allow_empty=True,
+        default=['articles:read'],
     )
     expires_at = serializers.DateTimeField(required=False, allow_null=True)
 
@@ -1271,7 +1273,7 @@ class PublicAPIKeyView(APIView):
         key = PublicAPIKey.objects.create(
             owner=request.user,
             name=serializer.validated_data['name'],
-            scopes=serializer.validated_data.get('scopes', []),
+            scopes=serializer.validated_data.get('scopes') or ['articles:read'],
             prefix=raw_key[:10],
             key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
             expires_at=serializer.validated_data.get('expires_at') or timezone.now() + timedelta(days=90),
@@ -1404,6 +1406,9 @@ class DeveloperAPIDocumentationView(APIView):
             'version': 'v2',
             'examples': {'curl': 'curl -H "X-API-Key: as_..." https://news.example.com/api/v2/public/articles/'},
             'events': ['article.published', 'article.updated', 'article.deleted'],
+            'authentication': {'header': 'X-API-Key', 'scopes': PublicAPIKeySerializer.API_SCOPE_CHOICES},
+            'pagination': {'query': {'page': '1-based page number', 'limit': '1-100'}, 'response': ['count', 'page', 'page_size', 'next_page', 'previous_page', 'results']},
+            'rate_limit': {'requests_per_minute': settings.PUBLIC_API_KEY_RATE_LIMIT},
         })
 
 
@@ -1418,11 +1423,11 @@ def resolve_public_api_key(raw_key, required_scope=None, endpoint='', method='GE
         key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
     ).select_related('owner').first()
     if key:
-        if required_scope and key.scopes and required_scope not in key.scopes:
+        if required_scope and required_scope not in (key.scopes or ['articles:read']):
             return None
         rate_key = f'public-api-key:{key.id}:{timezone.now().strftime("%Y%m%d%H%M")}'
         requests_in_window = cache.get(rate_key, 0)
-        if requests_in_window >= 120:
+        if requests_in_window >= settings.PUBLIC_API_KEY_RATE_LIMIT:
             return None
         cache.set(rate_key, requests_in_window + 1, timeout=70)
         if getattr(settings, 'API_KEY_USAGE_LOGGING_ENABLED', True):

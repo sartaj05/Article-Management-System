@@ -185,6 +185,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {'anon': '100/hour', 'user': '1000/hour'},
 }
+PUBLIC_API_KEY_RATE_LIMIT = int(os.getenv('PUBLIC_API_KEY_RATE_LIMIT', '120'))
+PUBLIC_API_MAX_PAGE_SIZE = int(os.getenv('PUBLIC_API_MAX_PAGE_SIZE', '100'))
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
