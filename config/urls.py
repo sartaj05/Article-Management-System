@@ -18,6 +18,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse, JsonResponse
 from articles.api import HealthCheckView, PublicStatusView
 from config.metrics import metrics_view
 from articles.distribution import ArticleSitemap, ArticleFeed, LocalizedArticleFeed, LocalizedArticleSitemap, robots_txt
@@ -39,6 +40,16 @@ try:
     )
 except ImportError:
     schema_view = None
+
+    def openapi_json_fallback(request):
+        return JsonResponse({
+            'openapi': '3.0.0',
+            'info': {'title': 'Article Studio API', 'version': 'v2', 'description': 'Install drf-yasg in production for the complete generated schema.'},
+            'paths': {},
+        })
+
+    def openapi_docs_fallback(request):
+        return HttpResponse('<!doctype html><title>Article Studio API docs</title><h1>Article Studio API</h1><p>Install drf-yasg to enable interactive Swagger and ReDoc documentation.</p>')
 # Redirect root URL to login page
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -59,8 +70,16 @@ urlpatterns = [
 if schema_view:
     urlpatterns += [
         path('api/schema/', schema_view.without_ui(cache_timeout=0), name='api-schema'),
+        path('api/openapi.json', schema_view.without_ui(cache_timeout=0), name='api-openapi-json'),
         path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
         path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='api-redoc'),
+    ]
+else:
+    urlpatterns += [
+        path('api/schema/', openapi_json_fallback, name='api-schema'),
+        path('api/openapi.json', openapi_json_fallback, name='api-openapi-json'),
+        path('api/docs/', openapi_docs_fallback, name='api-docs'),
+        path('api/redoc/', openapi_docs_fallback, name='api-redoc'),
     ]
 from django.conf import settings
 from django.conf.urls.static import static

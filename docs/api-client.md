@@ -3,6 +3,12 @@
 The public headless feed is available at /articles/api/v2/public/articles/.
 Create a key from /api/developer/keys/ and send it as X-API-Key.
 
+Interactive documentation is available at `/api/docs/` and `/api/redoc/`.
+The machine-readable OpenAPI document is available at `/api/openapi.json`.
+The small copy-paste clients in [`docs/api/python_client.py`](api/python_client.py)
+and [`docs/api/javascript_client.js`](api/javascript_client.js) follow the same
+pagination and versioned response contract.
+
 Python example:
 
     import requests
