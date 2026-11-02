@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 import hashlib
+import json
 
 
 class ActiveArticleManager(models.Manager):
@@ -669,14 +670,57 @@ class Notification(models.Model):
 class AuditLog(models.Model):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_events')
     article = models.ForeignKey(Article, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
     action = models.CharField(max_length=80)
     target_model = models.CharField(max_length=100, default='Article')
     target_id = models.CharField(max_length=100, blank=True)
     details = models.JSONField(default=dict, blank=True)
+    previous_hash = models.CharField(max_length=64, blank=True)
+    event_hash = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.pk and self.event_hash:
+            existing = type(self).objects.filter(pk=self.pk).values('event_hash', 'action', 'details', 'target_model', 'target_id', 'article_id', 'workspace_id', 'actor_id').first()
+            if existing and any(existing[field] != getattr(self, field) for field in ('action', 'details', 'target_model', 'target_id', 'article_id', 'workspace_id', 'actor_id')):
+                raise ValidationError('Audit log entries are immutable.')
+            return super().save(*args, **kwargs)
+        if self.workspace_id is None and self.article_id:
+            self.workspace_id = type(self).objects.filter(pk=self.pk).values_list('workspace_id', flat=True).first() or Article.all_objects.filter(pk=self.article_id).values_list('workspace_id', flat=True).first()
+        if not self.created_at:
+            self.created_at = timezone.now()
+        previous = type(self).objects.filter(workspace_id=self.workspace_id).exclude(pk=self.pk).order_by('-created_at', '-id').first()
+        self.previous_hash = previous.event_hash if previous and previous.event_hash else ''
+        payload = {
+            'actor_id': self.actor_id,
+            'article_id': self.article_id,
+            'workspace_id': self.workspace_id,
+            'action': self.action,
+            'target_model': self.target_model,
+            'target_id': self.target_id,
+            'details': self.details or {},
+            'created_at': self.created_at.isoformat(),
+            'previous_hash': self.previous_hash,
+        }
+        self.event_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+        return super().save(*args, **kwargs)
+
+
+class LegalHold(models.Model):
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.CASCADE, related_name='legal_holds')
+    name = models.CharField(max_length=120)
+    reason = models.TextField()
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='legal_holds_created')
+    created_at = models.DateTimeField(default=timezone.now)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['workspace', 'name'], name='unique_workspace_legal_hold_name')]
 
 
 class BackupRecord(models.Model):

@@ -54,7 +54,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, LegalHold, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -2163,7 +2163,7 @@ class NotificationReadAllView(APIView):
         return Response({'updated': updated})
 
 
-class AuditLogListView(generics.ListAPIView):
+class AuditLogListView(WorkspaceScopeMixin, generics.ListAPIView):
     serializer_class = AuditLogSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = ArticlePagination
@@ -2171,7 +2171,7 @@ class AuditLogListView(generics.ListAPIView):
     def get_queryset(self):
         if self.request.user.role not in {'Editor', 'Admin'}:
             return AuditLog.objects.filter(actor=self.request.user)
-        queryset = AuditLog.objects.select_related('actor', 'article').all()
+        queryset = scope_queryset(AuditLog.objects.select_related('actor', 'article').all(), self.request)
         article_id = self.request.query_params.get('article_id')
         action = self.request.query_params.get('action')
         if article_id:
@@ -2179,6 +2179,89 @@ class AuditLogListView(generics.ListAPIView):
         if action:
             queryset = queryset.filter(action=action)
         return queryset
+
+
+def _workspace_admin_or_global_admin(request):
+    workspace = getattr(request, 'workspace', None)
+    if workspace is None:
+        return None
+    if request.user.role == 'Admin':
+        return workspace
+    membership = WorkspaceMembership.objects.filter(workspace=workspace, user=request.user).first()
+    if not membership or membership.role not in {'owner', 'admin'}:
+        from rest_framework.exceptions import PermissionDenied
+        raise PermissionDenied('Workspace owner or admin access is required.')
+    return workspace
+
+
+class ComplianceEvidenceView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        logs = list(AuditLog.objects.filter(workspace=workspace).order_by('created_at', 'id'))
+        legacy = [item.id for item in logs if not item.event_hash]
+        verified = True
+        previous = ''
+        for item in logs:
+            if not item.event_hash or item.previous_hash != previous:
+                verified = False
+                break
+            previous = item.event_hash
+        return Response({
+            'workspace': {'id': workspace.id, 'slug': workspace.slug, 'name': workspace.name},
+            'audit_chain': {'verified': verified, 'entries': len(logs), 'legacy_unhashed_entries': len(legacy)},
+            'legal_holds': {'active': workspace.legal_holds.filter(is_active=True).count(), 'total': workspace.legal_holds.count()},
+            'retention': {'configured_days': getattr(settings, 'DATA_RETENTION_DAYS', 365), 'evidence_export_supported': True},
+            'generated_at': timezone.now(),
+        })
+
+
+class LegalHoldView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        return Response([{
+            'id': hold.id, 'name': hold.name, 'reason': hold.reason, 'is_active': hold.is_active,
+            'created_by': hold.created_by.username if hold.created_by else None,
+            'created_at': hold.created_at, 'released_at': hold.released_at,
+        } for hold in workspace.legal_holds.select_related('created_by')])
+
+    def post(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        name = str(request.data.get('name', '')).strip()
+        reason = str(request.data.get('reason', '')).strip()
+        if not name or not reason:
+            return Response({'detail': 'name and reason are required.'}, status=400)
+        if LegalHold.objects.filter(workspace=workspace, name=name).exists():
+            return Response({'detail': 'A legal hold with this name already exists.'}, status=409)
+        hold = LegalHold.objects.create(workspace=workspace, name=name, reason=reason, created_by=request.user)
+        record_audit_event(actor=request.user, workspace=workspace, action='legal_hold_created', target_model='LegalHold', target_id=hold.id, details={'name': hold.name})
+        return Response({'id': hold.id, 'name': hold.name, 'reason': hold.reason, 'is_active': hold.is_active}, status=201)
+
+
+class LegalHoldDetailView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        hold = get_object_or_404(LegalHold, pk=pk, workspace=workspace)
+        if request.data.get('is_active') is not False:
+            return Response({'detail': 'Only releasing a legal hold is supported.'}, status=400)
+        hold.is_active = False
+        hold.released_at = timezone.now()
+        hold.save(update_fields=['is_active', 'released_at'])
+        record_audit_event(actor=request.user, workspace=workspace, action='legal_hold_released', target_model='LegalHold', target_id=hold.id, details={'name': hold.name})
+        return Response({'id': hold.id, 'is_active': hold.is_active, 'released_at': hold.released_at})
 
 
 class ArticleTrashView(APIView):
