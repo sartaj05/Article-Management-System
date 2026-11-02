@@ -1011,7 +1011,7 @@ class MembershipWebhookView(APIView):
         ):
             return Response({'detail': 'Payment webhook is not configured.'}, status=503)
         from .billing_providers import verify_payment_webhook_signature
-        if not verify_payment_webhook_signature(provider or request.data.get('provider'), request.body, request.headers):
+        if not verify_payment_webhook_signature(provider, request.body, request.headers):
             return Response({'detail': 'Invalid payment webhook signature.'}, status=403)
         try:
             payload = json.loads(request.body.decode('utf-8'))
