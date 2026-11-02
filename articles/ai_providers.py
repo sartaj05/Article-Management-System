@@ -160,11 +160,103 @@ class OpenAICompatibleProvider:
         if action == "fact_check" and not isinstance(suggestions["claims"], list):
             raise AIProviderError("AI claims must be returned as a list.")
         for key, value in suggestions.items():
-            if key != "headlines" and not isinstance(value, str):
+            if key not in {"headlines", "claims"} and not isinstance(value, str):
                 raise AIProviderError("AI text fields must be strings.")
 
 
+class OpenAIResponsesProvider(OpenAICompatibleProvider):
+    """Responses API adapter using HTTP so the project has no SDK lock-in."""
+
+    name = "openai-responses"
+
+    def __init__(self, api_key=None, base_url=None, model=None, timeout=None):
+        super().__init__(api_key=api_key, base_url=base_url or settings.AI_ASSISTANT_RESPONSES_URL, model=model, timeout=timeout)
+
+    @staticmethod
+    def _schema(action):
+        text = {'type': 'string'}
+        if action == 'summarize':
+            return {'type': 'object', 'properties': {'summary': text}, 'required': ['summary'], 'additionalProperties': False}
+        if action == 'headline':
+            return {'type': 'object', 'properties': {'headlines': {'type': 'array', 'items': text}}, 'required': ['headlines'], 'additionalProperties': False}
+        if action == 'seo':
+            return {'type': 'object', 'properties': {'meta_title': text, 'meta_description': text, 'seo_keywords': text}, 'required': ['meta_title', 'meta_description', 'seo_keywords'], 'additionalProperties': False}
+        if action == 'proofread':
+            return {'type': 'object', 'properties': {'content': text}, 'required': ['content'], 'additionalProperties': False}
+        raise AIProviderError('Responses API does not support this action.')
+
+    def _payload(self, article, action, context=None, stream=False):
+        prompt = self._prompt(article, action, context or {})
+        return {
+            'model': self.model,
+            'input': [
+                {'role': 'system', 'content': [{'type': 'input_text', 'text': 'You are an editorial copilot. Return only JSON and never invent facts. Every result requires human review.'}]},
+                {'role': 'user', 'content': [{'type': 'input_text', 'text': prompt}]},
+            ],
+            'text': {'format': {'type': 'json_schema', 'name': 'editorial_suggestions', 'strict': True, 'schema': self._schema(action)}},
+            'store': False,
+            'stream': stream,
+        }
+
+    def generate(self, article, action, context=None):
+        if not self.api_key:
+            raise AIProviderError('AI_ASSISTANT_API_KEY is not configured.')
+        request = Request(self.base_url, data=json.dumps(self._payload(article, action, context)).encode('utf-8'), headers=self._headers(), method='POST')
+        started = time.perf_counter()
+        try:
+            with urlopen(request, timeout=self.timeout) as response:
+                body = json.loads(response.read().decode('utf-8'))
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError) as exc:
+            raise AIProviderError(f'Responses API request failed: {exc}') from exc
+        try:
+            content = body.get('output_text') or next(
+                part['text'] for item in body['output'] for part in item.get('content', []) if part.get('type') == 'output_text'
+            )
+            suggestions = json.loads(content)
+        except (KeyError, IndexError, TypeError, StopIteration, json.JSONDecodeError) as exc:
+            raise AIProviderError('Responses API returned an invalid structured response.') from exc
+        self._validate(action, suggestions)
+        usage = body.get('usage') or {}
+        return AIResult(
+            suggestions=suggestions, provider=self.name, model=self.model,
+            latency_ms=round((time.perf_counter() - started) * 1000),
+            metadata={'mode': 'remote-responses', 'prompt_version': settings.AI_ASSISTANT_PROMPT_VERSION, 'usage': {
+                'prompt_tokens': usage.get('input_tokens', 0), 'completion_tokens': usage.get('output_tokens', 0), 'total_tokens': usage.get('total_tokens', 0),
+            }},
+        )
+
+    def _headers(self):
+        return {'Authorization': f'Bearer {self.api_key}', 'Content-Type': 'application/json', 'User-Agent': 'article-management-system/editorial-copilot'}
+
+    def stream_generate(self, article, action, context=None):
+        if not self.api_key:
+            raise AIProviderError('AI_ASSISTANT_API_KEY is not configured.')
+        request = Request(self.base_url, data=json.dumps(self._payload(article, action, context, stream=True)).encode('utf-8'), headers=self._headers(), method='POST')
+        try:
+            with urlopen(request, timeout=self.timeout) as response:
+                for raw_line in response:
+                    line = raw_line.decode('utf-8').strip()
+                    if not line or not line.startswith('data:'):
+                        continue
+                    data = line[5:].strip()
+                    if data == '[DONE]':
+                        break
+                    try:
+                        event = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    event_type = event.get('type', '')
+                    if event_type == 'response.output_text.delta':
+                        yield {'type': event_type, 'delta': event.get('delta', '')}
+                    elif event_type in {'response.completed', 'error'}:
+                        yield {'type': event_type, 'response': event.get('response') or event.get('error') or {}}
+        except (HTTPError, URLError, TimeoutError, OSError) as exc:
+            raise AIProviderError(f'Responses stream failed: {exc}') from exc
+
+
 def get_editorial_provider():
+    if settings.AI_ASSISTANT_PROVIDER == "openai-responses":
+        return OpenAIResponsesProvider()
     if settings.AI_ASSISTANT_PROVIDER == "openai":
         return OpenAICompatibleProvider()
     return LocalRuleBasedProvider()

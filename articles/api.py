@@ -14,7 +14,7 @@ from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.core.files.storage import default_storage
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -58,7 +58,7 @@ from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
 from .notifications import notify
-from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
+from .ai_providers import AIProviderError, LocalRuleBasedProvider, OpenAIResponsesProvider, get_editorial_provider
 from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
 from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
@@ -254,6 +254,44 @@ class ArticleAssistantView(APIView):
             'requires_review': True,
             'suggestions': run.suggestions,
         })
+
+
+class AIStreamingView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, article_id):
+        article = get_object_or_404(Article, pk=article_id)
+        if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
+            return Response({'detail': 'Only the author, editors, or admins can use the editorial assistant.'}, status=403)
+        if settings.AI_ASSISTANT_PROVIDER != 'openai-responses':
+            return Response({'detail': 'Streaming requires AI_ASSISTANT_PROVIDER=openai-responses.'}, status=503)
+        action = str(request.data.get('action', '')).strip().lower()
+        if action not in {'summarize', 'headline', 'seo', 'proofread'}:
+            return Response({'detail': 'Streaming supports summarize, headline, seo, and proofread.'}, status=400)
+        try:
+            ai_request = prepare_ai_request(article, action)
+            provider = get_editorial_provider()
+            if not isinstance(provider, OpenAIResponsesProvider):
+                raise AIProviderError('Responses provider is not configured.')
+            events = provider.stream_generate(ai_request.article, action)
+        except AIGovernanceError as exc:
+            return Response({'detail': str(exc)}, status=429)
+        except AIProviderError as exc:
+            return Response({'detail': str(exc)}, status=503)
+
+        def event_stream():
+            try:
+                for event in events:
+                    yield f"data: {json.dumps(event)}\n\n"
+                yield 'data: {"type":"done"}\n\n'
+            except AIProviderError as exc:
+                yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
 
 
 class EditorialAIHealthView(APIView):
