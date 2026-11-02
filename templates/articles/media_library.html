@@ -35,6 +35,7 @@
         <div class="media-toolbar"><label>Search assets<input id="media-query" type="search" placeholder="Title, alt text or credit"></label><label>Type<select id="media-filter"><option value="">All types</option><option value="image">Images</option><option value="audio">Audio</option><option value="video">Video</option><option value="document">Documents</option></select></label></div>
         <p class="feature-status" id="media-status" role="status" aria-live="polite">Loading media…</p>
         <section class="media-grid" id="media-grid"></section>
+        <nav class="feature-pagination" id="media-pagination" aria-label="Media asset pages"></nav>
     </main>
     <script src="{% static 'js/media-library.js' %}" defer></script>
     <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1" defer></script>

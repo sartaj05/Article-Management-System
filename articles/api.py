@@ -3614,7 +3614,13 @@ class MediaAssetLibraryView(APIView):
         return queryset
 
     def get(self, request):
-        return Response(MediaAssetSerializer(self.get_queryset(request), many=True, context={'request': request}).data)
+        queryset = self.get_queryset(request)
+        if request.query_params.get('page') or request.query_params.get('page_size'):
+            paginator = ArticlePagination()
+            page = paginator.paginate_queryset(queryset, request, view=self)
+            serializer = MediaAssetSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+        return Response(MediaAssetSerializer(queryset, many=True, context={'request': request}).data)
 
     def post(self, request):
         serializer = MediaAssetSerializer(data=request.data, context={'request': request})

@@ -66,6 +66,22 @@ class MediaLibraryFeatureTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
+    def test_media_library_supports_ten_item_pagination(self):
+        for index in range(11):
+            MediaAsset.objects.create(
+                uploaded_by=self.user,
+                title=f'Asset {index}',
+                media_type='image',
+                alt_text=f'Asset description {index}',
+                external_url=f'https://example.com/{index}.jpg',
+            )
+
+        response = self.client.get('/articles/api/v2/media-library/?page=2&page_size=10')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 11)
+        self.assertEqual(len(response.data['results']), 1)
+
     def test_image_requires_alt_text_and_cleanup_archives_orphans(self):
         invalid = self.client.post('/articles/api/v2/media-library/', {
             'title': 'Missing alt', 'media_type': 'image',

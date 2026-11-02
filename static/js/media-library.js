@@ -4,20 +4,32 @@
   const form = document.getElementById('media-upload-form');
   const query = document.getElementById('media-query');
   const filter = document.getElementById('media-filter');
+  const pagination = document.getElementById('media-pagination');
   const token = localStorage.getItem('access_token');
   let debounce;
+  let currentPage = 1;
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
   const headers = (extra) => Object.assign({ Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, extra || {});
 
-  async function loadAssets() {
-    const params = new URLSearchParams(); if (query.value.trim()) params.set('q', query.value.trim()); if (filter.value) params.set('media_type', filter.value);
+  async function loadAssets(page = currentPage) {
+    currentPage = page;
+    const params = new URLSearchParams({ page, page_size: 10 }); if (query.value.trim()) params.set('q', query.value.trim()); if (filter.value) params.set('media_type', filter.value);
     try {
       const response = await fetch(`/articles/api/v2/media-library/?${params}`, { headers: headers(), credentials: 'same-origin' });
       const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || 'Unable to load media.');
-      grid.innerHTML = payload.length ? payload.map(assetTemplate).join('') : '<div class="feature-empty">No assets found.</div>';
-      status.textContent = `${payload.length} asset${payload.length === 1 ? '' : 's'} available`;
+      const items = Array.isArray(payload) ? payload : (payload.results || []);
+      grid.innerHTML = items.length ? items.map(assetTemplate).join('') : '<div class="feature-empty">No assets found.</div>';
+      status.textContent = `${payload.count ?? items.length} asset${(payload.count ?? items.length) === 1 ? '' : 's'} available`;
+      renderPagination(payload);
       grid.querySelectorAll('[data-archive-id]').forEach((button) => button.addEventListener('click', () => archiveAsset(button.dataset.archiveId)));
-    } catch (error) { grid.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`; status.textContent = 'Media library unavailable'; }
+    } catch (error) { grid.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`; pagination.innerHTML = ''; status.textContent = 'Media library unavailable'; }
+  }
+
+  function renderPagination(payload) {
+    const count = Number(payload.count || 0);
+    const pageSize = Number(payload.results?.length || 10);
+    const pages = Math.max(1, Math.ceil(count / pageSize));
+    pagination.innerHTML = pages <= 1 ? '' : `<div class="feature-pagination__controls"><button class="button button--secondary button--small" type="button" data-page="1" ${currentPage === 1 ? 'disabled' : ''}>First</button><button class="button button--secondary button--small" type="button" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button><span aria-current="page">Page ${currentPage} of ${pages}</span><button class="button button--secondary button--small" type="button" data-page="${currentPage + 1}" ${currentPage >= pages ? 'disabled' : ''}>Next</button><button class="button button--secondary button--small" type="button" data-page="${pages}" ${currentPage >= pages ? 'disabled' : ''}>Last</button></div>`;
   }
 
   function assetTemplate(asset) {
@@ -32,7 +44,7 @@
     if (!confirmed) return;
     const response = await fetch(`/articles/api/v2/media-library/${id}/`, { method: 'DELETE', headers: headers(), credentials: 'same-origin' });
     if (!response.ok) { status.textContent = 'The asset could not be archived.'; return; }
-    loadAssets();
+    loadAssets(currentPage);
   }
 
   form.addEventListener('submit', async (event) => {
@@ -43,5 +55,9 @@
     try { const response = await fetch('/articles/api/v2/media-library/', { method: 'POST', headers: headers(), body: data, credentials: 'same-origin' }); const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || Object.values(payload).flat().join(' ')); form.reset(); status.textContent = 'Asset uploaded successfully.'; loadAssets(); } catch (error) { status.textContent = error.message; }
   });
   [query, filter].forEach((field) => field.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(loadAssets, 250); }));
+  pagination?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-page]');
+    if (button && !button.disabled) loadAssets(Number(button.dataset.page));
+  });
   loadAssets();
 })();
