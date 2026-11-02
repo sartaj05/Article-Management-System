@@ -40,7 +40,7 @@
     const response = await fetch('/articles/api/v2/notifications/read-all/', { method: 'PATCH', headers: Object.assign(headers(), { 'Content-Type': 'application/json' }), credentials: 'same-origin' });
     if (response.ok) loadNotifications(currentPage); else status.textContent = 'Notifications could not be marked as read.';
   }
-  document.getElementById('refresh-notifications').addEventListener('click', loadNotifications);
+  document.getElementById('refresh-notifications').addEventListener('click', () => loadNotifications(currentPage));
   document.getElementById('mark-all-notifications-read')?.addEventListener('click', markAllRead);
   pagination?.addEventListener('click', (event) => {
     const button = event.target.closest('[data-page]');
