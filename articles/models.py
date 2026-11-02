@@ -1067,6 +1067,20 @@ class AIInsight(models.Model):
         ordering = ['-created_at']
 
 
+class AIReaderRecommendation(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ai_reader_recommendations')
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name='ai_reader_recommendations')
+    score = models.DecimalField(max_digits=7, decimal_places=3, default=0)
+    reasons = models.JSONField(default=list, blank=True)
+    algorithm_version = models.CharField(max_length=40, default='reader-ranker-v1')
+    created_at = models.DateTimeField(default=timezone.now)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-score', '-created_at']
+        indexes = [models.Index(fields=['user', 'created_at'])]
+
+
 class ContentExperiment(models.Model):
     TYPE_CHOICES = [('headline', 'Headline'), ('thumbnail', 'Thumbnail')]
     STATUS_CHOICES = [('draft', 'Draft'), ('running', 'Running'), ('paused', 'Paused'), ('completed', 'Completed')]

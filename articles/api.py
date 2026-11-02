@@ -53,7 +53,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, Like, MediaAsset, ModerationFlag, Notification, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -64,6 +64,7 @@ from .ai_jobs import execute_ai_job
 from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
 from .newsroom_intelligence import build_article_intelligence, build_workspace_intelligence
 from .source_ingestion import SourceIngestionError, ingest_source, retrieve_evidence_for_article
+from .reader_personalization import generate_reader_recommendations
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -661,6 +662,34 @@ class PersonalizedFeedView(APIView):
             'personalization': {'enabled': preference.enabled, 'use_reading_history': preference.use_reading_history, 'use_topic_interests': preference.use_topic_interests},
             'results': serialized,
         })
+
+
+class AIReaderFeedView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            limit = min(max(int(request.query_params.get('limit', 20)), 1), 50)
+        except (TypeError, ValueError):
+            limit = 20
+        recommendations = generate_reader_recommendations(request.user, limit=limit)
+        preference = PersonalizationPreference.objects.get_or_create(user=request.user)[0]
+        serialized = ArticleWorkflowSerializer([item.article for item in recommendations], many=True, context={'request': request}).data
+        for item, recommendation in zip(serialized, recommendations):
+            item['ai_recommendation_score'] = float(recommendation.score)
+            item['recommendation_reason'] = '; '.join(recommendation.reasons)
+            item['ai_algorithm_version'] = recommendation.algorithm_version
+        return Response({'mode': 'ai_for_you', 'personalization_enabled': preference.enabled, 'generated_at': recommendations[0].created_at if recommendations else None, 'results': serialized})
+
+
+class AIReaderDigestView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        recommendations = generate_reader_recommendations(request.user, limit=5)
+        return Response({'subject': 'Your personalized reading list', 'articles': [{'article_id': item.article_id, 'title': item.article.title, 'summary': item.article.summary or item.article.subtitle or '', 'slug': item.article.slug, 'reasons': item.reasons, 'score': float(item.score)} for item in recommendations]})
 
 
 class ReaderPersonalizationInsightsView(APIView):

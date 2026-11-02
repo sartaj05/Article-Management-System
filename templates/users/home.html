@@ -16,7 +16,7 @@
                 <div class="feed-switcher" role="group" aria-label="Article feed type">
                     <button type="button" data-feed-mode="featured" aria-pressed="true"><span aria-hidden="true">✦</span> Featured</button>
                     <button type="button" data-feed-mode="trending" aria-pressed="false"><span aria-hidden="true">↗</span> Trending</button>
-                    {% if request.user.is_authenticated %}<button type="button" data-feed-mode="for_you" aria-pressed="false"><span aria-hidden="true">✦</span> For you</button>{% endif %}
+                    {% if request.user.is_authenticated %}<button type="button" data-feed-mode="for_you" aria-pressed="false"><span aria-hidden="true">✦</span> For you</button><button type="button" data-feed-mode="ai_for_you" aria-pressed="false"><span aria-hidden="true">✦</span> AI picks</button>{% endif %}
                 </div>
                 <label class="search-field" for="article-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="sr-only">Search articles</span><input id="article-search" type="search" placeholder="Find a story, topic, or idea…" autocomplete="off"></label>
                 <label class="sr-only" for="article-sort">Sort search results</label>

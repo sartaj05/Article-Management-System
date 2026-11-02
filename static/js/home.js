@@ -36,6 +36,7 @@
   function endpoint() {
     const query = state.query ? `?q=${encodeURIComponent(state.query)}&sort=${encodeURIComponent(state.sort)}` : `?mode=${encodeURIComponent(state.mode)}`;
     if (state.mode === "for_you") return "/articles/api/v2/feed/for-you/?limit=20";
+    if (state.mode === "ai_for_you") return "/articles/api/v2/feed/ai-for-you/?limit=20";
     return state.query ? `/articles/api/v2/articles/search/${query}` : `/articles/api/v2/discover/${query}`;
   }
   function syncUrl() {
