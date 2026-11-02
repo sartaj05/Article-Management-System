@@ -1,8 +1,11 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 
 from .observability import request_id_context
+from .workspace_scope import resolve_workspace
 
 
 class RequestIDMiddleware:
@@ -37,3 +40,21 @@ class SecurityHeadersMiddleware:
         if getattr(settings, 'SECURITY_PERMISSIONS_POLICY', ''):
             response.setdefault('Permissions-Policy', settings.SECURITY_PERMISSIONS_POLICY)
         return response
+
+
+class WorkspaceScopeMiddleware:
+    """Resolve session-selected workspaces before template rendering.
+
+    DRF views also use ``WorkspaceScopeMixin`` because JWT authentication is
+    performed inside DRF and is not available to Django middleware yet.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            resolve_workspace(request, strict=False)
+        except PermissionDenied as exc:
+            return JsonResponse({'detail': str(exc)}, status=403)
+        return self.get_response(request)

@@ -32,6 +32,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from users.models import CustomUser, MembershipInvoice, MembershipWebhookEvent, MembershipSubscription, NewsletterCampaignAttribution, NewsletterEdition, NotificationDelivery, PaymentTransaction, PersonalizationPreference, ReaderDigestDelivery, ReaderInterest, WebhookDelivery, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
+from config.workspace_scope import WorkspaceScopeMixin, scope_queryset
 
 from .api_serializers import (
     ArticleFactCheckSerializer, ArticlePresenceSerializer, ArticleReviewSerializer,
@@ -2720,23 +2721,31 @@ class HealthCheckView(APIView):
         return Response({'status': 'healthy', 'database': 'ok'})
 
 
-class OperationsOverviewView(APIView):
+class OperationsOverviewView(WorkspaceScopeMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         if request.user.role not in {'Editor', 'Admin'}:
             return Response({'detail': 'Only editors and admins can view operations health.'}, status=status.HTTP_403_FORBIDDEN)
         now = timezone.now()
-        distribution = DistributionJob.objects.all()
+        distribution = scope_queryset(DistributionJob.objects.all(), request, 'article__workspace')
         webhook_deliveries = WebhookDelivery.objects.all()
         digests = ReaderDigestDelivery.objects.all()
-        overdue_assignments = ArticleAssignment.objects.filter(due_at__lt=now).exclude(status='done')
+        overdue_assignments = scope_queryset(
+            ArticleAssignment.objects.filter(due_at__lt=now).exclude(status='done'),
+            request,
+            'article__workspace',
+        )
+        if request.workspace is not None:
+            member_ids = WorkspaceMembership.objects.filter(workspace=request.workspace).values('user_id')
+            webhook_deliveries = webhook_deliveries.filter(endpoint__owner_id__in=member_ids)
+            digests = digests.filter(user_id__in=member_ids)
         summary = {
             'distribution_failed': distribution.filter(status='failed').count(),
             'distribution_queued': distribution.filter(status__in={'queued', 'processing', 'awaiting_provider'}).count(),
             'webhook_failed': webhook_deliveries.filter(status='failed').count(),
             'digest_failed': digests.filter(status='failed').count(),
-            'payment_events_24h': MembershipWebhookEvent.objects.filter(created_at__gte=now - timedelta(hours=24)).count(),
+            'payment_events_24h': MembershipWebhookEvent.objects.filter(created_at__gte=now - timedelta(hours=24)).count() if request.workspace is None else 0,
             'overdue_assignments': overdue_assignments.count(),
         }
         incidents = []
@@ -2764,7 +2773,7 @@ class OperationsOverviewView(APIView):
         })
 
 
-class OperationsAlertsView(APIView):
+class OperationsAlertsView(WorkspaceScopeMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def _allowed(self, request):
@@ -2774,6 +2783,8 @@ class OperationsAlertsView(APIView):
         if not self._allowed(request):
             return Response({'detail': 'Only editors and admins can view operational alerts.'}, status=403)
         alerts = OperationalAlert.objects.all()
+        if request.workspace is not None:
+            alerts = alerts.filter(details__workspace=request.workspace.slug)
         if request.query_params.get('status'):
             alerts = alerts.filter(status=request.query_params['status'])
         return Response([
@@ -2784,7 +2795,10 @@ class OperationsAlertsView(APIView):
     def post(self, request):
         if not self._allowed(request):
             return Response({'detail': 'Only editors and admins can update operational alerts.'}, status=403)
-        alert = get_object_or_404(OperationalAlert, pk=request.data.get('alert_id'))
+        alert_queryset = OperationalAlert.objects.all()
+        if request.workspace is not None:
+            alert_queryset = alert_queryset.filter(details__workspace=request.workspace.slug)
+        alert = get_object_or_404(alert_queryset, pk=request.data.get('alert_id'))
         action = request.data.get('action')
         if action == 'acknowledge':
             alert.status = 'acknowledged'
@@ -2897,11 +2911,15 @@ class WorkspaceContentMigrationView(APIView):
         return Response({'workspace': workspace.slug, 'dry_run': dry_run, 'migrated': counts})
 
 
-class DistributionJobView(APIView):
+class DistributionJobView(WorkspaceScopeMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = DistributionJob.objects.select_related('article', 'requested_by')
+        queryset = scope_queryset(
+            DistributionJob.objects.select_related('article', 'requested_by'),
+            request,
+            'article__workspace',
+        )
         if request.user.role not in {'Editor', 'Admin'}:
             queryset = queryset.filter(requested_by=request.user)
         channel = request.query_params.get('channel')
@@ -3128,7 +3146,7 @@ class ArticleAnalyticsView(APIView):
         })
 
 
-class ExecutiveAnalyticsView(APIView):
+class ExecutiveAnalyticsView(WorkspaceScopeMixin, APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -3136,24 +3154,32 @@ class ExecutiveAnalyticsView(APIView):
             return Response({'detail': 'Only editors and admins can view executive analytics.'}, status=status.HTTP_403_FORBIDDEN)
         now = timezone.now()
         window_start = now - timedelta(days=7)
-        articles = Article.objects.all()
+        articles = scope_queryset(Article.objects.all(), request)
         events = ArticleEngagementEvent.objects.filter(article__in=articles, created_at__gte=window_start)
         starts = events.filter(event_type='read_start').count()
         completed = events.filter(event_type='read_complete').count()
-        distributions = DistributionJob.objects.all()
+        distributions = scope_queryset(DistributionJob.objects.all(), request, 'article__workspace')
         distribution_total = distributions.count()
         distribution_delivered = distributions.filter(status='delivered').count()
         payments = PaymentTransaction.objects.all()
-        paid_transactions = payments.filter(status='succeeded').count()
-        invoices = MembershipInvoice.objects.filter(status='paid').count()
+        invoices = MembershipInvoice.objects.all()
         notifications = NotificationDelivery.objects.all()
+        if request.workspace is not None:
+            member_ids = WorkspaceMembership.objects.filter(workspace=request.workspace).values('user_id')
+            payments = payments.filter(user_id__in=member_ids)
+            invoices = invoices.filter(user_id__in=member_ids)
+            notifications = notifications.filter(recipient_id__in=member_ids)
+        paid_transactions = payments.filter(status='succeeded').count()
+        subscriptions = MembershipSubscription.objects.filter(status__in={'active', 'past_due'})
+        if request.workspace is not None:
+            subscriptions = subscriptions.filter(user_id__in=member_ids)
         notification_attempts = notifications.count()
         return Response({
             'generated_at': now,
             'content': {'published': articles.filter(workflow_status='published').count(), 'in_review': articles.filter(workflow_status='submitted').count(), 'views': sum(item.views.count() for item in articles), 'shares_7d': events.filter(event_type='share').count()},
             'reader': {'active_7d': events.exclude(user__isnull=True).values('user_id').distinct().count(), 'returning_7d': events.exclude(user__isnull=True).filter(user_id__in=ArticleEngagementEvent.objects.filter(created_at__lt=window_start).values('user_id')).values('user_id').distinct().count(), 'completion_rate': round(completed * 100 / starts, 1) if starts else 0, 'starts_7d': starts, 'completed_7d': completed},
             'workflow': {'draft': articles.filter(workflow_status='draft').count(), 'submitted': articles.filter(workflow_status='submitted').count(), 'approved': articles.filter(workflow_status='approved').count(), 'published': articles.filter(workflow_status='published').count()},
-            'membership': {'active_subscriptions': MembershipSubscription.objects.filter(status__in={'active', 'past_due'}).count(), 'paid_transactions': paid_transactions, 'paid_invoices': invoices, 'conversion_rate': round(paid_transactions * 100 / max(payments.count(), 1), 1)},
+            'membership': {'active_subscriptions': subscriptions.count(), 'paid_transactions': paid_transactions, 'paid_invoices': invoices.count(), 'conversion_rate': round(paid_transactions * 100 / max(payments.count(), 1), 1)},
             'distribution': {'total': distribution_total, 'delivered': distribution_delivered, 'failed': distributions.filter(status='failed').count(), 'queued': distributions.filter(status__in={'queued', 'processing', 'awaiting_provider'}).count(), 'delivery_rate': round(distribution_delivered * 100 / max(distribution_total, 1), 1)},
             'notifications': {'attempts': notification_attempts, 'sent': notifications.filter(status='sent').count(), 'failed': notifications.filter(status='failed').count(), 'delivery_rate': round(notifications.filter(status='sent').count() * 100 / max(notification_attempts, 1), 1)},
         })
