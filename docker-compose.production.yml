@@ -44,7 +44,7 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/0
       TRUST_PROXY_SSL: "true"
       USE_X_FORWARDED_HOST: "true"
-      SECURITY_CSP: ${SECURITY_CSP:-default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'}
+      SECURITY_CSP: "${SECURITY_CSP:-default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'}"
       BACKUP_ROOT: /app/backups
       BACKUP_ENABLED: "true"
     volumes:
