@@ -139,3 +139,15 @@ def prune_old_backups_task(self):
     if not settings.BACKUP_ENABLED:
         return {'status': 'disabled', 'deleted': 0}
     return {'status': 'completed', 'deleted': prune_old_backups()}
+
+
+@shared_task(autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='articles.run_recovery_drill')
+def run_recovery_drill_task():
+    from django.conf import settings
+    from .backup import run_recovery_drill
+    if not settings.BACKUP_ENABLED:
+        return {'status': 'disabled'}
+    drill = run_recovery_drill()
+    if not drill:
+        return {'status': 'no_backup'}
+    return {'status': drill.status, 'drill_id': drill.id, 'details': drill.details}

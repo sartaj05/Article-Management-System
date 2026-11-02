@@ -10,7 +10,7 @@ from config.observability import request_error_rate
 from users.models import MembershipWebhookEvent, PaymentTransaction, ReaderDigestDelivery, WebhookDelivery
 from users.provider_health import provider_health
 
-from .models import ArticleAssignment, BackupRecord, DistributionJob, OperationalAlert
+from .models import ArticleAssignment, BackupRecord, DistributionJob, OperationalAlert, RecoveryDrill
 
 
 def dispatch_external_alerts(alerts):
@@ -58,6 +58,9 @@ def collect_operational_alerts():
     recent_backup_failure = BackupRecord.objects.filter(status='failed', created_at__gte=now - timedelta(hours=24)).first()
     if recent_backup_failure:
         alerts.append({'fingerprint': 'backups.failed', 'area': 'Backups', 'severity': 'critical', 'message': 'A backup failed in the last 24 hours.', 'details': {'backup_id': recent_backup_failure.id, 'error': recent_backup_failure.error}})
+    latest_drill = RecoveryDrill.objects.order_by('-checked_at').first()
+    if latest_drill and latest_drill.status in {'failed', 'unsupported'}:
+        alerts.append({'fingerprint': 'backups.restore-drill', 'area': 'Backups', 'severity': 'critical', 'message': f'Latest backup restore drill is {latest_drill.status}.', 'details': {'drill_id': latest_drill.id, 'status': latest_drill.status, 'details': latest_drill.details}})
     error_rate = request_error_rate()
     if error_rate['total'] >= 20 and error_rate['rate'] >= settings.OPERATIONS_ERROR_RATE_THRESHOLD:
         alerts.append({'fingerprint': 'http.error-rate', 'area': 'HTTP', 'severity': 'critical', 'message': f"HTTP error rate is {error_rate['rate']:.1%} over the recent window.", 'details': error_rate})

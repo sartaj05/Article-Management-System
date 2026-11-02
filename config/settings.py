@@ -330,6 +330,7 @@ CELERY_BEAT_SCHEDULE = {
     'create-database-backup': {'task': 'articles.create_database_backup', 'schedule': crontab(hour=2, minute=30)},
     'create-media-backup': {'task': 'articles.create_media_backup', 'schedule': crontab(hour=2, minute=45)},
     'prune-old-backups': {'task': 'articles.prune_old_backups', 'schedule': crontab(hour=3, minute=0)},
+    'run-recovery-drill': {'task': 'articles.run_recovery_drill', 'schedule': crontab(hour=3, minute=5)},
     'cleanup-media-assets': {'task': 'articles.cleanup_media_assets', 'schedule': crontab(hour=3, minute=15)},
     'refresh-operational-alerts': {'task': 'articles.refresh_operational_alerts', 'schedule': 300.0},
     'retry-failed-webhooks': {'task': 'users.retry_failed_webhooks', 'schedule': 300.0},
