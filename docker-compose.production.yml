@@ -29,6 +29,7 @@ services:
 
   web:
     build: .
+    image: ${APP_IMAGE:-article-studio:latest}
     environment: &app_environment
       DJANGO_DEBUG: "false"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
@@ -47,6 +48,8 @@ services:
       SECURITY_CSP: "${SECURITY_CSP:-default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'}"
       BACKUP_ROOT: /app/backups
       BACKUP_ENABLED: "true"
+      ENFORCE_PRODUCTION_SECURITY: "true"
+      INTEGRATION_SECRET_KEY: ${INTEGRATION_SECRET_KEY:?INTEGRATION_SECRET_KEY is required}
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
@@ -65,6 +68,7 @@ services:
 
   worker:
     build: .
+    image: ${APP_IMAGE:-article-studio:latest}
     command: ["celery", "-A", "config.celery", "worker", "--loglevel=INFO", "--concurrency=2", "--hostname=worker@%h", "--max-tasks-per-child=100"]
     environment: *app_environment
     volumes:
@@ -86,6 +90,7 @@ services:
 
   beat:
     build: .
+    image: ${APP_IMAGE:-article-studio:latest}
     command: ["celery", "-A", "config.celery", "beat", "--loglevel=INFO"]
     environment: *app_environment
     depends_on:

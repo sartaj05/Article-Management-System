@@ -87,3 +87,35 @@ jobs:
         env:
           BASE_URL: ${{ vars.DEPLOYMENT_BASE_URL }}
         run: python scripts/smoke_test.py
+
+  deploy:
+    name: Deploy production image
+    needs: [publish, smoke-test]
+    if: needs.publish.result == 'success' && github.event_name == 'push' && vars.DEPLOYMENT_HOST != ''
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy with health-gated rollback
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.DEPLOYMENT_HOST }}
+          username: ${{ vars.DEPLOYMENT_USER }}
+          key: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+            cd "${{ vars.DEPLOYMENT_PATH }}"
+            export APP_IMAGE="ghcr.io/${{ github.repository }}:${{ github.sha }}"
+            web_container="$(docker compose -f docker-compose.production.yml ps -q web 2>/dev/null || true)"
+            previous_image="$(docker inspect --format='{{.Config.Image}}' "$web_container" 2>/dev/null || true)"
+            printf '%s\n' "$previous_image" > .article-studio-previous-image
+            docker login ghcr.io -u "${{ github.actor }}" -p "${{ secrets.GITHUB_TOKEN }}"
+            docker compose -f docker-compose.production.yml pull web worker beat
+            docker compose -f docker-compose.production.yml up -d --no-build --remove-orphans
+            if ! docker compose -f docker-compose.production.yml exec -T -e BASE_URL=http://127.0.0.1:8000 web python scripts/smoke_test.py; then
+              if [ -s .article-studio-previous-image ]; then
+                export APP_IMAGE="$(cat .article-studio-previous-image)"
+                docker compose -f docker-compose.production.yml up -d --no-build --remove-orphans
+              fi
+              exit 1
+            fi

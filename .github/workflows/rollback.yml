@@ -1,0 +1,33 @@
+name: Roll back production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Existing image tag to restore (for example a commit SHA)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Restore selected image and verify health
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.DEPLOYMENT_HOST }}
+          username: ${{ vars.DEPLOYMENT_USER }}
+          key: ${{ secrets.DEPLOYMENT_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -eu
+            cd "${{ vars.DEPLOYMENT_PATH }}"
+            export APP_IMAGE="ghcr.io/${{ github.repository }}:${{ inputs.image_tag }}"
+            docker compose -f docker-compose.production.yml pull web worker beat
+            docker compose -f docker-compose.production.yml up -d --no-build --remove-orphans
+            docker compose -f docker-compose.production.yml exec -T -e BASE_URL=http://127.0.0.1:8000 web python scripts/smoke_test.py
