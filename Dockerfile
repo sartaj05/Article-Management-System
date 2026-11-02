@@ -17,4 +17,4 @@ USER appuser
 
 EXPOSE 8000
 ENTRYPOINT ["article-studio-entrypoint"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-"]

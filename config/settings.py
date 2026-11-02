@@ -75,6 +75,7 @@ if importlib.util.find_spec('channels'):
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'config.middleware.RequestIDMiddleware',
+    'config.middleware.SecurityHeadersMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -303,6 +304,16 @@ SECURE_HSTS_PRELOAD = os.getenv('SECURE_HSTS_PRELOAD', 'false').lower() in {'1',
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = os.getenv('SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')
 SECURE_CROSS_ORIGIN_OPENER_POLICY = os.getenv('SECURE_CROSS_ORIGIN_OPENER_POLICY', 'same-origin')
+SECURITY_CSP = os.getenv(
+    'SECURITY_CSP',
+    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https:; "
+    "script-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; "
+    "connect-src 'self' https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+)
+SECURITY_PERMISSIONS_POLICY = os.getenv(
+    'SECURITY_PERMISSIONS_POLICY',
+    'camera=(), microphone=(), geolocation=(), payment=()'
+)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', str(60 * 60 * 24)))
