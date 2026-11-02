@@ -2,6 +2,8 @@ import uuid
 
 from django.conf import settings
 
+from .observability import request_id_context
+
 
 class RequestIDMiddleware:
     """Attach a stable correlation ID to every response and request log context."""
@@ -13,9 +15,13 @@ class RequestIDMiddleware:
 
     def __call__(self, request):
         request.request_id = request.headers.get(self.header_name) or uuid.uuid4().hex
-        response = self.get_response(request)
-        response[self.header_name] = request.request_id
-        return response
+        token = request_id_context.set(request.request_id)
+        try:
+            response = self.get_response(request)
+            response[self.header_name] = request.request_id
+            return response
+        finally:
+            request_id_context.reset(token)
 
 
 class SecurityHeadersMiddleware:

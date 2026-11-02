@@ -3,3 +3,5 @@
 # Optional S3-compatible media storage used when MEDIA_STORAGE_BACKEND=s3.
 django-storages==1.14.4
 boto3==1.35.81
+prometheus-client==0.21.1
+sentry-sdk==2.19.2

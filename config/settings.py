@@ -76,6 +76,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'config.middleware.RequestIDMiddleware',
     'config.middleware.SecurityHeadersMiddleware',
+    'config.observability.ObservabilityMiddleware',
     'django.middleware.gzip.GZipMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -363,19 +364,29 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
+        'json': {'()': 'config.observability.JsonFormatter'},
         'verbose': {
             'format': '{levelname} {asctime} {name} {message}',
             'style': '{',
         },
     },
     'handlers': {
-        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'json'},
     },
     'loggers': {
         'django': {'handlers': ['console'], 'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO')},
         'articles': {'handlers': ['console'], 'level': os.getenv('APP_LOG_LEVEL', 'INFO'), 'propagate': False},
+        'article_studio.request': {'handlers': ['console'], 'level': os.getenv('REQUEST_LOG_LEVEL', 'INFO'), 'propagate': False},
     },
 }
+
+SENTRY_DSN = os.getenv('SENTRY_DSN', '')
+SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', 'production' if not DEBUG else 'development')
+SENTRY_TRACES_SAMPLE_RATE = float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0'))
+METRICS_TOKEN = os.getenv('METRICS_TOKEN', '')
+
+from config.observability import init_sentry
+init_sentry()
 
 CORS_ALLOW_METHODS = (
     "DELETE",

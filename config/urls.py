@@ -19,6 +19,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from articles.api import HealthCheckView
+from config.metrics import metrics_view
 from articles.distribution import ArticleSitemap, ArticleFeed, LocalizedArticleFeed, LocalizedArticleSitemap, robots_txt
 from django.contrib.sitemaps.views import sitemap
 try:
@@ -45,6 +46,7 @@ urlpatterns = [
     path('', include('users.urls')), 
     path('articles/', include('articles.urls')),
     path('health/', HealthCheckView.as_view(), name='health-check'),
+    path('metrics/', metrics_view, name='metrics'),
     path('sitemap.xml', sitemap, {'sitemaps': {'articles': ArticleSitemap, 'translations': LocalizedArticleSitemap}}, name='sitemap'),
     path('rss.xml', ArticleFeed(), name='article-feed'),
     path('rss/<str:language_code>.xml', LocalizedArticleFeed(), name='localized-article-feed'),
