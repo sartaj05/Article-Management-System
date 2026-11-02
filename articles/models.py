@@ -1125,6 +1125,12 @@ class AIWorkspacePolicy(models.Model):
     redact_pii = models.BooleanField(default=True)
     require_human_review = models.BooleanField(default=True)
     max_input_chars = models.PositiveIntegerField(default=12000)
+    allowed_providers = models.JSONField(default=list, blank=True)
+    allowed_models = models.JSONField(default=list, blank=True)
+    data_retention_days = models.PositiveIntegerField(default=30)
+    training_data_opt_out = models.BooleanField(default=True)
+    require_publish_approval = models.BooleanField(default=True)
+    approved_prompt_version = models.CharField(max_length=80, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -7,7 +7,7 @@ from django.utils import timezone
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, get_editorial_provider
 from .models import AIJob, Article, EditorialAssistantRun
 from .audit import record_audit_event
-from .ai_governance import AIGovernanceError, prepare_ai_request, record_ai_usage
+from .ai_governance import AIGovernanceError, enforce_result_policy, prepare_ai_request, record_ai_usage
 
 
 def _context_for(article, action):
@@ -41,6 +41,8 @@ def execute_ai_job(job_id):
     except Exception as exc:
         _mark_failed(job_id, str(exc))
         raise
+
+    enforce_result_policy(job.article, result)
 
     run = EditorialAssistantRun.objects.create(
         article=job.article, requested_by=job.requested_by, action=job.action,

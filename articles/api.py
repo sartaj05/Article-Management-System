@@ -62,7 +62,7 @@ from .notifications import notify
 from .ai_providers import AIProviderError, LocalRuleBasedProvider, OpenAIResponsesProvider, get_editorial_provider
 from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
-from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
+from .ai_governance import AIGovernanceError, enforce_result_policy, get_policy, prepare_ai_request, record_ai_usage
 from .newsroom_intelligence import build_article_intelligence, build_workspace_intelligence
 from .source_ingestion import SourceIngestionError, ingest_source, retrieve_evidence_for_article
 from .reader_personalization import generate_reader_recommendations
@@ -232,6 +232,10 @@ class ArticleAssistantView(APIView):
             result = fallback.generate(ai_request.article, action)
             result.provider = 'local-rule-based-fallback'
             result.metadata.update({'fallback_reason': str(exc)})
+        try:
+            enforce_result_policy(article, result)
+        except AIGovernanceError as exc:
+            return Response({'detail': str(exc)}, status=429)
         usage = record_ai_usage(user=request.user, article=article, action=action, result=result, input_text=ai_request.article.content, redacted_pii=ai_request.redacted_pii)
         result.metadata['usage_event_id'] = usage.id
         run = EditorialAssistantRun.objects.create(
@@ -399,7 +403,7 @@ class AIJobDetailView(APIView):
         return Response(AIJobView.serialize(job))
 
 
-class AIGovernancePolicyView(APIView):
+class AIGovernancePolicyView(WorkspaceScopeMixin, APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -407,6 +411,8 @@ class AIGovernancePolicyView(APIView):
         if request.user.role not in {'Editor', 'Admin'}:
             return None
         slug = request.data.get('workspace_slug') or request.query_params.get('workspace')
+        if request.workspace is not None:
+            return request.workspace
         return Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
 
     @staticmethod
@@ -415,6 +421,9 @@ class AIGovernancePolicyView(APIView):
             'workspace_slug': workspace.slug, 'enabled': policy.enabled, 'allowed_actions': policy.allowed_actions,
             'monthly_token_budget': policy.monthly_token_budget, 'monthly_spend_limit': str(policy.monthly_spend_limit),
             'redact_pii': policy.redact_pii, 'require_human_review': policy.require_human_review, 'max_input_chars': policy.max_input_chars,
+            'allowed_providers': policy.allowed_providers, 'allowed_models': policy.allowed_models,
+            'data_retention_days': policy.data_retention_days, 'training_data_opt_out': policy.training_data_opt_out,
+            'require_publish_approval': policy.require_publish_approval, 'approved_prompt_version': policy.approved_prompt_version,
         }
 
     def get(self, request):
@@ -429,7 +438,7 @@ class AIGovernancePolicyView(APIView):
         if not workspace:
             return Response({'detail': 'Editor workspace access is required.'}, status=403)
         policy, _ = AIWorkspacePolicy.objects.get_or_create(workspace=workspace)
-        allowed = {'enabled', 'allowed_actions', 'monthly_token_budget', 'monthly_spend_limit', 'redact_pii', 'require_human_review', 'max_input_chars'}
+        allowed = {'enabled', 'allowed_actions', 'monthly_token_budget', 'monthly_spend_limit', 'redact_pii', 'require_human_review', 'max_input_chars', 'allowed_providers', 'allowed_models', 'data_retention_days', 'training_data_opt_out', 'require_publish_approval', 'approved_prompt_version'}
         for field in allowed.intersection(request.data.keys()):
             setattr(policy, field, request.data[field])
         policy.save()

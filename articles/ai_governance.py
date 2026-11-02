@@ -18,6 +18,21 @@ class AIGovernanceError(RuntimeError):
     pass
 
 
+def enforce_result_policy(article, result):
+    """Reject AI output outside the workspace provider/model policy."""
+    policy = get_policy(article)
+    if not policy:
+        return
+    if policy.allowed_providers and result.provider not in policy.allowed_providers:
+        raise AIGovernanceError(f'AI provider is not allowed by workspace policy: {result.provider}.')
+    if policy.allowed_models and result.model not in policy.allowed_models:
+        raise AIGovernanceError(f'AI model is not allowed by workspace policy: {result.model}.')
+    if policy.approved_prompt_version:
+        prompt_version = (result.metadata or {}).get('prompt_version', '')
+        if prompt_version != policy.approved_prompt_version:
+            raise AIGovernanceError('The active AI prompt version is not approved by workspace policy.')
+
+
 @dataclass
 class AIRequestContext:
     article: object
