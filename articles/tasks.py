@@ -27,6 +27,20 @@ def publish_scheduled_articles_task(self):
     retry_backoff=True,
     retry_jitter=True,
     retry_kwargs={'max_retries': 3},
+    name='articles.ingest_source',
+)
+def ingest_source_task(self, source_id):
+    from .source_ingestion import ingest_source
+    document = ingest_source(source_id)
+    return {'status': document.status, 'source_id': source_id, 'document_id': document.id}
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    retry_kwargs={'max_retries': 3},
     name='articles.process_distribution_jobs',
 )
 def process_distribution_jobs_task(self):

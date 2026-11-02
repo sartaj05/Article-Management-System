@@ -787,6 +787,15 @@ class ArticleSourceIngestionView(APIView):
         source = self.get_source(request, pk)
         if not source:
             return Response({'detail': 'Only the author, editors, or admins can ingest this source.'}, status=403)
+        if settings.SOURCE_INGESTION_ASYNC:
+            from .models import ArticleSourceDocument
+            from .tasks import ingest_source_task
+            document, _ = ArticleSourceDocument.objects.get_or_create(source=source)
+            document.status = 'queued'
+            document.error = ''
+            document.save(update_fields=['status', 'error', 'updated_at'])
+            task = ingest_source_task.delay(source.id)
+            return Response({'status': 'queued', 'task_id': getattr(task, 'id', None), 'source': ArticleSourceSerializer(source).data}, status=202)
         try:
             document = ingest_source(source.id)
         except SourceIngestionError as exc:

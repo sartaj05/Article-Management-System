@@ -45,3 +45,16 @@ class SourceIngestionTests(TestCase):
         self.assertEqual(result.status_code, 200)
         citations = result.data['suggestions']['claims'][0]['source_citations']
         self.assertTrue(citations[0]['passage'])
+
+    @override_settings(SOURCE_SSRF_PROTECTION=True)
+    @patch('articles.source_ingestion.requests.get')
+    def test_private_source_url_is_rejected_before_fetch(self, get):
+        self.source.url = 'http://127.0.0.1/private'
+        self.source.save(update_fields=['url'])
+        self.client.force_authenticate(user=self.editor)
+        response = self.client.post(
+            f'/articles/api/v2/sources/{self.source.id}/ingest/',
+            format='json',
+        )
+        self.assertEqual(response.status_code, 422)
+        get.assert_not_called()
