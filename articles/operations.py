@@ -4,12 +4,29 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.utils import timezone
+import requests
 
 from config.observability import request_error_rate
 from users.models import MembershipWebhookEvent, PaymentTransaction, ReaderDigestDelivery, WebhookDelivery
 from users.provider_health import provider_health
 
 from .models import ArticleAssignment, BackupRecord, DistributionJob, OperationalAlert
+
+
+def dispatch_external_alerts(alerts):
+    """Send newly opened incidents to a configured Slack/Teams webhook."""
+    webhook_url = getattr(settings, 'OPS_ALERT_WEBHOOK_URL', '')
+    if not webhook_url or not alerts:
+        return {'sent': False, 'count': 0}
+    lines = [f"[{item['severity'].upper()}] {item['area']}: {item['message']}" for item in alerts]
+    provider = getattr(settings, 'OPS_ALERT_WEBHOOK_PROVIDER', 'slack')
+    payload = {'text': 'Article Studio operational alert\n' + '\n'.join(lines)}
+    try:
+        response = requests.post(webhook_url, json=payload, timeout=5)
+        response.raise_for_status()
+        return {'sent': True, 'provider': provider, 'count': len(alerts)}
+    except requests.RequestException:
+        return {'sent': False, 'provider': provider, 'count': len(alerts)}
 
 
 def collect_operational_alerts():
@@ -59,12 +76,15 @@ def refresh_operational_alerts():
     summary, current = collect_operational_alerts()
     now = timezone.now()
     fingerprints = set()
+    newly_opened = []
     for item in current:
         fingerprints.add(item['fingerprint'])
         alert, created = OperationalAlert.objects.get_or_create(
             fingerprint=item['fingerprint'],
             defaults={**item, 'occurrences': 1, 'first_seen_at': now, 'last_seen_at': now},
         )
+        if created or alert.status == 'resolved':
+            newly_opened.append(item)
         if not created:
             alert.area = item['area']
             alert.severity = item['severity']
@@ -77,4 +97,8 @@ def refresh_operational_alerts():
                 alert.resolved_at = None
             alert.save(update_fields=['area', 'severity', 'message', 'details', 'occurrences', 'last_seen_at', 'status', 'resolved_at'])
     OperationalAlert.objects.filter(status__in={'open', 'acknowledged'}).exclude(fingerprint__in=fingerprints).update(status='resolved', resolved_at=now)
-    return {'summary': summary, 'alerts': list(OperationalAlert.objects.filter(status__in={'open', 'acknowledged'}))}
+    return {
+        'summary': summary,
+        'alerts': list(OperationalAlert.objects.filter(status__in={'open', 'acknowledged'})),
+        'notifications': dispatch_external_alerts(newly_opened),
+    }

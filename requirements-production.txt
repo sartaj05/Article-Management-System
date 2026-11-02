@@ -1,5 +1,6 @@
 -r requirements-workers.txt
 -r requirements-sso.txt
+-r requirements-observability.txt
 
 # Optional S3-compatible media storage used when MEDIA_STORAGE_BACKEND=s3.
 django-storages==1.14.4

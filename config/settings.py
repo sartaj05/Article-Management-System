@@ -189,6 +189,8 @@ REST_FRAMEWORK = {
 PUBLIC_API_KEY_RATE_LIMIT = int(os.getenv('PUBLIC_API_KEY_RATE_LIMIT', '120'))
 PUBLIC_API_MAX_PAGE_SIZE = int(os.getenv('PUBLIC_API_MAX_PAGE_SIZE', '100'))
 OPERATIONS_ERROR_RATE_THRESHOLD = float(os.getenv('OPERATIONS_ERROR_RATE_THRESHOLD', '0.10'))
+OPS_ALERT_WEBHOOK_URL = os.getenv('OPS_ALERT_WEBHOOK_URL', '')
+OPS_ALERT_WEBHOOK_PROVIDER = os.getenv('OPS_ALERT_WEBHOOK_PROVIDER', 'slack').lower()
 OPERATIONS_QUEUE_DELAY_MINUTES = int(os.getenv('OPERATIONS_QUEUE_DELAY_MINUTES', '15'))
 DATA_RETENTION_DAYS = int(os.getenv('DATA_RETENTION_DAYS', '365'))
 AI_USAGE_RETENTION_DAYS = int(os.getenv('AI_USAGE_RETENTION_DAYS', '180'))
@@ -440,12 +442,16 @@ LOGGING = {
 SENTRY_DSN = os.getenv('SENTRY_DSN', '')
 SENTRY_ENVIRONMENT = os.getenv('SENTRY_ENVIRONMENT', 'production' if not DEBUG else 'development')
 SENTRY_TRACES_SAMPLE_RATE = float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0'))
+OTEL_ENABLED = os.getenv('OTEL_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
+OTEL_SERVICE_NAME = os.getenv('OTEL_SERVICE_NAME', 'article-studio')
+OTEL_EXPORTER_OTLP_ENDPOINT = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '')
 METRICS_TOKEN = os.getenv('METRICS_TOKEN', '')
 API_KEY_USAGE_LOGGING_ENABLED = os.getenv('API_KEY_USAGE_LOGGING_ENABLED', 'true').lower() in {'1', 'true', 'yes'}
 ENFORCE_PRODUCTION_SECURITY = os.getenv('ENFORCE_PRODUCTION_SECURITY', 'false').lower() in {'1', 'true', 'yes'}
 
-from config.observability import init_sentry
+from config.observability import init_otel, init_sentry
 init_sentry()
+init_otel()
 
 CORS_ALLOW_METHODS = (
     "DELETE",

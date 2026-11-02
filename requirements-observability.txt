@@ -1,0 +1,6 @@
+# Optional OpenTelemetry traces for production web and worker services.
+opentelemetry-api==1.29.0
+opentelemetry-exporter-otlp==1.29.0
+opentelemetry-instrumentation-django==0.50b0
+opentelemetry-instrumentation-requests==0.50b0
+opentelemetry-sdk==1.29.0

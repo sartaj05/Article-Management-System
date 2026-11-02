@@ -6,6 +6,8 @@ import logging
 import time
 
 request_id_context = contextvars.ContextVar('request_id', default='-')
+logger = logging.getLogger(__name__)
+_otel_initialized = False
 
 try:
     from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
@@ -95,6 +97,37 @@ def init_sentry():
         traces_sample_rate=getattr(settings, 'SENTRY_TRACES_SAMPLE_RATE', 0.0),
         send_default_pii=False,
     )
+    return True
+
+
+def init_otel():
+    """Install optional Django/requests OpenTelemetry instrumentation."""
+    global _otel_initialized
+    if _otel_initialized:
+        return True
+    from django.conf import settings
+    if not getattr(settings, 'OTEL_ENABLED', False):
+        return False
+    try:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.instrumentation.django import DjangoInstrumentor
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    except ImportError:
+        logger.warning('OTEL_ENABLED is true but OpenTelemetry dependencies are not installed')
+        return False
+    provider = TracerProvider(resource=Resource.create({'service.name': settings.OTEL_SERVICE_NAME}))
+    exporter_kwargs = {}
+    if settings.OTEL_EXPORTER_OTLP_ENDPOINT:
+        exporter_kwargs['endpoint'] = settings.OTEL_EXPORTER_OTLP_ENDPOINT
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(**exporter_kwargs)))
+    trace.set_tracer_provider(provider)
+    DjangoInstrumentor().instrument()
+    RequestsInstrumentor().instrument()
+    _otel_initialized = True
     return True
 
 
