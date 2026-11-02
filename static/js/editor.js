@@ -34,11 +34,18 @@ $(document).ready(function () {
     }
     function showSection(id) {
         $('#home-section, .page').hide(); $('#' + id).show();
+        for (const [link, section] of Object.entries(sections)) {
+            const active = section === id;
+            $('#' + link)
+                .toggleClass('is-active', active)
+                .attr('aria-current', active ? 'page' : null);
+        }
     }
     const sections = {'home-btn':'home-section', 'manage-articles-btn':'article-list-page', 'approve-articles-btn':'approve-articles-page', 'reject-articles-btn':'reject-articles-page', 'published-articles-btn':'published-articles-page'};
     for (const [link, section] of Object.entries(sections)) $('#' + link).on('click', function (event) {
         event.preventDefault(); showSection(section); if (section !== 'home-section') refresh();
     });
+    showSection('home-section');
     $('.page input[type="text"]').on('input', function () {
         const query = this.value.toLowerCase();
         $(this).closest('.page').find('tbody tr').each(function () { $(this).toggle($(this).text().toLowerCase().includes(query)); });

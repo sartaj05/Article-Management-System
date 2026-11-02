@@ -109,6 +109,11 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 .dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active { color: #fff; background: var(--brand); }
 .dashboard-shell .workspace-topbar__actions .workspace-topbar__primary.is-active:hover { color: #fff; background: var(--brand-dark); }
 .dashboard-shell .workspace-topbar__actions a.is-active:not(.workspace-topbar__primary) { color: var(--brand); background: #f0f1ff; }
+.dashboard-shell .workspace-topbar__actions a[aria-current="page"] {
+  color: var(--ink);
+  background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
 .dashboard-shell .workspace-topbar__actions .workspace-logout { color: #c2415b; }
 .dashboard-shell .workspace-topbar__actions .workspace-logout:hover { color: #b22e49; background: #fff0f3; }
 

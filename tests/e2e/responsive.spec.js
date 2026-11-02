@@ -169,6 +169,18 @@ test.describe('responsive authenticated workspaces', () => {
   }
 });
 
+test('editor navigation highlights the active workspace section', async ({ page }) => {
+  await loginAs(page, 'editor');
+  await page.goto('/editor/dashboard/');
+
+  await expect(page.locator('#home-btn')).toHaveAttribute('aria-current', 'page');
+  await page.locator('#approve-articles-btn').click();
+  await expect(page.locator('#approve-articles-page')).toBeVisible();
+  await expect(page.locator('#approve-articles-btn')).toHaveClass(/is-active/);
+  await expect(page.locator('#approve-articles-btn')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('#home-btn')).not.toHaveAttribute('aria-current', 'page');
+});
+
 test('journalist articles table and detail modal remain usable on narrow screens', async ({ page }) => {
   await loginAs(page, 'journalist');
   await page.goto('/journalist/dashboard/');
