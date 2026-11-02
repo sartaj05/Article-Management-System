@@ -401,6 +401,35 @@ class ArticleSource(models.Model):
         return self.title
 
 
+class ArticleSourceDocument(models.Model):
+    STATUS_CHOICES = [('queued', 'Queued'), ('fetching', 'Fetching'), ('ready', 'Ready'), ('failed', 'Failed')]
+
+    source = models.OneToOneField(ArticleSource, on_delete=models.CASCADE, related_name='document')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='queued')
+    content_type = models.CharField(max_length=120, blank=True)
+    text_content = models.TextField(blank=True)
+    content_hash = models.CharField(max_length=64, blank=True)
+    error = models.TextField(blank=True)
+    fetched_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+
+class ArticleSourceChunk(models.Model):
+    document = models.ForeignKey(ArticleSourceDocument, on_delete=models.CASCADE, related_name='chunks')
+    ordinal = models.PositiveIntegerField()
+    text = models.TextField()
+    token_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['ordinal']
+        constraints = [models.UniqueConstraint(fields=['document', 'ordinal'], name='unique_source_document_chunk')]
+
+
 class ArticleFactCheck(models.Model):
     VERDICT_CHOICES = [('verified', 'Verified'), ('partly_verified', 'Partly verified'), ('unverified', 'Unverified'), ('false', 'False')]
     REVIEW_STATUS_CHOICES = [('pending', 'Pending editorial review'), ('approved', 'Approved'), ('rejected', 'Rejected')]

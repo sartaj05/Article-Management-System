@@ -27,7 +27,8 @@ def make_fact_check_suggestions(article, sources):
         claim_tokens = _tokens(claim)
         ranked = []
         for source in source_rows:
-            source_text = f"{source.get('title', '')} {source.get('publisher', '')} {source.get('notes', '')}"
+            evidence_text = ' '.join(item.get('passage', '') for item in source.get('evidence', []))
+            source_text = f"{source.get('title', '')} {source.get('publisher', '')} {source.get('notes', '')} {evidence_text}"
             overlap = len(claim_tokens & _tokens(source_text)) / max(len(claim_tokens), 1)
             if overlap:
                 ranked.append((overlap, source))
@@ -46,16 +47,20 @@ def make_fact_check_suggestions(article, sources):
             verdict, confidence = 'unverified', min(0.55, round(0.25 + best_overlap, 2))
             explanation = 'Related source metadata was found, but it does not establish the claim by itself.'
             unresolved = True
+        source_citations = []
+        for source in matches:
+            passage = next((item.get('passage', '') for item in source.get('evidence', [])), '')
+            source_citations.append({
+                'id': source['id'], 'title': source.get('title', ''), 'publisher': source.get('publisher', ''),
+                'url': source.get('url', ''), 'citation_key': source.get('citation_key', ''), 'passage': passage,
+            })
         suggestions.append({
             'claim': claim,
             'verdict': verdict,
             'confidence': confidence,
             'explanation': explanation,
             'source_ids': [source['id'] for source in matches],
-            'source_citations': [
-                {'id': source['id'], 'title': source.get('title', ''), 'publisher': source.get('publisher', ''), 'url': source.get('url', ''), 'citation_key': source.get('citation_key', '')}
-                for source in matches
-            ],
+            'source_citations': source_citations,
             'unresolved': unresolved,
         })
     return {'claims': suggestions, 'source_count': len(source_rows), 'unresolved_count': sum(item['unresolved'] for item in suggestions)}

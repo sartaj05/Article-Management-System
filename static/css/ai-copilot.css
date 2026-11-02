@@ -18,7 +18,9 @@
 .ai-fact-check__claim label input { margin-right: 7px; accent-color: #6251a6; }
 .ai-fact-check__claim small { color: var(--muted, #65748a); line-height: 1.5; }
 .ai-fact-check__sources { display: flex; flex-wrap: wrap; gap: 8px; }
+.ai-fact-check__sources > div { display: grid; gap: 5px; max-width: 100%; }
 .ai-fact-check__sources a { padding: 5px 8px; border-radius: 8px; background: #edf5fb; color: #2c668f; font-size: .76rem; text-decoration: none; }
+.ai-fact-check__passage { color: var(--muted, #65748a); line-height: 1.45; }
 #ai-fact-check-status[data-state="error"] { color: #b33e4b; }
 .ai-copilot__suggestion ul { margin: 8px 0 0; padding-left: 20px; color: var(--ink, #17243a); }
 .ai-copilot__suggestion li { margin: 5px 0; line-height: 1.45; }

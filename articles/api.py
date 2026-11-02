@@ -63,6 +63,7 @@ from .ai_evaluation import run_evaluation
 from .ai_jobs import execute_ai_job
 from .ai_governance import AIGovernanceError, get_policy, prepare_ai_request, record_ai_usage
 from .newsroom_intelligence import build_article_intelligence, build_workspace_intelligence
+from .source_ingestion import SourceIngestionError, ingest_source, retrieve_evidence_for_article
 from .seo import build_article_seo_payload
 from .accessibility import analyze_article_accessibility
 from .content_io import docx_to_markdown, markdown_document, markdown_to_docx
@@ -626,6 +627,47 @@ class ArticleSourceDetailView(APIView):
         return Response(ArticleSourceSerializer(source).data)
 
 
+class ArticleSourceIngestionView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_source(self, request, pk):
+        source = get_object_or_404(ArticleSource.objects.select_related('article'), pk=pk)
+        if request.user.role not in {'Editor', 'Admin'} and source.article.author_id != request.user.id:
+            return None
+        return source
+
+    def get(self, request, pk):
+        source = self.get_source(request, pk)
+        if not source:
+            return Response({'detail': 'You cannot inspect this source.'}, status=403)
+        return Response(ArticleSourceSerializer(source).data)
+
+    def post(self, request, pk):
+        source = self.get_source(request, pk)
+        if not source:
+            return Response({'detail': 'Only the author, editors, or admins can ingest this source.'}, status=403)
+        try:
+            document = ingest_source(source.id)
+        except SourceIngestionError as exc:
+            return Response({'detail': str(exc), 'status': 'failed'}, status=422)
+        source.refresh_from_db()
+        return Response({'status': document.status, 'chunk_count': document.chunks.count(), 'source': ArticleSourceSerializer(source).data}, status=201)
+
+
+class ArticleSourceEvidenceView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        source = get_object_or_404(ArticleSource.objects.select_related('article'), pk=pk)
+        if request.user.role not in {'Editor', 'Admin'} and source.article.author_id != request.user.id:
+            return Response({'detail': 'You cannot inspect this source.'}, status=403)
+        query = request.query_params.get('q') or source.article.content
+        evidence = [item for item in retrieve_evidence_for_article(source.article, query=query, limit=5) if item['source_id'] == source.id]
+        return Response({'source_id': source.id, 'evidence': evidence})
+
+
 class ArticleFactCheckView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [AllowAny]
@@ -656,6 +698,9 @@ class AIFactCheckView(APIView):
         if article.author_id != request.user.id and request.user.role not in {'Editor', 'Admin'}:
             return Response({'detail': 'Only the author, editors, or admins can run AI fact checks.'}, status=403)
         sources = list(article.sources.values('id', 'title', 'publisher', 'source_type', 'url', 'notes', 'citation_key'))
+        evidence = retrieve_evidence_for_article(article, limit=5)
+        for source in sources:
+            source['evidence'] = [item for item in evidence if item['source_id'] == source['id']]
         context = {'sources': sources}
         try:
             provider = get_editorial_provider()

@@ -160,10 +160,17 @@ class ArticleWorkflowSerializer(serializers.ModelSerializer):
 
 class ArticleSourceSerializer(serializers.ModelSerializer):
     added_by_name = serializers.CharField(source='added_by.username', read_only=True, default=None)
+    ingestion = serializers.SerializerMethodField()
+
+    def get_ingestion(self, instance):
+        document = getattr(instance, 'document', None)
+        if not document:
+            return {'status': 'not_ingested', 'chunk_count': 0}
+        return {'status': document.status, 'content_type': document.content_type, 'chunk_count': document.chunks.count(), 'fetched_at': document.fetched_at, 'error': document.error}
 
     class Meta:
         model = ArticleSource
-        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'verification_status', 'accessed_at', 'citation_key', 'added_by', 'added_by_name', 'created_at']
+        fields = ['id', 'article', 'url', 'title', 'publisher', 'source_type', 'notes', 'verification_status', 'accessed_at', 'citation_key', 'added_by', 'added_by_name', 'created_at', 'ingestion']
         read_only_fields = ['id', 'article', 'added_by', 'added_by_name', 'created_at']
 
 

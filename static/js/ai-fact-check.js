@@ -40,12 +40,20 @@
       const sources = document.createElement("div");
       sources.className = "ai-fact-check__sources";
       (claim.source_citations || []).forEach((source) => {
+        const citation = document.createElement("div");
         const link = document.createElement("a");
         link.href = source.url;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.textContent = `${source.title || "Source"}${source.publisher ? ` · ${source.publisher}` : ""}`;
-        sources.appendChild(link);
+        citation.appendChild(link);
+        if (source.passage) {
+          const passage = document.createElement("small");
+          passage.className = "ai-fact-check__passage";
+          passage.textContent = `“${source.passage}”`;
+          citation.appendChild(passage);
+        }
+        sources.appendChild(citation);
       });
       card.append(label, heading, text, explanation, sources);
       result.appendChild(card);
