@@ -111,10 +111,21 @@ class IsOwnerOrEditorOrAdmin(BasePermission):
 
 def editor_has_capability(user, article, capability):
     if user.role == 'Admin':
-        return True
-    if user.role != 'Editor':
+        default_allowed = True
+    elif user.role != 'Editor':
         return False
-    assignments = article.assignments.all()
-    if not assignments.exists():
-        return True
-    return assignments.filter(editor=user, **{f'can_{capability}': True}).exists()
+    else:
+        assignments = article.assignments.all()
+        default_allowed = not assignments.exists() or assignments.filter(editor=user, **{f'can_{capability}': True}).exists()
+    workspace = getattr(article, 'workspace', None)
+    if workspace is not None:
+        try:
+            from .models import WorkspaceRolePermission
+            override = WorkspaceRolePermission.objects.filter(
+                workspace=workspace, role=user.role, capability=f'article.{capability}',
+            ).first()
+            if override is not None:
+                return bool(override.is_enabled) and default_allowed
+        except Exception:
+            pass
+    return default_allowed

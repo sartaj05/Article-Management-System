@@ -54,7 +54,7 @@ from .api_serializers import (
     RevisionSerializer,
     ArticleAssetSerializer, ArticleCorrectionSerializer, ArticleProvenanceSerializer, ContentExperimentSerializer, ExperimentVariantSerializer, MediaAssetSerializer, SeriesArticleSerializer, StorySeriesSerializer,
 )
-from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, LegalHold, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule
+from .models import AIEvaluationCase, AIEvaluationRun, AIFeedback, AIInsight, AIJob, AIReaderRecommendation, AIUsageEvent, AIWorkspacePolicy, AIPromptVersion, Article, ArticleAsset, ArticleAssignment, ArticleAutosave, ArticleCorrection, ArticleEditEvent, ArticleEngagementEvent, ArticleFactCheck, ArticleImage, ArticleLiveUpdate, ArticleMedia, ArticlePresence, ArticleProvenance, ArticleReaction, ArticleRevision, ArticleSource, ArticleTranslation, ArticleView, AuditLog, BackupRecord, Bookmark, Category, Comment, CommentReport, ContentExperiment, DistributionJob, EditorialAssistantRun, EditorialComment, ExperimentAssignment, ExperimentEvent, LegalHold, Like, MediaAsset, ModerationFlag, Notification, OperationalAlert, PlagiarismCheck, ReadingCollection, ReadingCollectionArticle, ReadingProgress, RecoveryDrill, SeriesArticle, StorySeries, Tag, WorkflowRule, WorkspaceApprovalPolicy, WorkspaceRolePermission
 from .permissions import capabilities_for_user, editor_has_capability
 from .workflow import workflow_steps
 from .audit import record_audit_event
@@ -1293,6 +1293,9 @@ class ArticleWorkflowActionView(APIView):
                 return Response({'detail': 'Only editors and admins can publish articles.'}, status=status.HTTP_403_FORBIDDEN)
             if article.workflow_status != 'approved':
                 return Response({'detail': 'Only approved articles can be published.'}, status=status.HTTP_400_BAD_REQUEST)
+            approval_policy = getattr(article.workspace, 'approval_policy', None) if article.workspace_id else None
+            if approval_policy and approval_policy.require_dual_publish and article.reviewed_by_id == request.user.id:
+                return Response({'detail': 'Dual approval is enabled. A different publisher is required.', 'reviewed_by': article.reviewed_by_id}, status=409)
             if settings.ACCESSIBILITY_PUBLISH_GATE:
                 accessibility = analyze_article_accessibility(article)
                 if not accessibility['passed']:
@@ -2262,6 +2265,42 @@ class LegalHoldDetailView(WorkspaceScopeMixin, APIView):
         hold.save(update_fields=['is_active', 'released_at'])
         record_audit_event(actor=request.user, workspace=workspace, action='legal_hold_released', target_model='LegalHold', target_id=hold.id, details={'name': hold.name})
         return Response({'id': hold.id, 'is_active': hold.is_active, 'released_at': hold.released_at})
+
+
+class WorkspaceSecurityPolicyView(WorkspaceScopeMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        policy, _ = WorkspaceApprovalPolicy.objects.get_or_create(workspace=workspace)
+        permissions = WorkspaceRolePermission.objects.filter(workspace=workspace).values('role', 'capability', 'is_enabled')
+        return Response({'workspace': workspace.slug, 'approval_policy': {'require_dual_publish': policy.require_dual_publish, 'require_dual_billing': policy.require_dual_billing}, 'permissions': list(permissions)})
+
+    def patch(self, request):
+        workspace = _workspace_admin_or_global_admin(request)
+        if workspace is None:
+            return Response({'detail': 'Select a workspace with X-Workspace-Slug.'}, status=400)
+        policy, _ = WorkspaceApprovalPolicy.objects.get_or_create(workspace=workspace)
+        changed = []
+        for field in ('require_dual_publish', 'require_dual_billing'):
+            if field in request.data:
+                setattr(policy, field, bool(request.data[field]))
+                changed.append(field)
+        if changed:
+            policy.save(update_fields=changed + ['updated_at'])
+        for item in request.data.get('permissions') or []:
+            role = str(item.get('role', ''))
+            capability = str(item.get('capability', '')).strip()
+            if role not in dict(WorkspaceRolePermission.ROLE_CHOICES) or not capability:
+                return Response({'detail': 'Each permission needs a valid role and capability.'}, status=400)
+            WorkspaceRolePermission.objects.update_or_create(
+                workspace=workspace, role=role, capability=capability,
+                defaults={'is_enabled': bool(item.get('is_enabled', True))},
+            )
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_security_policy_updated', target_model='WorkspaceApprovalPolicy', target_id=policy.id, details={'changed': changed})
+        return self.get(request)
 
 
 class ArticleTrashView(APIView):

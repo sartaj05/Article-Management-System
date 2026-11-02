@@ -723,6 +723,26 @@ class LegalHold(models.Model):
         constraints = [models.UniqueConstraint(fields=['workspace', 'name'], name='unique_workspace_legal_hold_name')]
 
 
+class WorkspaceRolePermission(models.Model):
+    ROLE_CHOICES = [('Journalist', 'Journalist'), ('Editor', 'Editor'), ('Admin', 'Admin')]
+    workspace = models.ForeignKey('users.Workspace', on_delete=models.CASCADE, related_name='role_permissions')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    capability = models.CharField(max_length=100)
+    is_enabled = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['role', 'capability']
+        constraints = [models.UniqueConstraint(fields=['workspace', 'role', 'capability'], name='unique_workspace_role_permission')]
+
+
+class WorkspaceApprovalPolicy(models.Model):
+    workspace = models.OneToOneField('users.Workspace', on_delete=models.CASCADE, related_name='approval_policy')
+    require_dual_publish = models.BooleanField(default=False)
+    require_dual_billing = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class BackupRecord(models.Model):
     STATUS_CHOICES = [('running', 'Running'), ('completed', 'Completed'), ('failed', 'Failed')]
     KIND_CHOICES = [('database', 'Database'), ('media_manifest', 'Media manifest')]
