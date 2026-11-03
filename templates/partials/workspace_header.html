@@ -44,9 +44,12 @@
                 <a class="{% if active_nav == 'workspace' %}is-active{% endif %}" href="{% url 'workspace-hub' %}">Workspace hub</a>
             </div>
         </details>
+        <button class="workspace-tour-launch" type="button" data-guided-tour-launch data-guided-tour-role="{{ request.user.role|lower }}">Tour</button>
         <a class="workspace-logout" href="#" data-dashboard-logout>Log out</a>
     </nav>
 </header>
 <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}?v=20261103-dialogs-1">
+<link rel="stylesheet" href="{% static 'css/guided-tour.css' %}?v=20261103-tour-1">
 <script src="{% static 'js/app-dialogs.js' %}?v=20261103-dialogs-1" defer></script>
 <script src="{% static 'js/workspace-ui.js' %}?v=20261103-workspace-utils-1" defer></script>
+<script src="{% static 'js/guided-tour.js' %}?v=20261103-tour-1" defer></script>

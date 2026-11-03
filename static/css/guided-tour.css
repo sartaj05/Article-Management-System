@@ -1,0 +1,15 @@
+.workspace-tour-launch { padding: 8px 11px; border: 1px solid color-mix(in srgb, var(--brand, #5b5ce2) 30%, var(--line, #dfe3f2)); border-radius: 10px; color: var(--brand, #5b5ce2); background: var(--surface, #fff); font: inherit; font-size: .74rem; font-weight: 800; cursor: pointer; }
+.workspace-tour-launch:hover { color: #fff; background: var(--brand, #5b5ce2); }
+.has-guided-tour { overflow: hidden; }
+.guided-tour-overlay { position: fixed; z-index: 10000; inset: 0; display: grid; place-items: center; padding: 22px; }
+.guided-tour-backdrop { position: absolute; inset: 0; background: rgb(17 23 53 / 66%); backdrop-filter: blur(3px); }
+.guided-tour-card { position: relative; z-index: 1; width: min(100%, 480px); padding: 25px; border: 1px solid rgb(255 255 255 / 45%); border-radius: 22px; color: #fff; background: linear-gradient(145deg, #39318d, #6253df); box-shadow: 0 26px 70px rgb(14 18 57 / 40%); animation: guided-tour-in .28s ease both; }
+.guided-tour-card__top { display: flex; justify-content: space-between; gap: 14px; color: #bfc4ff; font-size: .66rem; font-weight: 850; letter-spacing: .12em; }
+.guided-tour-card h2 { margin: 22px 0 9px; font-size: clamp(1.45rem, 4vw, 2rem); letter-spacing: -.04em; }
+.guided-tour-card p { min-height: 54px; margin: 0; color: #e9eaff; line-height: 1.65; }
+.guided-tour-card__actions { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; margin-top: 28px; }
+.guided-tour-card__actions .button--secondary { color: #e9eaff; border-color: rgb(255 255 255 / 28%); background: rgb(255 255 255 / 10%); }
+.is-guided-tour-target { position: relative !important; z-index: 10001 !important; border-radius: 10px !important; outline: 3px solid #ffad83 !important; outline-offset: 5px !important; box-shadow: 0 0 0 10px rgb(255 173 131 / 18%), 0 12px 30px rgb(9 13 44 / 28%) !important; }
+@keyframes guided-tour-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (max-width: 680px) { .workspace-tour-launch { padding: 7px 9px; } .guided-tour-card { padding: 20px; border-radius: 18px; } .guided-tour-card__actions { grid-template-columns: 1fr 1fr; } .guided-tour-card__actions span { display: none; } .guided-tour-card__actions [data-tour-skip] { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .guided-tour-card { animation: none; } .is-guided-tour-target { scroll-behavior: auto !important; } }

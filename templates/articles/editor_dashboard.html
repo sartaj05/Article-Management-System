@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="{% static 'css/support-chat.css' %}">
   <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}">
   <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
+  <link rel="stylesheet" href="{% static 'css/guided-tour.css' %}?v=20261103-tour-1">
   <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1"></script>
   <script src="{% static 'vendor/jquery-3.7.1.min.js' %}"></script>
   <script src="{% static 'js/workflow-ui.js' %}?v=20261102-pagination-1"></script>
@@ -18,6 +19,7 @@
   <script src="{% static 'js/workspace-ui.js' %}?v=20261014-1"></script>
   <script src="{% static 'js/responsive-tables.js' %}"></script>
   <script src="{% static 'js/notification-badge.js' %}" defer></script>
+  <script src="{% static 'js/guided-tour.js' %}?v=20261103-tour-1" defer></script>
 </head>
 <body class="dashboard-shell">
   <div class="dashboard-container">
@@ -35,6 +37,7 @@
         <a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a>
         <a href="{% url 'assignment-board-page' %}">Assignments</a>
         <a href="#" id="published-articles-btn">Published</a>
+        <button class="workspace-tour-launch" type="button" data-guided-tour-launch data-guided-tour-role="editor">Tour</button>
         <details class="workspace-tools-menu"><summary>Tools</summary><div class="workspace-tools-menu__panel" aria-label="Workspace tools"><a href="{% url 'ai-observability-page' %}">AI health</a><a href="{% url 'backup-center-page' %}">Backups</a><a href="{% url 'comment-moderation-page' %}">Comments</a><a href="{% url 'translation-workspace-page' %}">Translations</a><a href="{% url 'integration-hub-page' %}">Integrations</a><a href="{% url 'editorial-calendar-page' %}">Calendar</a><a href="{% url 'workspace-hub' %}">Workspace hub</a></div></details>
         <a href="#" id="logout-btn" class="workspace-logout" data-dashboard-logout>Log out</a>
       </nav>

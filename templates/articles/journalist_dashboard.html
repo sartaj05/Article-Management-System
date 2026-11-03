@@ -11,7 +11,9 @@
     <link rel="stylesheet" href="{% static 'css/support-chat.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}" />
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1" />
+    <link rel="stylesheet" href="{% static 'css/guided-tour.css' %}?v=20261103-tour-1" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="{% static 'js/guided-tour.js' %}?v=20261103-tour-1" defer></script>
  
     
 
@@ -25,6 +27,7 @@
       <a href="#" id="article-list-link" data-page-link="article-list-page">Articles</a>
       <a href="#" id="create-article-link" class="workspace-topbar__primary" data-page-link="create-article-page">New article</a>
       <details class="workspace-tools-menu"><summary>Tools</summary><div class="workspace-tools-menu__panel" aria-label="Workspace tools"><a href="{% url 'translation-workspace-page' %}">Translations</a><a href="{% url 'integration-hub-page' %}">Integrations</a><a href="{% url 'workspace-hub' %}">Workspace hub</a></div></details>
+      <button class="workspace-tour-launch" type="button" data-guided-tour-launch data-guided-tour-role="journalist">Tour</button>
       <a href="#" id="logout-link" class="workspace-logout" data-dashboard-logout>Log out</a>
     </nav>
   </header>
