@@ -8,6 +8,15 @@
   const executiveSummary = document.getElementById('executive-summary');
   const executivePanels = document.getElementById('executive-panels');
   const executiveUpdated = document.getElementById('executive-updated');
+  const workflowChart = document.getElementById('workflow-chart');
+  const categoryChart = document.getElementById('category-chart');
+  const engagementRing = document.getElementById('engagement-ring');
+  const engagementRingValue = document.getElementById('engagement-ring-value');
+  const engagementScore = document.getElementById('engagement-score');
+  const engagementLegend = document.getElementById('engagement-legend');
+  const insight = document.getElementById('analytics-insight');
+  let latestAnalytics = null;
+  let latestExecutive = null;
   const token = localStorage.getItem('access_token');
   const headers = { Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
@@ -52,6 +61,34 @@
     health.className = `analytics-health analytics-health--${needsAttention ? 'attention' : 'healthy'}`;
   }
 
+  function renderVisuals(analytics, executive) {
+    const workflow = executive?.workflow || {};
+    const workflowItems = [
+      ['Draft', workflow.draft || 0, 'brand'],
+      ['In review', workflow.submitted || analytics.pending_review || 0, 'amber'],
+      ['Approved', workflow.approved || analytics.approved || 0, 'teal'],
+      ['Published', workflow.published || analytics.published || 0, 'green'],
+    ];
+    const workflowTotal = Math.max(1, workflowItems.reduce((sum, item) => sum + Number(item[1]), 0));
+    workflowChart.innerHTML = workflowItems.map(([label, value, tone]) => `<div class="analytics-bar-row"><div class="analytics-bar-row__label"><span>${label}</span><strong>${formatNumber(value)}</strong></div><div class="analytics-bar-track"><i class="analytics-bar analytics-bar--${tone}" style="width:${Math.max(4, (value / workflowTotal) * 100)}%"></i></div></div>`).join('');
+    document.getElementById('workflow-chart-hint').textContent = `${formatNumber(workflowTotal)} tracked stories`;
+
+    const categories = (analytics.category_performance || []).slice(0, 5);
+    const maxViews = Math.max(1, ...categories.map((item) => Number(item.views || 0)));
+    categoryChart.innerHTML = categories.length ? categories.map((item) => `<div class="analytics-category-row"><div><span>${escapeHtml(item.category || 'Uncategorised')}</span><strong>${formatNumber(item.views || 0)}</strong></div><div class="analytics-bar-track"><i style="width:${Math.max(4, (Number(item.views || 0) / maxViews) * 100)}%"></i></div><small>${formatNumber(item.articles || 0)} article${item.articles === 1 ? '' : 's'}</small></div>`).join('') : '<p class="feature-empty">Publish stories by category to see reach here.</p>';
+
+    const starts = Number(analytics.total_read_starts || 0);
+    const completed = Number(analytics.total_completed_reads || 0);
+    const completion = Math.min(100, Number(analytics.read_completion_rate || 0));
+    const shares = Number(analytics.total_shares || 0);
+    engagementRing.style.setProperty('--ring-progress', `${completion * 3.6}deg`);
+    engagementRingValue.textContent = `${Math.round(completion)}%`;
+    engagementScore.textContent = `${Math.round(completion)}% completion`;
+    engagementLegend.innerHTML = `<span><i class="analytics-dot analytics-dot--brand"></i>${formatNumber(starts)} started</span><span><i class="analytics-dot analytics-dot--teal"></i>${formatNumber(completed)} completed</span><span><i class="analytics-dot analytics-dot--amber"></i>${formatNumber(shares)} shared</span>`;
+    const bestCategory = categories[0]?.category || 'your strongest category';
+    insight.innerHTML = `<span class="analytics-insight__icon" aria-hidden="true">✦</span><span><strong>Demo insight:</strong> ${completion ? `Readers complete ${Math.round(completion)}% of tracked reading sessions.` : `Build reader momentum by publishing more stories and promoting ${escapeHtml(bestCategory)} content.`}</span>`;
+  }
+
   async function loadAnalytics() {
     status.textContent = 'Refreshing newsroom data…';
     try {
@@ -60,6 +97,8 @@
       if (!response.ok) throw new Error(payload.detail || 'Analytics unavailable.');
       renderStats(payload);
       renderPulse(payload);
+      latestAnalytics = payload;
+      renderVisuals(latestAnalytics, latestExecutive);
       const top = payload.top_authors || [];
       authors.innerHTML = top.length ? top.map((item, index) => `<div class="analytics-author"><span>${index + 1}</span><strong>${escapeHtml(item.username)}</strong><em>${item.article_count} article${item.article_count === 1 ? '' : 's'} · ${formatNumber(item.views)} views · ${formatNumber(item.completion_rate)}% completion</em></div>`).join('') : '<p class="feature-empty">No author activity yet.</p>';
       const funnelLabels = { read_start: 'Started reading', read_progress: 'Read in progress', read_complete: 'Completed reading', share: 'Shared' };
@@ -86,12 +125,19 @@
       const panels = [['Reader engagement', `${payload.reader.completion_rate}% completion · ${payload.reader.returning_7d} returning`, 'reader'], ['Workflow throughput', `${payload.workflow.submitted} in review · ${payload.workflow.approved} approved`, 'workflow'], ['Membership conversion', `${payload.membership.active_subscriptions} active subscriptions · ${payload.membership.paid_invoices} paid invoices`, 'membership'], ['Distribution health', `${payload.distribution.failed} failed · ${payload.distribution.queued} queued`, 'distribution']];
       executivePanels.innerHTML = panels.map((item) => `<article class="executive-panel executive-panel--${item[2]}"><div class="executive-panel__icon" aria-hidden="true"></div><div><strong>${item[0]}</strong><span>${escapeHtml(item[1])}</span></div></article>`).join('');
       executiveUpdated.textContent = `Updated ${new Date(payload.generated_at).toLocaleTimeString()}`;
+      latestExecutive = payload;
+      renderVisuals(latestAnalytics || {}, latestExecutive);
     } catch (error) {
       executiveSummary.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`;
     }
   }
 
   function refresh() { loadAnalytics(); loadExecutiveAnalytics(); }
+  document.querySelectorAll('[data-analytics-view]').forEach((button) => button.addEventListener('click', () => {
+    const view = button.dataset.analyticsView;
+    document.querySelectorAll('[data-analytics-view]').forEach((item) => { const active = item === button; item.classList.toggle('is-active', active); item.setAttribute('aria-selected', String(active)); });
+    document.querySelectorAll('[data-chart-view]').forEach((card) => { card.hidden = !card.dataset.chartView.split(' ').includes(view); });
+  }));
   document.getElementById('refresh-analytics').addEventListener('click', refresh);
   refresh();
 })();

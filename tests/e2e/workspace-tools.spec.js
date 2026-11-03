@@ -54,6 +54,12 @@ test('analytics dashboard presents the executive overview and newsroom pulse', a
   await expect(page.locator('#analytics-pulse .analytics-pulse__row')).toHaveCount(3);
   await expect(page.locator('#executive-summary article')).toHaveCount(4);
   await expect(page.locator('.analytics-quick-actions')).toBeVisible();
+  await expect(page.locator('#workflow-chart .analytics-bar-row')).toHaveCount(4);
+  await expect(page.locator('#engagement-ring')).toBeVisible();
+  await page.getByRole('tab', { name: 'Readers' }).click();
+  await expect(page.locator('[data-chart-view="overview content"]').first()).toBeHidden();
+  await expect(page.locator('[data-chart-view="overview content"]').nth(1)).toBeHidden();
+  await expect(page.locator('[data-chart-view="overview readers"]')).toBeVisible();
   const dimensions = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
   expect(dimensions.width, 'analytics dashboard overflows horizontally').toBeLessThanOrEqual(dimensions.viewport + 1);
 });

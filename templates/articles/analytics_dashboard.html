@@ -7,7 +7,7 @@
     <title>Editorial analytics</title>
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=20261005-layout-1">
-    <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
+    <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}?v=20261103-interactive-1">
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261102-analytics-refresh-1">
 </head>
 <body class="dashboard-shell">
@@ -30,13 +30,22 @@
             </div>
             <aside class="analytics-quick-actions" aria-labelledby="quick-actions-title"><span class="feature-eyebrow">Move faster</span><h2 id="quick-actions-title">Quick actions</h2><a href="{% url 'workspace-search-page' %}"><span>Explore your stories</span><b aria-hidden="true">→</b></a>{% if request.user.role != 'Journalist' %}<a href="{% url 'assignment-board-page' %}"><span>Review assignments</span><b aria-hidden="true">→</b></a><a href="{% url 'monitoring-dashboard-page' %}"><span>Check system health</span><b aria-hidden="true">→</b></a>{% endif %}</aside>
         </section>
+        <section class="analytics-visuals" aria-labelledby="visuals-title">
+            <div class="analytics-section-heading"><div><span class="feature-eyebrow">Interactive workspace</span><h2 id="visuals-title">See the story behind the numbers</h2><p class="analytics-visuals__description">Switch views to explore workflow health, content reach, and reader momentum.</p></div><div class="analytics-view-switcher" role="tablist" aria-label="Analytics views"><button class="is-active" type="button" role="tab" aria-selected="true" data-analytics-view="overview">Overview</button><button type="button" role="tab" aria-selected="false" data-analytics-view="content">Content</button><button type="button" role="tab" aria-selected="false" data-analytics-view="readers">Readers</button></div></div>
+            <div class="analytics-chart-grid">
+                <article class="analytics-chart-card analytics-chart-card--wide" data-chart-view="overview content" aria-labelledby="workflow-chart-title"><div class="analytics-chart-card__heading"><div><span class="feature-eyebrow">Workflow mix</span><h3 id="workflow-chart-title">Where stories are moving</h3></div><span class="analytics-chart-card__hint" id="workflow-chart-hint">Live inventory</span></div><div id="workflow-chart" class="analytics-bars"></div></article>
+                <article class="analytics-chart-card" data-chart-view="overview content" aria-labelledby="category-chart-title"><div class="analytics-chart-card__heading"><div><span class="feature-eyebrow">Content reach</span><h3 id="category-chart-title">Views by category</h3></div></div><div id="category-chart" class="analytics-category-bars"></div></article>
+                <article class="analytics-chart-card" data-chart-view="overview readers" aria-labelledby="engagement-chart-title"><div class="analytics-chart-card__heading"><div><span class="feature-eyebrow">Reader journey</span><h3 id="engagement-chart-title">Engagement momentum</h3></div><span class="analytics-chart-card__score" id="engagement-score">0%</span></div><div class="analytics-ring-wrap"><div class="analytics-ring" id="engagement-ring"><span id="engagement-ring-value">0%</span></div><div class="analytics-ring-legend" id="engagement-legend"></div></div></article>
+            </div>
+            <div class="analytics-insight" id="analytics-insight" role="status" aria-live="polite"></div>
+        </section>
         <section class="executive-analytics" aria-labelledby="executive-title"><div class="executive-analytics__heading"><div><span class="feature-eyebrow">Client demo snapshot</span><h2 id="executive-title">Executive performance view</h2><p>Connect editorial output, reader behavior, memberships, and distribution health.</p></div><span id="executive-updated" class="feature-status">Loading snapshot…</span></div><div id="executive-summary" class="executive-summary"></div><div id="executive-panels" class="executive-panels"></div></section>
         <section class="analytics-detail-grid" aria-label="Detailed analytics">
             <section class="analytics-panel"><div class="analytics-panel__heading"><div><span class="feature-eyebrow">Editorial output</span><h2>Author performance comparison</h2></div><span class="analytics-panel__hint">Top contributors</span></div><div class="analytics-authors" id="analytics-authors"></div></section>
             <section class="analytics-panel"><div class="analytics-panel__heading"><div><span class="feature-eyebrow">Reader journey</span><h2>Reader funnel · last 7 days</h2></div><span class="analytics-panel__hint">Engagement</span></div><div class="analytics-funnel" id="analytics-funnel"></div></section>
         </section>
     </main>
-    <script src="{% static 'js/analytics-dashboard.js' %}?v=20261102-analytics-refresh-1" defer></script>
+    <script src="{% static 'js/analytics-dashboard.js' %}?v=20261103-interactive-1" defer></script>
     <script src="{% static 'js/notification-badge.js' %}" defer></script>
 </body>
 </html>
