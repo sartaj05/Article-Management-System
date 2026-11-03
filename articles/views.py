@@ -1,10 +1,7 @@
-from datetime import datetime
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponseRedirect
-from django.urls import reverse
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
 from django.views import View
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import Article, ArticleView, Category, Tag
+from .models import Article, ArticleView
 from rest_framework.views import APIView
 from django.utils import timezone
 from rest_framework.response import Response
@@ -13,7 +10,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.generics import CreateAPIView
 from rest_framework import status
 from .serializers import ArticleSerializer
-from .forms import ArticleForm
 from django.db.models import Q
 from django.core.paginator import Paginator
 from rest_framework import generics
@@ -516,118 +512,6 @@ class PendingApprovalArticleView(APIView):
         serializer = ArticleSerializer(pending_articles, many=True)
         return Response({'articles': serializer.data})
 
-
-class ArticleImageGalleryView(View):
-    def get(self, request, slug):
-        article = get_object_or_404(Article, slug=slug)
-        images = article.images.all()
-        context = {'article': article, 'images': images}
-        return render(request, 'articles/article_gallery.html', context)    
-
-class SubmitArticleAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        data = request.data
-        try:
-            # Validate required fields
-            required_fields = ['title', 'content', 'email', 'category', 'publish_date']
-            for field in required_fields:
-                if field not in data:
-                    return Response({'error': f'{field} is required.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Validate category
-            try:
-                category = Category.objects.get(id=data['category'])
-            except Category.DoesNotExist:
-                return Response({'error': 'Invalid category ID.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Validate publish_date (must be in the future)
-            try:
-                publish_date = datetime.strptime(data['publish_date'], '%Y-%m-%d').date()
-                if publish_date <= datetime.today().date():
-                    return Response({'error': 'Publish date must be in the future.'}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError:
-                return Response({'error': 'Invalid publish_date format. Please use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Create article
-            article = Article.objects.create(
-                title=data['title'],
-                subtitle=data.get('subtitle', ''),
-                content=data['content'],
-                author=request.user,
-                email=data['email'],
-                category=category,
-                publish_date=publish_date
-            )
-            
-            # Add tags if provided
-            if 'tags' in data:
-                tags = Tag.objects.filter(id__in=data['tags'])
-                if tags.exists():
-                    article.tags.set(tags)
-            
-            # Handle image upload
-            if 'image' in request.FILES:
-                article.image = request.FILES['image']
-                article.save()
-
-            return Response({'message': 'Article created successfully!'}, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ArticleDraftsView(LoginRequiredMixin, View):
-    def get(self, request):
-        # Assuming 'is_draft' is a boolean field in your Article model to represent draft status
-        drafts = Article.objects.filter(author=request.user, is_draft=True).order_by('-created_at')
-        context = {'drafts': drafts}
-        return render(request, 'articles/article_drafts.html', context)
-class ArticleCommentsView(LoginRequiredMixin, UserPassesTestMixin, View):
-    def get(self, request, article_id):
-        article = get_object_or_404(Article, id=article_id)
-        comments = article.comments.all()
-        context = {'article': article, 'comments': comments}
-        return render(request, 'articles/article_comments.html', context)
-
-    def test_func(self):
-        article = get_object_or_404(Article, id=self.kwargs['article_id'])
-        return article.author == self.request.user or self.request.user.role in ['Editor', 'Admin']
-class ArticleArchiveView(LoginRequiredMixin, UserPassesTestMixin, View):
-    def get(self, request):
-        archived_articles = Article.objects.filter(is_archived=True).order_by('-created_at')
-        context = {'archived_articles': archived_articles}
-        return render(request, 'articles/article_archive.html', context)
-
-    def test_func(self):
-        return self.request.user.role in ['Editor', 'Admin']
-class ArticleStatusUpdateView(LoginRequiredMixin, UserPassesTestMixin, View):
-    def post(self, request, article_id):
-        article = get_object_or_404(Article, id=article_id)
-        new_status = request.POST.get('status')  # Assuming 'status' is passed as a form field
-        article.status = new_status
-        article.save()
-        return HttpResponseRedirect(reverse('articles:article-detail', args=[article.slug]))
-
-    def test_func(self):
-        get_object_or_404(Article, id=self.kwargs['article_id'])
-        return self.request.user.role in ['Editor', 'Admin']
-
-class ArticleSubmitView(View):
-    def get(self, request):
-        form = ArticleForm()
-        return render(request, 'articles/article_form.html', {'form': form})
-
-    def post(self, request):
-        form = ArticleForm(request.POST, request.FILES)
-        if form.is_valid():
-            article = form.save(commit=False)
-            article.author = request.user  # Make sure the article is saved under the logged-in user
-            article.save()
-            return redirect('articles:article-detail', slug=article.slug)
-        return render(request, 'articles/article_form.html', {'form': form})
 
 @login_required
 def admin_dashboard_data(request):

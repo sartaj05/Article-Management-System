@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .distribution import public_article, public_article_translation
-from .views import ArticleSubmitView,ArticleCreateAPIView, ArticleListAPIView
+from .views import ArticleCreateAPIView, ArticleListAPIView
 from .views import ArticleCountAPIView
 from .api import (
     ArticleAnalyticsView, BackupOperationsView, ExecutiveAnalyticsView, ExecutiveReportExportView, OperationsAlertsView, OperationsOverviewView, OperationsQueueView, RecoveryDrillView, WorkspaceContentMigrationView, WorkflowRuleView, DistributionJobView,
@@ -60,7 +60,6 @@ urlpatterns = [
     path('api/articles/count/', ArticleCountAPIView.as_view(), name='article_count'),
 
     
-    path('submit/', ArticleSubmitView.as_view(), name='article-submit'),
     # Search articles
     path('search/', views.ArticleSearchView.as_view(), name='article-search'),  
     # Filter articles by category
@@ -83,27 +82,10 @@ urlpatterns = [
      # Add the pending approval endpoint
     path('pending_approval/', views.PendingApprovalArticleView.as_view(), name='article-pending-approval'),
     path('publishedlist/', views.PublishedArticleListView.as_view(), name='published_articles_list'),
-    # Submit an article (for journalists)
-    path('submit/', views.SubmitArticleAPIView.as_view(), name='article-submit'),  
-    
-    
     path('admin-dashboard-data/', views.admin_dashboard_data, name='admin-dashboard-data'),
     
 
     
-    # View drafts (for journalists)
-    path('drafts/', views.ArticleDraftsView.as_view(), name='article-drafts'),  
-    
-
-    
-    # View and manage comments (for journalists/editors/admins)
-    path('comments/<int:article_id>/', views.ArticleCommentsView.as_view(), name='article-comments'),  
-    
-    # View archived articles (for admins/editors)
-    path('archive/', views.ArticleArchiveView.as_view(), name='article-archive'),  
-    
-    # Update article status (for editors/admins)
-    path('status/<int:article_id>/', views.ArticleStatusUpdateView.as_view(), name='article-status-update'),
     path('journalist/dashboard/', views.journalist_dashboard, name='journalist-dashboard'),
     path('editor/assignments/', views.assignment_board, name='assignment-board-page'),
     path('workspace/search/', views.workspace_search, name='workspace-search-page'),
