@@ -59,6 +59,10 @@ def monitoring_dashboard(request):
     return render(request, 'articles/monitoring_dashboard.html')
 
 
+def public_status_page(request):
+    return render(request, 'articles/status_page.html')
+
+
 @role_required('Editor', 'Admin')
 def ai_observability_dashboard(request):
     return render(request, 'articles/ai_observability.html')

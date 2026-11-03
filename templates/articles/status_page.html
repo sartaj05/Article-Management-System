@@ -1,0 +1,26 @@
+{% extends 'base_generic.html' %}
+{% load static %}
+
+{% block title %}System status | Article Studio{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/status-page.css' %}?v=20261103-status-1">{% endblock %}
+
+{% block content %}
+<main class="status-page" data-status-page>
+    <header class="status-page__hero">
+        <div><span class="feature-eyebrow">Production operations</span><h1>Article Studio status</h1><p>Live service health for the newsroom platform. This page refreshes automatically every 30 seconds.</p></div>
+        <div class="status-page__overall" id="status-overall" data-state="loading"><i></i><strong>Checking systems</strong><small id="status-checked-at">Waiting for first check</small></div>
+    </header>
+    <section class="status-page__summary" aria-label="Availability summary">
+        <article><span>Current availability</span><strong id="status-availability">—</strong><small>Based on the latest service check</small></article>
+        <article><span>Services monitored</span><strong id="status-service-count">—</strong><small>Database, cache, and storage</small></article>
+        <article><span>Refresh cadence</span><strong>30 sec</strong><small>Automatic status refresh</small></article>
+    </section>
+    <section class="status-page__services" aria-labelledby="status-services-title">
+        <div class="status-page__heading"><div><span class="feature-eyebrow">Service health</span><h2 id="status-services-title">Platform components</h2></div><button type="button" class="button button--secondary button--small" id="status-refresh">Check now</button></div>
+        <div id="status-services" class="status-page__service-grid" aria-live="polite"><p class="status-page__loading">Checking production services…</p></div>
+    </section>
+    <p class="status-page__note" id="status-note" role="status" aria-live="polite">Status checks run from the Article Studio application.</p>
+</main>
+<script src="{% static 'js/status-page.js' %}?v=20261103-status-1" defer></script>
+{% endblock %}

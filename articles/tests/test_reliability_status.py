@@ -30,3 +30,10 @@ class ReliabilityStatusTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(response.data['status'], {'operational', 'degraded'})
         self.assertIn('database', response.data['services'])
+
+    def test_public_status_page_is_available_without_authentication(self):
+        self.client.force_authenticate(None)
+        response = self.client.get('/articles/status-page/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Article Studio status')
+        self.assertContains(response, 'status-page.js')

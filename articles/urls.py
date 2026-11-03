@@ -93,6 +93,7 @@ urlpatterns = [
     path('workspace/notifications/', views.notification_center, name='notification-center-page'),
     path('workspace/analytics/', views.analytics_dashboard, name='analytics-dashboard-page'),
     path('workspace/monitoring/', views.monitoring_dashboard, name='monitoring-dashboard-page'),
+    path('status-page/', views.public_status_page, name='public-status-page'),
     path('workspace/ai-observability/', views.ai_observability_dashboard, name='ai-observability-page'),
     path('workspace/backups/', views.backup_center, name='backup-center-page'),
     path('workspace/comments/', views.comment_moderation, name='comment-moderation-page'),
