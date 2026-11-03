@@ -3178,6 +3178,10 @@ class DistributionJobView(WorkspaceScopeMixin, APIView):
             'scheduled_for': parse_datetime(str(request.data.get('scheduled_for'))) if request.data.get('scheduled_for') else None,
         }
         job, created = DistributionJob.objects.get_or_create(idempotency_key=idempotency_key, defaults=defaults) if idempotency_key else (DistributionJob.objects.create(**defaults), True)
+        if created:
+            record_audit_event(actor=request.user, workspace=article.workspace, action='distribution_job_created', article=article, target_model='DistributionJob', target_id=job.id, details={'channel': job.channel, 'scheduled_for': job.scheduled_for.isoformat() if job.scheduled_for else None})
+        else:
+            record_audit_event(actor=request.user, workspace=article.workspace, action='distribution_job_deduplicated', article=article, target_model='DistributionJob', target_id=job.id, details={'channel': job.channel})
         return Response({'id': job.id, 'channel': job.channel, 'status': job.status, 'idempotency_key': job.idempotency_key, 'deduplicated': not created}, status=201 if created else 200)
 
     def patch(self, request, pk):
@@ -3190,6 +3194,7 @@ class DistributionJobView(WorkspaceScopeMixin, APIView):
         job.last_error = ''
         job.scheduled_for = timezone.now()
         job.save(update_fields=['status', 'last_error', 'scheduled_for'])
+        record_audit_event(actor=request.user, workspace=job.article.workspace, action='distribution_job_retried', article=job.article, target_model='DistributionJob', target_id=job.id, details={'channel': job.channel, 'attempts': job.attempts})
         return Response({'id': job.id, 'status': job.status})
 
 

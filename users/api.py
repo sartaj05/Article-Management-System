@@ -598,6 +598,7 @@ class TwoFactorView(APIView):
             factor.backup_codes = [hashlib.sha256(code.encode()).hexdigest() for code in codes]
             factor.is_enabled = True
             factor.save(update_fields=['backup_codes', 'is_enabled', 'updated_at'])
+            record_audit_event(actor=request.user, action='two_factor_enabled', target_model='TwoFactorAuth', target_id=factor.id)
             return Response({'enabled': True, 'backup_codes': codes})
         return Response({'enabled': True})
 
@@ -608,6 +609,7 @@ class TwoFactorView(APIView):
             return Response({'detail': 'Invalid authenticator code.'}, status=400)
         factor.is_enabled = False
         factor.save(update_fields=['is_enabled', 'updated_at'])
+        record_audit_event(actor=request.user, action='two_factor_disabled', target_model='TwoFactorAuth', target_id=factor.id)
         return Response({'enabled': False})
 
 
@@ -636,6 +638,7 @@ class AuthenticationPolicyView(APIView):
                     return Response({'detail': f'{field} must be a positive integer.'}, status=400)
                 setattr(policy, field, value)
         policy.save()
+        record_audit_event(actor=request.user, action='authentication_policy_updated', target_model='AuthenticationPolicy', target_id=policy.id, details={'changed_fields': sorted(request.data.keys()), 'require_mfa': policy.require_mfa, 'require_sso': policy.require_sso})
         return self.get(request)
 
 
@@ -722,12 +725,14 @@ class TrustedDeviceView(APIView):
             user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
             expires_at=timezone.now() + timedelta(days=30),
         )
+        record_audit_event(actor=request.user, action='trusted_device_created', target_model='TrustedDevice', target_id=device.id, details={'label': device.label, 'expires_at': device.expires_at.isoformat()})
         return Response({'id': device.id, 'token': raw_token, 'expires_at': device.expires_at}, status=201)
 
     def delete(self, request, pk=None):
         device = get_object_or_404(TrustedDevice, pk=pk, user=request.user)
         device.revoked_at = timezone.now()
         device.save(update_fields=['revoked_at'])
+        record_audit_event(actor=request.user, action='trusted_device_revoked', target_model='TrustedDevice', target_id=device.id, details={'label': device.label})
         return Response({'revoked': True})
 
 
@@ -890,6 +895,7 @@ class SSOProviderView(APIView):
             'auto_provision': bool(request.data.get('auto_provision', True)),
             'is_enabled': bool(request.data.get('is_enabled', False)),
         })
+        record_audit_event(actor=request.user, action='sso_provider_updated', target_model='SSOProvider', target_id=item.id, details={'provider': item.provider, 'is_enabled': item.is_enabled, 'auto_provision': item.auto_provision})
         return Response({'provider': item.provider, 'client_id': item.client_id, 'discovery_url': item.discovery_url, 'token_url': item.token_url, 'userinfo_url': item.userinfo_url, 'metadata_url': item.metadata_url, 'default_role': item.default_role, 'auto_provision': item.auto_provision, 'is_enabled': item.is_enabled})
 
 
@@ -933,6 +939,7 @@ class SCIMTokenView(APIView):
             return Response({'detail': 'Only workspace admins can manage SCIM tokens.'}, status=403)
         raw = f'scim_{secrets.token_urlsafe(32)}'
         token = SCIMToken.objects.create(workspace=workspace, prefix=raw[:12], token_hash=hashlib.sha256(raw.encode()).hexdigest(), expires_at=timezone.now() + timedelta(days=90))
+        record_audit_event(actor=request.user, workspace=workspace, action='scim_token_created', target_model='SCIMToken', target_id=token.id, details={'prefix': token.prefix, 'expires_at': token.expires_at.isoformat()})
         return Response({'token': raw, 'workspace': workspace.slug, 'expires_at': token.expires_at}, status=201)
 
     def get(self, request, slug):
@@ -1155,6 +1162,7 @@ class MembershipCheckoutView(APIView):
             user=request.user, plan=plan, status__in=['pending', 'canceled'],
             defaults={'status': 'active' if plan.price == 0 else 'pending', 'provider': provider, 'started_at': timezone.now() if plan.price == 0 else None},
         )
+        record_audit_event(actor=request.user, action='membership_checkout_started', target_model='MembershipSubscription', target_id=subscription.id, details={'plan': plan.slug, 'provider': provider, 'price': str(plan.price)})
         if plan.price > 0:
             transaction = PaymentTransaction.objects.create(user=request.user, plan=plan, provider=provider, checkout_token=secrets.token_urlsafe(40), amount=plan.price, currency=plan.currency)
             invoice = MembershipInvoice.objects.create(invoice_number=f'AS-{timezone.now().strftime("%Y%m%d")}-{transaction.id:06d}', user=request.user, plan=plan, transaction=transaction, amount=plan.price, currency=plan.currency, status='issued', due_at=timezone.now() + timedelta(days=7))
@@ -1247,6 +1255,7 @@ class MembershipCancelView(APIView):
         subscription.status = 'canceled'
         subscription.auto_renew = False
         subscription.save(update_fields=['status', 'auto_renew', 'updated_at'])
+        record_audit_event(actor=request.user, action='membership_canceled', target_model='MembershipSubscription', target_id=subscription.id, details={'provider': subscription.provider, 'remote_cancellation': bool(remote)})
         response = MembershipSubscriptionSerializer(subscription).data
         response['remote_cancellation'] = remote
         return Response(response)
@@ -1305,6 +1314,7 @@ class MembershipWebhookView(APIView):
         )
         if not created:
             return Response({'processed': True, 'duplicate': True})
+        record_audit_event(actor=None, action='payment_webhook_received', target_model='MembershipWebhookEvent', target_id=event.id, details={'provider': provider, 'event_type': event_type})
         status_map = {
             'subscription.active': 'active',
             'subscription.canceled': 'canceled',
@@ -1543,6 +1553,7 @@ class PublicAPIKeyView(APIView):
             key_hash=hashlib.sha256(raw_key.encode()).hexdigest(),
             expires_at=serializer.validated_data.get('expires_at') or timezone.now() + timedelta(days=90),
         )
+        record_audit_event(actor=request.user, action='api_key_created', target_model='PublicAPIKey', target_id=key.id, details={'name': key.name, 'scopes': key.scopes, 'expires_at': key.expires_at.isoformat() if key.expires_at else None})
         return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data}, status=201)
 
 
@@ -1554,6 +1565,7 @@ class PublicAPIKeyDetailView(APIView):
         key = get_object_or_404(PublicAPIKey, pk=pk, owner=request.user)
         key.is_active = False
         key.save(update_fields=['is_active'])
+        record_audit_event(actor=request.user, action='api_key_revoked', target_model='PublicAPIKey', target_id=key.id, details={'prefix': key.prefix})
         return Response({'revoked': True})
 
     def post(self, request, pk):
@@ -1564,6 +1576,7 @@ class PublicAPIKeyDetailView(APIView):
         key.is_active = True
         key.expires_at = timezone.now() + timedelta(days=90)
         key.save(update_fields=['prefix', 'key_hash', 'is_active', 'expires_at'])
+        record_audit_event(actor=request.user, action='api_key_rotated', target_model='PublicAPIKey', target_id=key.id, details={'prefix': key.prefix, 'expires_at': key.expires_at.isoformat()})
         return Response({'key': raw_key, 'details': PublicAPIKeySerializer(key).data})
 
 
@@ -1607,6 +1620,7 @@ class WebhookEndpointView(APIView):
         serializer = WebhookEndpointSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         endpoint = serializer.save(owner=request.user, secret=serializer.validated_data.get('secret') or secrets.token_urlsafe(32))
+        record_audit_event(actor=request.user, action='webhook_endpoint_created', target_model='WebhookEndpoint', target_id=endpoint.id, details={'url': endpoint.url, 'events': endpoint.events})
         return Response(WebhookEndpointSerializer(endpoint).data, status=201)
 
 
@@ -1618,6 +1632,7 @@ class WebhookEndpointRotateSecretView(APIView):
         endpoint = get_object_or_404(WebhookEndpoint, pk=pk, owner=request.user)
         endpoint.secret = secrets.token_urlsafe(32)
         endpoint.save(update_fields=['secret', 'updated_at'])
+        record_audit_event(actor=request.user, action='webhook_secret_rotated', target_model='WebhookEndpoint', target_id=endpoint.id, details={'url': endpoint.url})
         return Response({'secret': endpoint.secret, 'endpoint': WebhookEndpointSerializer(endpoint).data})
 
 
@@ -1650,7 +1665,9 @@ class WebhookDeliveryView(APIView):
         delivery = get_object_or_404(WebhookDelivery.objects.select_related('endpoint'), pk=request.data.get('delivery_id'), endpoint__owner=request.user)
         if delivery.status != 'failed':
             return Response({'detail': 'Only failed deliveries can be retried.'}, status=400)
-        return Response({'status': retry_webhook_delivery(delivery).status, 'attempts': delivery.attempts})
+        delivery = retry_webhook_delivery(delivery)
+        record_audit_event(actor=request.user, action='webhook_delivery_retried', target_model='WebhookDelivery', target_id=delivery.id, details={'endpoint_id': delivery.endpoint_id, 'status': delivery.status, 'attempts': delivery.attempts})
+        return Response({'status': delivery.status, 'attempts': delivery.attempts})
 
 
 class DeveloperAPIDocumentationView(APIView):
@@ -1735,6 +1752,7 @@ class PrivacyPreferenceView(APIView):
                 user=request.user, purpose=purpose, granted=enabled,
                 ip_address=request.META.get('REMOTE_ADDR'),
             )
+        record_audit_event(actor=request.user, action='privacy_preferences_updated', target_model='PrivacyPreference', target_id=preference.id, details={'changed_fields': sorted(request.data.keys())})
         return Response(serializer.data)
 
 
@@ -1757,6 +1775,7 @@ class PrivacyConsentView(APIView):
         serializer = PrivacyConsentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         consent = serializer.save(user=request.user, ip_address=request.META.get('REMOTE_ADDR'))
+        record_audit_event(actor=request.user, action='privacy_consent_recorded', target_model='PrivacyConsent', target_id=consent.id, details={'purpose': consent.purpose, 'granted': consent.granted})
         return Response(PrivacyConsentSerializer(consent).data, status=201)
 
 
@@ -1800,6 +1819,7 @@ class PrivacyExportView(PrivacyRequestView):
         privacy_request = PrivacyRequest.objects.create(
             user=request.user, request_type='export', status='completed', completed_at=timezone.now(),
         )
+        record_audit_event(actor=request.user, action='privacy_export_requested', target_model='PrivacyRequest', target_id=privacy_request.id, details={'request_type': privacy_request.request_type})
         articles = Article.objects.filter(author=request.user).values(
             'id', 'title', 'slug', 'summary', 'workflow_status', 'created_at', 'updated_at',
         )
@@ -1840,6 +1860,7 @@ class WorkspaceDataExportView(APIView):
             'ai_usage': list(AIUsageEvent.objects.filter(workspace=workspace).values('provider', 'model', 'action', 'total_tokens', 'estimated_cost', 'redacted_pii', 'metadata', 'created_at')),
             'exported_at': timezone.now(),
         }
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_data_exported', target_model='Workspace', target_id=workspace.id, details={'member_count': len(data['members']), 'article_count': len(data['articles']), 'media_count': len(data['media_assets'])})
         return Response({'status': 'completed', 'data': data})
 
 
@@ -1848,6 +1869,7 @@ class PrivacyDeletionRequestView(PrivacyRequestView):
         if request.data.get('confirmation') != 'DELETE':
             return Response({'detail': 'Type DELETE to request account deletion.'}, status=400)
         deletion_request = PrivacyRequest.objects.create(user=request.user, request_type='deletion')
+        record_audit_event(actor=request.user, action='privacy_deletion_requested', target_model='PrivacyRequest', target_id=deletion_request.id, details={'request_type': deletion_request.request_type})
         return Response({'request_id': deletion_request.id, 'status': deletion_request.status, 'detail': 'Your account deletion request was recorded for review.'}, status=202)
 
 
@@ -1914,6 +1936,7 @@ class WorkspaceListCreateView(APIView):
             owner=request.user,
         )
         WorkspaceMembership.objects.create(workspace=workspace, user=request.user, role='owner')
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_created', target_model='Workspace', target_id=workspace.id, details={'plan': workspace.plan})
         return Response(WorkspaceSerializer(workspace).data, status=201)
 
 
@@ -1966,6 +1989,7 @@ class WorkspaceBillingView(APIView):
         workspace.plan = plan
         workspace.seat_limit = seat_limit
         workspace.save(update_fields=['plan', 'seat_limit', 'primary_color', 'accent_color', 'logo_url', 'custom_domain', 'email_from_name', 'updated_at'])
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_settings_updated', target_model='Workspace', target_id=workspace.id, details={'changed_fields': sorted(request.data.keys()), 'plan': workspace.plan, 'seat_limit': workspace.seat_limit})
         return self.get(request, slug)
 
 
@@ -2072,6 +2096,7 @@ class WorkspaceIntegrationView(APIView):
             config=request.data.get('config') if isinstance(request.data.get('config'), dict) else {},
             created_by=request.user,
         )
+        record_audit_event(actor=request.user, workspace=workspace, action='integration_created', target_model='WorkspaceIntegration', target_id=integration.id, details={'provider': integration.provider, 'name': integration.name})
         return Response(_integration_payload(integration), status=201)
 
 
@@ -2098,6 +2123,7 @@ class WorkspaceIntegrationDetailView(APIView):
             if not integration.is_active:
                 integration.status = 'disabled'
         integration.save()
+        record_audit_event(actor=request.user, workspace=workspace, action='integration_updated', target_model='WorkspaceIntegration', target_id=integration.id, details={'changed_fields': sorted(request.data.keys()), 'is_active': integration.is_active, 'status': integration.status})
         return Response(_integration_payload(integration))
 
     def post(self, request, slug, pk):
@@ -2131,6 +2157,7 @@ class WorkspaceIntegrationDetailView(APIView):
             result = {'ok': False, 'error': integration.last_error}
         integration.last_checked_at = timezone.now()
         integration.save(update_fields=['status', 'last_error', 'last_checked_at', 'updated_at'])
+        record_audit_event(actor=request.user, workspace=workspace, action='integration_tested', target_model='WorkspaceIntegration', target_id=integration.id, details={'provider': integration.provider, 'ok': result['ok'], 'status_code': result.get('status_code')})
         return Response({'integration': _integration_payload(integration), 'test': result}, status=200 if result['ok'] else 503)
 
 
@@ -2277,6 +2304,7 @@ class WorkspaceControlsView(APIView):
         workspace.data_region = region
         workspace.retention_days = retention_days
         workspace.save(update_fields=['data_region', 'retention_days', 'updated_at'])
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_data_policy_updated', target_model='Workspace', target_id=workspace.id, details={'data_region': workspace.data_region, 'retention_days': workspace.retention_days})
         return Response({'workspace': WorkspaceSerializer(workspace).data, 'updated': True})
 
 
@@ -2287,6 +2315,7 @@ class WorkspaceSelectView(APIView):
     def post(self, request, slug):
         workspace = _workspace_for_member(request, slug)
         request.session['active_workspace_slug'] = workspace.slug
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_selected', target_model='Workspace', target_id=workspace.id)
         return Response({'workspace': WorkspaceSerializer(workspace).data, 'active': True})
 
     def delete(self, request):
@@ -2328,6 +2357,7 @@ class WorkspaceInviteView(APIView):
             recipient_list=[invitation.email],
             fail_silently=True,
         )
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_invitation_created', target_model='WorkspaceInvitation', target_id=invitation.id, details={'email': invitation.email, 'role': invitation.role})
         return Response({
             'id': invitation.id,
             'workspace': workspace.slug,
