@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from articles.models import Article, ArticleCorrection, ArticleMedia, ArticleTranslation, Notification
-from users.models import NewsletterEdition
+from users.models import NewsletterEdition, SecurityEvent
 
 
 class Command(BaseCommand):
@@ -26,6 +26,13 @@ class Command(BaseCommand):
             user.set_password('StrongPass123!')
             user.save(update_fields=['email', 'role', 'password'])
             users[role] = user
+
+        # Keep repeated local browser runs deterministic. A stale failed-login
+        # record should not lock the fixture account before a new test session.
+        SecurityEvent.objects.filter(
+            username__in=[username for username, _email, _role in accounts],
+            event_type='login_failed',
+        ).delete()
 
         user = users['Journalist']
         Article.objects.get_or_create(
