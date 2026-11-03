@@ -120,7 +120,7 @@ class UserLoginView(APIView):
             event_type='login_failed', username=username, ip_address=ip_address,
             created_at__gte=timezone.now() - timedelta(minutes=15),
         ).count()
-        if recent_failures >= 5:
+        if recent_failures >= getattr(settings, 'LOGIN_FAILURE_LIMIT', 5):
             return Response(
                 {'detail': 'Too many failed login attempts. Try again in 15 minutes.'},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
