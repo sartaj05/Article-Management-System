@@ -50,7 +50,7 @@
     } catch (error) {
       button.disabled = false;
       button.setAttribute("aria-label", error.message);
-      window.alert(error.message);
+      window.appAlert?.(error.message, { kind: 'error' });
     }
   });
 
@@ -192,7 +192,7 @@
         } catch (error) { modal.querySelector('[role="status"]').textContent = error.message; }
         finally { button.disabled = false; }
       };
-    } catch (error) { window.alert(error.message); }
+    } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
   }
 
   window.WorkflowUI = { escapeHtml, statusBadge, timeline, actionButtons, request, allArticles, createPagination, createTablePagination, editArticle };

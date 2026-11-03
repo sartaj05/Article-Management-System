@@ -26,7 +26,7 @@ $(document).ready(function () {
                 <button class="delete-article-btn" data-id="${article.id}">Move to trash</button></td></tr>`).join(''));
             $('#no-articles-message').toggle(!articles.length);
             articlePager.reset();
-        } catch (error) { alert(error.message); }
+        } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
     }
     async function fetchUsers() {
         try {
@@ -35,7 +35,7 @@ $(document).ready(function () {
             $('#user-list').html(users.map(account => `<tr><td>${escape(account.username)}</td><td>${escape(account.email)}</td><td>${escape(account.role)}</td><td>${account.username === user.username ? 'Current account' : `<button class="delete-user-btn" data-id="${account.id}">Delete</button>`}</td></tr>`).join(''));
             $('#no-users-message').toggle(!users.length);
             userPager.reset();
-        } catch (error) { alert(error.message); }
+        } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
     }
     $('.nav-link[data-page]').on('click', function (event) {
         event.preventDefault(); const users = this.dataset.page === 'users';
@@ -57,7 +57,7 @@ $(document).ready(function () {
             const url = deletingUser ? `/api/users/${id}/delete/` : `/articles/api/v2/articles/${id}/${trash ? 'trash' : publish ? 'publish' : 'review'}/`;
             await request(url, {method: deletingUser ? 'DELETE' : trash || publish ? 'POST' : 'PATCH', ...(deletingUser ? {} : {body: JSON.stringify({decision:'approve'})})});
             if (deletingUser) await fetchUsers(); else await fetchArticles();
-        } catch (error) { alert(error.message); }
+        } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
         finally { this.disabled = false; }
     });
     $('#articles-section').show(); fetchArticles();

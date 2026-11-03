@@ -42,7 +42,7 @@ $(document).ready(function () {
     }
     async function refresh() {
         try { articles = await allArticles(); render(); }
-        catch (error) { alert(error.message); }
+        catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
     }
     function showSection(id) {
         $('#home-section, .page').hide(); $('#' + id).show();
@@ -100,12 +100,12 @@ $(document).ready(function () {
             await refresh();
             if (decision === 'publish') showSection('published-articles-page');
             window.appAlert(decision === 'publish' ? 'Article published successfully.' : decision === 'approve' ? 'Article approved successfully.' : 'Article returned to the author with your feedback.', {kind:'success'});
-        } catch (error) { alert(error.message); }
+        } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
         finally { this.disabled = false; }
     });
     $(document).on('keydown', event => { if (event.key === 'Escape') $('.modal:visible').hide(); });
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     $('#username').text(user.username); $('#email').text(user.email); $('#role').text(user.role);
     $('#userfullname').text([user.first_name, user.last_name].filter(Boolean).join(' ') || user.username);
-    request('/articles/api/articles/count/').then(data => $('#article-count').text(data.article_count)).catch(error => alert(error.message));
+    request('/articles/api/articles/count/').then(data => $('#article-count').text(data.article_count)).catch(error => window.appAlert?.(error.message, { kind: 'error' }));
 });

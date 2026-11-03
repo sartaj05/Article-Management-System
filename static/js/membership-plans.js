@@ -101,7 +101,7 @@
     }
   };
   document.getElementById('cancel-membership')?.addEventListener('click', async () => {
-    if (!window.confirm('Cancel automatic renewal for this membership?')) return;
+    if (!(await window.appConfirm('Cancel automatic renewal for this membership?', { title: 'Cancel renewal' }))) return;
     const button = document.getElementById('cancel-membership'); button.disabled = true;
     try {
       const response = await fetch('/api/membership/cancel/', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRFToken': window.getCsrfToken?.() || '' } });

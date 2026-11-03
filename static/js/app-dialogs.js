@@ -128,10 +128,4 @@
     return openDialog(message, Object.assign({}, options || {}, { confirm: true, prompt: true }));
   };
 
-  // Keep legacy call sites inside the application on the styled dialog.
-  window.alert = window.appAlert;
-  window.confirm = function (message) {
-    window.appConfirm(message);
-    return false;
-  };
 })();

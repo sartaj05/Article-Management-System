@@ -96,7 +96,7 @@ $(document).ready(function () {
         $userEmail.text(response.email);
       },
       error: function () {
-        alert("Error fetching user details.");
+        window.appAlert?.("Error fetching user details.", { kind: 'error' });
       },
     });
   }
@@ -140,10 +140,10 @@ $(document).ready(function () {
     if (!this.reportValidity()) return;
     let token;
     try { token = await WorkspaceUI.ensureAccess(); }
-    catch (error) { alert(error.message); return; }
+    catch (error) { window.appAlert?.(error.message, { kind: 'error' }); return; }
     const image = $('#image')[0].files[0];
     if (image && (!image.type.startsWith('image/') || image.size > 5 * 1024 * 1024)) {
-      alert('Choose an image smaller than 5 MB.');
+      window.appAlert?.('Choose an image smaller than 5 MB.', { kind: 'error', title: 'Image too large' });
       return;
     }
     const formData = new FormData(this);
@@ -174,7 +174,7 @@ $(document).ready(function () {
         showSuccessModal();
       },
       error: function (xhr) {
-        alert(JSON.stringify(xhr.responseJSON || "Unable to save the draft."));
+        window.appAlert?.(JSON.stringify(xhr.responseJSON || "Unable to save the draft."), { kind: 'error' });
       },
       complete: function () { submit.disabled = false; },
     });
@@ -297,7 +297,7 @@ $(document).on('keydown', function (event) {
       articles.forEach(appendArticle);
       $('#no-articles-message').toggle(!articles.length);
       $('#search-bar').trigger('input');
-    } catch (error) { alert(error.message); }
+    } catch (error) { window.appAlert?.(error.message, { kind: 'error' }); }
   }
   $('#search-bar').on('input', function () {
     const query = this.value.trim().toLowerCase();
@@ -318,9 +318,9 @@ $(document).ready(function () {
   
       let token;
       try { token = await WorkspaceUI.ensureAccess(); }
-      catch (error) { alert(error.message); return; }
+      catch (error) { window.appAlert?.(error.message, { kind: 'error' }); return; }
       if (!token) {
-        alert("Please log in to edit the article.");
+        window.appAlert?.("Please log in to edit the article.", { kind: 'error' });
         return;
       }
   
@@ -346,11 +346,11 @@ $(document).ready(function () {
             // Open the modal to edit the article
             $('#editArticleModal').show();
           } else {
-            alert("Article not found.");
+            window.appAlert?.("Article not found.", { kind: 'error' });
           }
         },
         error: function (error) {
-          alert("Error fetching article details.");
+          window.appAlert?.("Error fetching article details.", { kind: 'error' });
           console.error(error);
         },
       });
@@ -363,9 +363,9 @@ $(document).ready(function () {
       const articleId = $('#editArticleId').val();
       let token;
       try { token = await WorkspaceUI.ensureAccess(); }
-      catch (error) { alert(error.message); return; }
+      catch (error) { window.appAlert?.(error.message, { kind: 'error' }); return; }
       if (!token) {
-        alert("Please log in to save the article.");
+        window.appAlert?.("Please log in to save the article.", { kind: 'error' });
         return;
       }
   
@@ -390,7 +390,7 @@ $(document).ready(function () {
           $('#successModal').show();
         },
         error: function (err) {
-          alert("Error updating article.");
+          window.appAlert?.("Error updating article.", { kind: 'error' });
           console.error(err);
         }
       });
@@ -415,7 +415,7 @@ $(document).on("click", ".delete-article", function () {
   $('#confirm-delete').off('click').on('click', async function () {
     let token;
     try { token = await WorkspaceUI.ensureAccess(); }
-    catch (error) { alert(error.message); return; }
+    catch (error) { window.appAlert?.(error.message, { kind: 'error' }); return; }
     $.ajax({
       url: `/articles/delete/${articleId}/`,
       type: "DELETE",
@@ -427,7 +427,7 @@ $(document).on("click", ".delete-article", function () {
         $('#confirmation-modal').fadeOut();  // Close the modal
       },
       error: function () {
-        alert("Error deleting article.");
+        window.appAlert?.("Error deleting article.", { kind: 'error' });
         $('#confirmation-modal').fadeOut();  
       },
     });

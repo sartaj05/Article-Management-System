@@ -40,7 +40,7 @@
   }
 
   async function archiveAsset(id) {
-    const confirmed = window.appConfirm ? await window.appConfirm('Archive this asset?', { title: 'Archive asset' }) : window.confirm('Archive this asset?');
+    const confirmed = await window.appConfirm('Archive this asset?', { title: 'Archive asset' });
     if (!confirmed) return;
     const response = await fetch(`/articles/api/v2/media-library/${id}/`, { method: 'DELETE', headers: headers(), credentials: 'same-origin' });
     if (!response.ok) { status.textContent = 'The asset could not be archived.'; return; }

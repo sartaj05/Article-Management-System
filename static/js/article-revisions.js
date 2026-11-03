@@ -54,7 +54,7 @@
   }
 
   async function restore(revisionId) {
-    if (!window.confirm('Restore this revision? The current article will be saved as a new revision first.')) return;
+    if (!(await window.appConfirm('Restore this revision? The current article will be saved as a new revision first.', { title: 'Restore revision' }))) return;
     try {
       await getJson(`/articles/api/v2/articles/${articleId}/revisions/restore/`, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ revision_id: revisionId }) });
       status.textContent = 'Revision restored. Reload the editor to review the restored content.';

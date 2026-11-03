@@ -51,7 +51,7 @@
       clearWorkspaceSession();
       window.location.replace('/');
     } catch (error) {
-      window.alert(error.message || 'Unable to sign out. Please try again.');
+      window.appAlert?.(error.message || 'Unable to sign out. Please try again.', { kind: 'error', title: 'Sign out failed' });
     } finally { signingOut = false; }
   }
 
@@ -98,6 +98,43 @@
     });
   }
 
-  window.WorkspaceUI = Object.freeze({ clearWorkspaceSession, ensureAccess, signOut, init });
+  function createCollectionPager({ container, pagination, pageSize = 10, label = 'items', render }) {
+    let items = [];
+    let currentPage = 1;
+
+    function draw() {
+      const pages = Math.max(1, Math.ceil(items.length / pageSize));
+      currentPage = Math.min(Math.max(currentPage, 1), pages);
+      const offset = (currentPage - 1) * pageSize;
+      render(items.slice(offset, offset + pageSize), { page: currentPage, pages, total: items.length, pageSize, offset });
+      if (!pagination) return;
+      pagination.innerHTML = items.length <= pageSize
+        ? (items.length ? `<span class="feature-pagination__summary">${items.length} ${label}</span>` : '')
+        : `<span class="feature-pagination__summary">${offset + 1}–${Math.min(offset + pageSize, items.length)} of ${items.length} ${label}</span>
+          <div class="feature-pagination__controls">
+            <button class="button button--secondary button--small" type="button" data-collection-page="1" ${currentPage === 1 ? 'disabled' : ''} aria-label="First page">«</button>
+            <button class="button button--secondary button--small" type="button" data-collection-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+            <span aria-current="page">Page ${currentPage} of ${pages}</span>
+            <button class="button button--secondary button--small" type="button" data-collection-page="${currentPage + 1}" ${currentPage === pages ? 'disabled' : ''}>Next</button>
+            <button class="button button--secondary button--small" type="button" data-collection-page="${pages}" ${currentPage === pages ? 'disabled' : ''} aria-label="Last page">»</button>
+          </div>`;
+    }
+
+    pagination?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-collection-page]');
+      if (!button || button.disabled) return;
+      currentPage = Number(button.dataset.collectionPage) || 1;
+      draw();
+      container?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    return {
+      setItems(nextItems) { items = Array.isArray(nextItems) ? nextItems : []; currentPage = 1; draw(); },
+      refresh() { draw(); },
+      getPage() { return currentPage; },
+    };
+  }
+
+  window.WorkspaceUI = Object.freeze({ clearWorkspaceSession, ensureAccess, signOut, init, createCollectionPager });
   document.addEventListener("DOMContentLoaded", init);
 })();

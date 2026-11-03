@@ -11,6 +11,7 @@
     ['done', 'Done'],
   ];
   const timelineModal = document.getElementById('timeline-modal');
+  const columnPages = {};
 
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
@@ -37,7 +38,8 @@
       const response = await fetch(`/articles/api/v2/assignments/board/${query}`, { headers: headers(), credentials: 'same-origin' });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || 'Unable to load assignments.');
-      renderBoard(payload.columns || {});
+      window.__assignmentColumns = payload.columns || {};
+      renderBoard(window.__assignmentColumns);
       status.textContent = `${payload.count || 0} assignment${payload.count === 1 ? '' : 's'} tracked`;
     } catch (error) {
       board.innerHTML = `<div class="feature-empty">${escapeHtml(error.message)}</div>`;
@@ -58,9 +60,15 @@
   function renderBoard(data) {
     board.innerHTML = columns.map(([key, label]) => {
       const cards = data[key] || [];
+      columnPages[key] = columnPages[key] || 1;
+      const pages = Math.max(1, Math.ceil(cards.length / 10));
+      columnPages[key] = Math.min(columnPages[key], pages);
+      const offset = (columnPages[key] - 1) * 10;
+      const visibleCards = cards.slice(offset, offset + 10);
+      const pager = pages > 1 ? `<nav class="assignment-column__pagination feature-pagination" aria-label="${label} assignment pages"><span>Page ${columnPages[key]} of ${pages}</span><button class="button button--secondary button--small" type="button" data-assignment-page="${key}" data-page="${columnPages[key] - 1}" ${columnPages[key] === 1 ? 'disabled' : ''}>Previous</button><button class="button button--secondary button--small" type="button" data-assignment-page="${key}" data-page="${columnPages[key] + 1}" ${columnPages[key] === pages ? 'disabled' : ''}>Next</button></nav>` : '';
       return `<section class="assignment-column" data-status="${key}">
         <header><h2>${label}</h2><span>${cards.length}</span></header>
-        <div class="assignment-column__items">${cards.length ? cards.map(cardTemplate).join('') : '<p class="assignment-column__empty">Nothing here yet.</p>'}</div>
+        <div class="assignment-column__items">${cards.length ? visibleCards.map(cardTemplate).join('') : '<p class="assignment-column__empty">Nothing here yet.</p>'}</div>${pager}
       </section>`;
     }).join('');
     board.querySelectorAll('[data-assignment-id]').forEach((card) => {
@@ -166,6 +174,12 @@
   priority.addEventListener('change', loadBoard);
   document.getElementById('assignment-refresh').addEventListener('click', loadBoard);
   board.addEventListener('click', (event) => {
+    const pagerButton = event.target.closest('[data-assignment-page]');
+    if (pagerButton && !pagerButton.disabled) {
+      columnPages[pagerButton.dataset.assignmentPage] = Number(pagerButton.dataset.page) || 1;
+      renderBoard(window.__assignmentColumns || {});
+      return;
+    }
     const button = event.target.closest('[data-timeline-article]');
     if (button) openTimeline(button.dataset.timelineArticle);
     const discussionButton = event.target.closest('[data-discussion-assignment]');

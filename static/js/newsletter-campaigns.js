@@ -74,7 +74,7 @@
 
   list.addEventListener("click", async (event) => {
     const button = event.target.closest("[data-send]");
-    if (!button || !window.confirm("Send this newsletter to active subscribers?")) return;
+    if (!button || !(await window.appConfirm("Send this newsletter to active subscribers?", { title: 'Send newsletter' }))) return;
     button.disabled = true;
     try {
       await request("/api/newsletter/editions/", { method: "POST", body: JSON.stringify({ action: "send", id: button.dataset.send }) });
