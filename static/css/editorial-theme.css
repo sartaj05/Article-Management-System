@@ -703,6 +703,7 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 .executive-summary strong { color: var(--brand); font-size: 1.45rem; letter-spacing: -.045em; }
 .executive-summary span, .executive-panel span { color: var(--muted); font-size: .75rem; }
 .executive-panels { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.executive-analytics__actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .executive-panel { display: flex; align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
 .executive-panel > div:last-child { display: grid; gap: 4px; min-width: 0; }
 .executive-panel strong { color: var(--ink); font-size: .82rem; }
@@ -712,6 +713,21 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 .executive-panel--distribution .executive-panel__icon { background: linear-gradient(135deg, #6d8fc5, #3d5f9b); }
 @media (max-width: 860px) { .executive-summary, .executive-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .executive-analytics__heading { flex-direction: column; } .executive-summary, .executive-panels { grid-template-columns: 1fr; } }
+
+@media print {
+  body.is-printing-executive-report { color: #17213f; background: #fff; }
+  body.is-printing-executive-report .workspace-topbar,
+  body.is-printing-executive-report .analytics-heading__actions,
+  body.is-printing-executive-report .analytics-status,
+  body.is-printing-executive-report .analytics-pulse,
+  body.is-printing-executive-report .analytics-visuals,
+  body.is-printing-executive-report .analytics-detail-grid,
+  body.is-printing-executive-report .executive-analytics__actions { display: none !important; }
+  body.is-printing-executive-report .feature-page { width: 100%; max-width: none; padding: 0; }
+  body.is-printing-executive-report .executive-analytics { margin: 0; border: 0; box-shadow: none; }
+  body.is-printing-executive-report .executive-summary,
+  body.is-printing-executive-report .executive-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* A quieter, single-column reading desk with the feed controls beside the search. */
 .reading-desk { display: block; padding-block: clamp(42px, 6vw, 76px) 18px; }

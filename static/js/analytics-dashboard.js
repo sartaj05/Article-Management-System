@@ -139,5 +139,10 @@
     document.querySelectorAll('[data-chart-view]').forEach((card) => { card.hidden = !card.dataset.chartView.split(' ').includes(view); });
   }));
   document.getElementById('refresh-analytics').addEventListener('click', refresh);
+  document.getElementById('print-executive-report').addEventListener('click', () => {
+    document.body.classList.add('is-printing-executive-report');
+    window.setTimeout(() => window.print(), 30);
+  });
+  window.addEventListener('afterprint', () => document.body.classList.remove('is-printing-executive-report'));
   refresh();
 })();
