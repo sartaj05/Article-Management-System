@@ -547,6 +547,7 @@ class FeatureFlagView(APIView):
             'allowed_roles': request.data.get('allowed_roles') or [],
             'workspace_id': request.data.get('workspace_id') or None,
         })
+        record_audit_event(actor=request.user, action='feature_flag_updated', target_model='FeatureFlag', target_id=flag.id, details={'key': flag.key, 'is_enabled': flag.is_enabled, 'rollout_percent': flag.rollout_percent, 'allowed_roles': flag.allowed_roles, 'workspace_id': flag.workspace_id})
         return Response(self._payload(flag, request), status=201)
 
     patch = post
@@ -572,6 +573,7 @@ class RoleCapabilityView(APIView):
         if role not in {'Journalist', 'Editor'} or not capability or not isinstance(request.data.get('enabled'), bool):
             return Response({'detail': 'Provide a valid role, capability, and boolean enabled value.'}, status=400)
         override, _ = RoleCapabilityOverride.objects.update_or_create(role=role, capability=capability, defaults={'is_enabled': request.data['enabled']})
+        record_audit_event(actor=request.user, action='role_capability_updated', target_model='RoleCapabilityOverride', target_id=override.id, details={'role': override.role, 'capability': override.capability, 'enabled': override.is_enabled})
         return Response({'role': override.role, 'capability': override.capability, 'enabled': override.is_enabled})
 
 
@@ -2213,6 +2215,7 @@ class SupportTicketView(APIView):
             priority=priority, sla_due_at=timezone.now() + timedelta(hours=sla_hours),
         )
         SupportTicketMessage.objects.create(ticket=ticket, author=request.user, body=description)
+        record_audit_event(actor=request.user, workspace=workspace, action='support_ticket_created', target_model='SupportTicket', target_id=ticket.id, details={'priority': ticket.priority, 'sla_due_at': ticket.sla_due_at.isoformat()})
         return Response(_support_payload(ticket), status=201)
 
 
@@ -2268,6 +2271,7 @@ class SupportTicketDetailView(APIView):
             if ticket.first_response_at is None:
                 ticket.first_response_at = timezone.now()
         ticket.save()
+        record_audit_event(actor=request.user, workspace=ticket.workspace, action='support_ticket_updated', target_model='SupportTicket', target_id=ticket.id, details={'changed_fields': sorted(request.data.keys()), 'status': ticket.status, 'priority': ticket.priority, 'assigned_to': ticket.assigned_to_id})
         return Response(_support_payload(ticket))
 
 class WorkspaceControlsView(APIView):

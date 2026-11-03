@@ -3207,7 +3207,8 @@ class CategoryListCreateView(generics.ListCreateAPIView):
         if self.request.user.role != 'Admin':
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Only admins can create categories.')
-        serializer.save()
+        category = serializer.save()
+        record_audit_event(actor=self.request.user, action='category_created', target_model='Category', target_id=category.id, details={'name': category.name})
 
 
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -3222,12 +3223,14 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         self.check_admin()
-        serializer.save()
+        category = serializer.save()
+        record_audit_event(actor=self.request.user, action='category_updated', target_model='Category', target_id=category.id, details={'name': category.name, 'is_active': category.is_active})
 
     def perform_destroy(self, instance):
         self.check_admin()
         instance.is_active = False
         instance.save(update_fields=['is_active', 'updated_at'])
+        record_audit_event(actor=self.request.user, action='category_archived', target_model='Category', target_id=instance.id, details={'name': instance.name})
 
 
 class TagListCreateView(generics.ListCreateAPIView):
@@ -3239,7 +3242,8 @@ class TagListCreateView(generics.ListCreateAPIView):
         if self.request.user.role != 'Admin':
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Only admins can create tags.')
-        serializer.save()
+        tag = serializer.save()
+        record_audit_event(actor=self.request.user, action='tag_created', target_model='Tag', target_id=tag.id, details={'name': tag.name})
 
 
 class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -3254,12 +3258,14 @@ class TagDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         self.check_admin()
-        serializer.save()
+        tag = serializer.save()
+        record_audit_event(actor=self.request.user, action='tag_updated', target_model='Tag', target_id=tag.id, details={'name': tag.name, 'is_active': tag.is_active})
 
     def perform_destroy(self, instance):
         self.check_admin()
         instance.is_active = False
         instance.save(update_fields=['is_active', 'updated_at'])
+        record_audit_event(actor=self.request.user, action='tag_archived', target_model='Tag', target_id=instance.id, details={'name': instance.name})
 
 
 class ArticleAnalyticsView(APIView):
