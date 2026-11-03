@@ -2,13 +2,13 @@
   "name": "article-studio-e2e",
   "private": true,
   "scripts": {
-    "test:unit": "venv/Scripts/python.exe manage.py test --noinput",
+    "test:unit": "python manage.py test --noinput",
     "test:e2e": "playwright test",
     "test:e2e:chromium": "playwright test --project=chromium",
     "test:e2e:critical": "playwright test tests/e2e/production-critical.spec.js --project=chromium",
     "test:e2e:smoke": "playwright test tests/e2e/new-features.spec.js --project=chromium",
     "test:e2e:client-demo": "playwright test tests/e2e/client-demo-readiness.spec.js",
-    "test:stress": "venv/Scripts/python.exe scripts/stress_test.py --url http://127.0.0.1:8000/health/"
+    "test:stress": "python scripts/stress_test.py"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1"
