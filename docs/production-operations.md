@@ -29,6 +29,16 @@ python scripts/load_test.py --url https://studio.example.com/health/ --requests 
 
 The result includes status counts, requests per second, and p50/p95 latency. The command exits non-zero when any request fails or returns a non-2xx status. It intentionally has no third-party dependency and does not create application data.
 
+## Sustained stress probe
+
+Use the sustained runner only against staging or during an approved maintenance window:
+
+```powershell
+python scripts/stress_test.py --url https://studio.example.com/health/ --duration 60 --concurrency 20 --max-error-rate 0.01 --max-p95-ms 1000
+```
+
+It continuously exercises a read-only endpoint for the requested duration, reports throughput/error rate/p95 latency, and exits non-zero when either threshold is exceeded. Use `/health/` for an application-level probe; use a public read-only API endpoint to measure a representative database query.
+
 ## Monitoring configuration
 
 - Set `METRICS_TOKEN` before exposing `/metrics/`.
