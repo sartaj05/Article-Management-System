@@ -91,7 +91,10 @@ jobs:
   deploy:
     name: Deploy production image
     needs: [publish, smoke-test]
-    if: needs.publish.result == 'success' && github.event_name == 'push' && vars.DEPLOYMENT_HOST != ''
+    # DEPLOYMENT_BASE_URL is optional for first-time or private deployments;
+    # the smoke-test job is skipped in that case, but the deploy must continue.
+    # The in-container smoke test below remains mandatory after the rollout.
+    if: always() && needs.publish.result == 'success' && github.event_name == 'push' && vars.DEPLOYMENT_HOST != '' && (needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped')
     runs-on: ubuntu-latest
     environment: production
     steps:
