@@ -30,7 +30,8 @@ test('editor keeps the full workspace header when opening Search', async ({ page
     await expect(page.locator('header.workspace-topbar').getByRole('link', { name: new RegExp(`^${label}`) })).toBeVisible();
   }
   await expect(page.locator('header.workspace-topbar a[aria-current="page"]')).toHaveText('Search');
-  await expect(page.locator('header.workspace-topbar')).not.toContainText('Workspace');
+  await expect(page.locator('header.workspace-topbar')).toContainText('Workspace hub');
+  await expect(page.locator('header.workspace-topbar')).toContainText('Security & identity');
 });
 
 test('logout blocks Chrome Back from reopening a workspace page', async ({ page }) => {
