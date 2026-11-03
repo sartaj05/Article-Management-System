@@ -117,6 +117,15 @@ body.dashboard-shell .sidebar-toggle { display: none; }
 .dashboard-shell .workspace-topbar__actions .workspace-logout { color: #c2415b; }
 .dashboard-shell .workspace-topbar__actions .workspace-logout:hover { color: #b22e49; background: #fff0f3; }
 
+.workspace-tools-menu { position: relative; flex: 0 0 auto; }
+.workspace-tools-menu summary { display: inline-flex; align-items: center; min-height: 38px; margin: 0; padding: 9px 12px; border-radius: 10px; color: var(--muted); cursor: pointer; font-size: .78rem; font-weight: 700; list-style: none; white-space: nowrap; }
+.workspace-tools-menu summary::-webkit-details-marker { display: none; }
+.workspace-tools-menu summary::after { margin-left: 6px; color: currentColor; content: '⌄'; font-size: .75rem; }
+.workspace-tools-menu summary:hover, .workspace-tools-menu summary.is-active { color: var(--brand); background: #f0f1ff; }
+.workspace-tools-menu__panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; display: grid; min-width: 190px; padding: 7px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); box-shadow: var(--shadow-lg); }
+.workspace-tools-menu__panel a { display: block; min-height: auto !important; padding: 9px 10px !important; border-radius: 8px !important; color: var(--muted) !important; font-size: .78rem !important; text-decoration: none; }
+.workspace-tools-menu__panel a:hover, .workspace-tools-menu__panel a.is-active { color: var(--brand) !important; background: var(--surface-soft) !important; }
+
 .dashboard-shell .main-content,
 .dashboard-shell .content {
   width: min(1180px, calc(100% - 40px));
@@ -510,6 +519,7 @@ body.dashboard-shell .sidebar-toggle { display: none; }
   .dashboard-shell .workspace-topbar__actions { width: 100%; max-width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 3px; scrollbar-width: thin; }
   .dashboard-shell .workspace-topbar__actions a,
   .dashboard-shell .workspace-topbar__actions button { flex: 0 0 auto; white-space: nowrap; }
+  .workspace-tools-menu__panel { position: fixed; top: 126px; right: 14px; max-height: calc(100vh - 145px); overflow: auto; }
   .dashboard-shell .main-content,
   .dashboard-shell .content { width: calc(100% - 24px); padding: 28px 0 56px; }
   .dashboard-shell .page,

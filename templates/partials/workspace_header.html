@@ -30,6 +30,19 @@
         {% if request.user.role == 'Editor' %}
             <a href="{% url 'editor-dashboard' %}?section=published-articles-page">Published</a>
         {% endif %}
+        <details class="workspace-tools-menu" {% if active_nav in 'ai,backups,comments,translations,integrations,calendar,permissions,compliance,workspace' %}open{% endif %}>
+            <summary class="{% if active_nav in 'ai,backups,comments,translations,integrations,calendar,permissions,compliance,workspace' %}is-active{% endif %}">Tools</summary>
+            <div class="workspace-tools-menu__panel" aria-label="Workspace tools">
+                {% if request.user.role != 'Journalist' %}<a class="{% if active_nav == 'ai' %}is-active{% endif %}" href="{% url 'ai-observability-page' %}">AI health</a>{% endif %}
+                {% if request.user.role != 'Journalist' %}<a class="{% if active_nav == 'backups' %}is-active{% endif %}" href="{% url 'backup-center-page' %}">Backups</a>{% endif %}
+                {% if request.user.role != 'Journalist' %}<a class="{% if active_nav == 'comments' %}is-active{% endif %}" href="{% url 'comment-moderation-page' %}">Comments</a>{% endif %}
+                <a class="{% if active_nav == 'translations' %}is-active{% endif %}" href="{% url 'translation-workspace-page' %}">Translations</a>
+                <a class="{% if active_nav == 'integrations' %}is-active{% endif %}" href="{% url 'integration-hub-page' %}">Integrations</a>
+                {% if request.user.role != 'Journalist' %}<a class="{% if active_nav == 'calendar' %}is-active{% endif %}" href="{% url 'editorial-calendar-page' %}">Calendar</a>{% endif %}
+                {% if request.user.role == 'Admin' %}<a class="{% if active_nav == 'permissions' %}is-active{% endif %}" href="{% url 'permission-manager-page' %}">Permissions</a><a class="{% if active_nav == 'compliance' %}is-active{% endif %}" href="{% url 'compliance-center-page' %}">Compliance</a>{% endif %}
+                <a class="{% if active_nav == 'workspace' %}is-active{% endif %}" href="{% url 'workspace-hub' %}">Workspace hub</a>
+            </div>
+        </details>
         <a class="workspace-logout" href="#" data-dashboard-logout>Log out</a>
     </nav>
 </header>
