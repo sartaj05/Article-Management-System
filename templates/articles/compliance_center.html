@@ -7,17 +7,73 @@
     <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
     <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261021-site-polish-1">
+    <link rel="stylesheet" href="{% static 'css/app-dialogs.css' %}?v=20261103-dialogs-1">
 </head>
-<body class="dashboard-shell">
+<body class="dashboard-shell compliance-page-shell" data-workspace-slug="{{ active_workspace.slug|default:'' }}">
     <header class="workspace-topbar">
         <a class="workspace-topbar__brand" href="{% url 'admin-dashboard' %}"><span class="workspace-topbar__mark">✦</span><span>Article Studio<small>Compliance center</small></span></a>
-        <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a class="is-active" href="{% url 'compliance-center-page' %}">Compliance</a><a href="{% url 'integration-hub-page' %}">Integrations</a></nav>
+        <nav class="workspace-topbar__actions" aria-label="Workspace navigation"><a href="{% url 'monitoring-dashboard-page' %}">Monitoring</a><a class="is-active" aria-current="page" href="{% url 'compliance-center-page' %}">Compliance</a><a href="{% url 'integration-hub-page' %}">Integrations</a></nav>
     </header>
     <main class="feature-page compliance-page">
-        <header class="feature-page__heading"><div><span class="feature-eyebrow">Governance</span><h1>Compliance & audit center</h1><p>Review account privacy requests and maintain a searchable record of editorial activity.</p></div><a class="button button--secondary button--small" href="/articles/api/v2/reports/audit/">Export audit CSV</a></header>
-        <section class="audit-panel"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Accountability</span><h2>Audit activity</h2></div><label>Filter action<input id="compliance-audit-filter" type="search" placeholder="article_published"></label></div><p class="feature-status" id="compliance-audit-status" role="status" aria-live="polite">Loading audit events…</p><div class="audit-list" id="compliance-audit-list"></div><nav class="feature-pagination" id="compliance-audit-pagination" aria-label="Compliance audit pages"></nav></section>
-        <section class="audit-panel compliance-privacy-panel"><div class="audit-panel__heading"><div><span class="feature-eyebrow">Privacy operations</span><h2>Data requests</h2></div><button class="button button--secondary button--small" id="refresh-compliance" type="button">Refresh</button></div><p class="feature-status" id="compliance-privacy-status" role="status" aria-live="polite">Loading privacy requests…</p><div class="compliance-request-list" id="compliance-request-list"></div></section>
+        <header class="feature-page__heading compliance-heading">
+            <div><span class="feature-eyebrow">Governance</span><h1>Compliance &amp; audit center</h1><p>Verify your newsroom’s audit trail, preserve records, and monitor privacy operations from one place.</p></div>
+            <div class="feature-toolbar compliance-toolbar">
+                <label>Workspace<select id="compliance-workspace" aria-label="Compliance workspace"><option value="">Loading workspaces…</option></select></label>
+                <a class="button button--secondary button--small" id="export-audit" href="/articles/api/v2/reports/audit/">Export audit CSV</a>
+                <button class="button button--small" id="refresh-compliance" type="button">Refresh</button>
+            </div>
+        </header>
+        <p class="feature-status compliance-workspace-status" id="compliance-workspace-status" role="status" aria-live="polite">Loading workspace controls…</p>
+
+        <section class="compliance-overview" aria-label="Compliance overview">
+            <article class="compliance-metric compliance-metric--brand"><span>Audit chain</span><strong id="compliance-chain-status">—</strong><small id="compliance-chain-detail">Waiting for a workspace</small></article>
+            <article class="compliance-metric compliance-metric--teal"><span>Active legal holds</span><strong id="compliance-active-holds">—</strong><small id="compliance-hold-detail">Preservation status</small></article>
+            <article class="compliance-metric compliance-metric--amber"><span>Retention policy</span><strong id="compliance-retention">—</strong><small>Configured workspace retention</small></article>
+            <article class="compliance-metric compliance-metric--blue"><span>Recovery readiness</span><strong id="compliance-recovery">—</strong><small id="compliance-recovery-detail">RTO / RPO objectives</small></article>
+        </section>
+
+        <div class="compliance-grid">
+            <section class="audit-panel compliance-evidence-panel" aria-labelledby="evidence-title">
+                <div class="audit-panel__heading"><div><span class="feature-eyebrow">Evidence integrity</span><h2 id="evidence-title">Audit chain verification</h2></div><span class="compliance-status-pill" id="compliance-evidence-pill">Checking…</span></div>
+                <p class="feature-status" id="compliance-evidence-status" role="status" aria-live="polite">Loading evidence summary…</p>
+                <dl class="compliance-detail-list" id="compliance-evidence-details"></dl>
+            </section>
+            <section class="audit-panel compliance-reliability-panel" aria-labelledby="reliability-title">
+                <div class="audit-panel__heading"><div><span class="feature-eyebrow">Operational readiness</span><h2 id="reliability-title">Recovery objectives</h2></div><a class="button button--secondary button--small" href="{% url 'backup-center-page' %}">Open backups</a></div>
+                <p class="feature-status" id="compliance-reliability-status" role="status" aria-live="polite">Loading reliability summary…</p>
+                <dl class="compliance-detail-list" id="compliance-reliability-details"></dl>
+            </section>
+        </div>
+
+        <section class="audit-panel compliance-holds-panel" aria-labelledby="holds-title">
+            <div class="audit-panel__heading"><div><span class="feature-eyebrow">Records preservation</span><h2 id="holds-title">Legal holds</h2><p class="compliance-panel__description">Keep selected newsroom records outside normal retention cleanup while an investigation or legal review is active.</p></div><button class="button button--small" id="create-legal-hold" type="button">Create legal hold</button></div>
+            <p class="feature-status" id="compliance-holds-status" role="status" aria-live="polite">Loading legal holds…</p>
+            <div class="compliance-hold-list" id="compliance-hold-list" aria-live="polite"></div>
+        </section>
+
+        <section class="audit-panel compliance-audit-panel" aria-labelledby="audit-title">
+            <div class="audit-panel__heading"><div><span class="feature-eyebrow">Accountability</span><h2 id="audit-title">Audit activity</h2></div><label>Filter action<input id="compliance-audit-filter" type="search" placeholder="article_published"></label></div>
+            <p class="feature-status" id="compliance-audit-status" role="status" aria-live="polite">Loading audit events…</p><div class="audit-list" id="compliance-audit-list"></div><nav class="feature-pagination" id="compliance-audit-pagination" aria-label="Compliance audit pages"></nav>
+        </section>
+
+        <section class="audit-panel compliance-privacy-panel" aria-labelledby="privacy-title">
+            <div class="audit-panel__heading"><div><span class="feature-eyebrow">Privacy operations</span><h2 id="privacy-title">Data requests</h2></div></div>
+            <p class="feature-status" id="compliance-privacy-status" role="status" aria-live="polite">Loading privacy requests…</p><div class="compliance-request-list" id="compliance-request-list"></div>
+        </section>
     </main>
-    <script src="{% static 'js/compliance-center.js' %}" defer></script>
+
+    <div class="feature-modal" id="legal-hold-modal" hidden>
+        <section class="feature-modal__panel" role="dialog" aria-modal="true" aria-labelledby="legal-hold-modal-title">
+            <button class="feature-modal__close" id="close-legal-hold" type="button" aria-label="Close legal hold dialog">×</button>
+            <span class="feature-eyebrow">Records preservation</span><h2 id="legal-hold-modal-title">Create legal hold</h2>
+            <form class="compliance-hold-form" id="legal-hold-form">
+                <label>Name<input name="name" maxlength="120" required placeholder="Investigation 2026-01"></label>
+                <label>Reason<textarea name="reason" rows="4" maxlength="500" required placeholder="Explain which records must be preserved and why."></textarea></label>
+                <div class="feature-toolbar"><button class="button button--secondary" id="cancel-legal-hold" type="button">Cancel</button><button class="button" type="submit">Create hold</button></div>
+            </form>
+        </section>
+    </div>
+    <script src="{% static 'js/app-dialogs.js' %}?v=20261103-dialogs-1" defer></script>
+    <script src="{% static 'js/compliance-center.js' %}?v=20261103-compliance-2" defer></script>
 </body>
 </html>

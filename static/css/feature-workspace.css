@@ -202,5 +202,35 @@ html.theme-dark .analytics-health--attention { color: #ffd58a; background: #4535
 .analytics-insight { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); border-radius: 11px; color: var(--muted); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); font-size: .77rem; line-height: 1.45; }.analytics-insight strong { color: var(--ink); }.analytics-insight__icon { display: grid; flex: 0 0 auto; place-items: center; width: 25px; height: 25px; border-radius: 8px; color: #fff; background: var(--brand); }
 .feature-pagination__summary { color: var(--muted); font-size: .74rem; font-weight: 750; }.feature-pagination__controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
 .assignment-column__pagination { margin-top: 10px; }.assignment-column__pagination > span { color: var(--muted); font-size: .7rem; }
+/* Compliance center: make governance status scannable before the detailed feeds. */
+.compliance-heading { align-items: flex-start; }
+.compliance-toolbar { align-items: end; }
+.compliance-toolbar label { display: grid; gap: 5px; color: var(--muted); font-size: .74rem; font-weight: 750; }
+.compliance-toolbar select { min-width: 180px; min-height: 38px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); }
+.compliance-workspace-status { margin-top: -8px; }
+.compliance-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.compliance-metric { position: relative; display: grid; gap: 7px; min-height: 118px; overflow: hidden; padding: 17px 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); box-shadow: var(--shadow-sm); }
+.compliance-metric::after { position: absolute; right: -21px; bottom: -28px; width: 86px; height: 86px; border-radius: 50%; background: color-mix(in srgb, var(--metric-color) 12%, transparent); content: ''; }
+.compliance-metric span, .compliance-detail-list dt { color: var(--muted); font-size: .7rem; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+.compliance-metric strong { position: relative; z-index: 1; color: var(--metric-color); font-size: 1.55rem; letter-spacing: -.04em; }
+.compliance-metric small { position: relative; z-index: 1; color: var(--muted); font-size: .74rem; }
+.compliance-metric--brand { --metric-color: #6355df; }.compliance-metric--teal { --metric-color: #0e9f87; }.compliance-metric--amber { --metric-color: #c58925; }.compliance-metric--blue { --metric-color: #4777b8; }
+.compliance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.compliance-grid .audit-panel { max-width: none; }
+.compliance-status-pill { display: inline-flex; align-items: center; min-height: 25px; padding: 4px 9px; border-radius: 999px; color: #9a6416; background: #fff3d9; font-size: .68rem; font-weight: 850; white-space: nowrap; }
+.compliance-status-pill.is-success { color: #2d8065; background: #e8f8f1; }.compliance-status-pill.is-muted { color: var(--muted); background: var(--surface-soft); }.compliance-status-pill.is-warning { color: #9a6416; background: #fff3d9; }
+.compliance-detail-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0 0; }
+.compliance-detail-list div { display: grid; gap: 4px; padding: 11px 12px; border-radius: 10px; background: var(--surface-soft); }
+.compliance-detail-list dd { overflow: hidden; margin: 0; color: var(--ink); font-size: .8rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.compliance-panel__description { max-width: 620px; margin: 6px 0 0; color: var(--muted); font-size: .78rem; }
+.compliance-holds-panel, .compliance-audit-panel, .compliance-privacy-panel { max-width: none; margin-top: 14px; }
+.compliance-hold-list { display: grid; gap: 9px; }
+.compliance-hold { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); }
+.compliance-hold--released { opacity: .72; }
+.compliance-hold strong { color: var(--ink); font-size: .86rem; }.compliance-hold p { margin: 4px 0; color: var(--muted); font-size: .78rem; }.compliance-hold small { color: var(--muted); font-size: .7rem; }
+.compliance-hold__actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.compliance-hold-form { display: grid; gap: 14px; }.compliance-hold-form label { display: grid; gap: 6px; color: var(--muted); font-size: .76rem; font-weight: 750; }.compliance-hold-form input, .compliance-hold-form textarea { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface); font: inherit; resize: vertical; }.compliance-hold-form input:focus, .compliance-hold-form textarea:focus, .compliance-toolbar select:focus { outline: 3px solid color-mix(in srgb, var(--brand) 20%, transparent); border-color: var(--brand); }
+@media (max-width: 900px) { .compliance-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }.compliance-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .compliance-toolbar { align-items: stretch; flex-direction: column; }.compliance-toolbar label, .compliance-toolbar select, .compliance-toolbar .button { width: 100%; }.compliance-overview { grid-template-columns: 1fr; }.compliance-hold { align-items: stretch; flex-direction: column; }.compliance-hold__actions { justify-content: space-between; }.compliance-detail-list { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .analytics-chart-grid { grid-template-columns: 1fr; }.analytics-chart-card--wide { grid-row: auto; }.analytics-section-heading { flex-direction: column; }.analytics-view-switcher { width: 100%; }.analytics-view-switcher button { flex: 1; } }
 @media (max-width: 440px) { .analytics-visuals { padding: 15px; }.analytics-ring-wrap { align-items: flex-start; flex-direction: column; }.analytics-ring-legend { grid-template-columns: repeat(3, 1fr); width: 100%; }.analytics-ring-legend span { white-space: normal; }.feature-pagination__controls { gap: 6px; }.feature-pagination__controls .button { padding-inline: 8px; } }

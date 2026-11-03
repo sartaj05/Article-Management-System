@@ -39,3 +39,10 @@ class ComplianceGovernanceTests(TestCase):
         )
         self.assertEqual(released.status_code, 200)
         self.assertFalse(released.data['is_active'])
+
+    def test_compliance_center_renders_governance_sections(self):
+        self.client.force_login(self.admin)
+        response = self.client.get('/articles/workspace/compliance/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Compliance &amp; audit center')
+        self.assertContains(response, 'Create legal hold')
