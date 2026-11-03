@@ -1,5 +1,6 @@
 (function () {
   const personas = document.getElementById('demo-personas');
+  const workspaceName = document.getElementById('demo-workspace-name');
   const status = document.getElementById('demo-status');
   const reset = document.getElementById('demo-reset');
   if (!personas) return;
@@ -12,6 +13,7 @@
     return data;
   }
   function render(data) {
+    if (workspaceName) workspaceName.textContent = data.workspace || 'Northstar Newsroom';
     personas.innerHTML = data.personas.map((persona) => `<article class="demo-persona demo-persona--${escape(persona.key)}"><div class="demo-persona__icon"><i class="fa-solid fa-${escape(persona.icon)}" aria-hidden="true"></i></div><div><span class="feature-eyebrow">${escape(persona.label)} view</span><h3>${escape(persona.label)}</h3><p>${escape(persona.description)}</p></div><button class="button button--small" type="button" data-demo-persona="${escape(persona.key)}">Enter as ${escape(persona.label)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button></article>`).join('');
   }
   async function load() { try { render(await request()); } catch (error) { personas.innerHTML = `<p class="demo-error">${escape(error.message)}</p>`; } }
@@ -23,6 +25,6 @@
     try { const data = await request({ method: 'POST', body: JSON.stringify({ persona: button.dataset.demoPersona }) }); window.location.assign(data.dashboard_url); }
     catch (error) { if (status) status.textContent = error.message; button.disabled = false; }
   });
-  reset?.addEventListener('click', async () => { reset.disabled = true; if (status) status.textContent = 'Refreshing the demo workspace…'; try { const data = await request({ method: 'POST', body: JSON.stringify({ action: 'reset' }) }); if (status) status.textContent = data.message; await load(); } catch (error) { if (status) status.textContent = error.message; } finally { reset.disabled = false; } });
+  reset?.addEventListener('click', async () => { reset.disabled = true; if (status) status.textContent = 'Refreshing the newsroom workspace…'; try { const data = await request({ method: 'POST', body: JSON.stringify({ action: 'reset' }) }); if (status) status.textContent = data.message; await load(); } catch (error) { if (status) status.textContent = error.message; } finally { reset.disabled = false; } });
   load();
 })();

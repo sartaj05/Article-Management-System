@@ -32,4 +32,14 @@ test.describe('client demo public newsroom', () => {
     expect(layout.heroBackground).toContain('linear-gradient');
     expect(layout.ctaRight).toBeLessThanOrEqual(layout.viewport + 1);
   });
+
+  test('presents a believable newsroom workspace and role entry points', async ({ page }) => {
+    await page.goto('/demo/');
+    await expect(page.locator('#demo-workspace-name')).toHaveText('Northstar Newsroom');
+    await expect(page.locator('#demo-personas')).toContainText('Journalist');
+    await expect(page.locator('#demo-personas')).toContainText('Editor');
+    await expect(page.locator('#demo-personas')).toContainText('Admin');
+    await expect(page.locator('#demo-personas')).not.toContainText('Sample');
+    await expect(page.locator('#demo-personas')).not.toContainText('Demo');
+  });
 });

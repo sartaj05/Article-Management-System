@@ -71,14 +71,15 @@ class DemoModeView(APIView):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        return Response({'enabled': True, 'workspace': 'Demo Newsroom', 'personas': [{'key': key, **value} for key, value in self.personas.items()], 'features': ['Editorial workflow', 'Workspace collaboration', 'Membership billing', 'Distribution monitoring', 'Reader personalization']})
+        workspace_name = Workspace.objects.filter(slug='demo-newsroom').values_list('name', flat=True).first() or 'Northstar Newsroom'
+        return Response({'enabled': True, 'workspace': workspace_name, 'personas': [{'key': key, **value} for key, value in self.personas.items()], 'features': ['Editorial workflow', 'Workspace collaboration', 'Membership billing', 'Distribution monitoring', 'Reader personalization']})
 
     def post(self, request):
         action = str(request.data.get('action', 'login')).strip().lower()
         if action == 'reset':
             from django.core.management import call_command
             call_command('seed_demo_data', verbosity=0)
-            return Response({'reset': True, 'message': 'Demo workspace refreshed. Choose a persona to continue.'})
+            return Response({'reset': True, 'message': 'Northstar workspace refreshed. Choose a perspective to continue.'})
         persona = str(request.data.get('persona', '')).strip().lower()
         from users.management.commands.seed_demo_data import DEMO_USERS
         account = DEMO_USERS.get(persona)
