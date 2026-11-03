@@ -1998,6 +1998,32 @@ class WorkspaceBillingView(APIView):
         return self.get(request, slug)
 
 
+class WorkspaceSettingsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, slug):
+        workspace = _workspace_admin(request, slug)
+        name = str(request.data.get('name', workspace.name)).strip()
+        if not name:
+            return Response({'detail': 'Workspace name is required.'}, status=400)
+        if len(name) > 120:
+            return Response({'detail': 'Workspace name must be 120 characters or fewer.'}, status=400)
+        for color_field in ('primary_color', 'accent_color'):
+            color = str(request.data.get(color_field, getattr(workspace, color_field))).strip()
+            if not re.fullmatch(r'#[0-9a-fA-F]{6}', color):
+                return Response({'detail': f'{color_field} must be a six-digit hex color.'}, status=400)
+            setattr(workspace, color_field, color)
+        workspace.name = name
+        workspace.description = str(request.data.get('description', workspace.description)).strip()[:500]
+        workspace.logo_url = str(request.data.get('logo_url', workspace.logo_url)).strip()[:255]
+        workspace.email_from_name = str(request.data.get('email_from_name', workspace.email_from_name)).strip()[:120]
+        workspace.custom_domain = str(request.data.get('custom_domain', workspace.custom_domain)).strip()[:255]
+        workspace.save(update_fields=['name', 'description', 'logo_url', 'primary_color', 'accent_color', 'email_from_name', 'custom_domain', 'updated_at'])
+        record_audit_event(actor=request.user, workspace=workspace, action='workspace_settings_updated', target_model='Workspace', target_id=workspace.id, details={'changed_fields': sorted(request.data.keys())})
+        return Response(WorkspaceSerializer(workspace).data)
+
+
 class WorkspaceBillingContractView(APIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]

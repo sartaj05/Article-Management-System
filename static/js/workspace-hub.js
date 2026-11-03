@@ -16,6 +16,18 @@
   };
 
   const setStatus = (element, message, error = false) => { element.textContent = message; element.classList.toggle('is-error', error); };
+  const populateBranding = (workspace, role) => {
+    const form = document.getElementById('workspace-branding-settings');
+    if (!form) return;
+    form.elements.name.value = workspace.name || '';
+    form.elements.description.value = workspace.description || '';
+    form.elements.logo_url.value = workspace.logo_url || '';
+    form.elements.primary_color.value = workspace.primary_color || '#2f5d62';
+    form.elements.accent_color.value = workspace.accent_color || '#f28f6b';
+    const editable = ['owner', 'admin'].includes(role);
+    form.querySelectorAll('input, textarea, button').forEach((field) => { field.disabled = !editable; });
+    document.getElementById('workspace-branding-permission').textContent = editable ? 'Workspace admin' : 'View only';
+  };
   const renderOnboarding = (onboarding) => {
     if (!onboarding) return;
     const label = document.getElementById('onboarding-progress-label');
@@ -42,6 +54,7 @@
         request(`/api/workspaces/${encodeURIComponent(workspace.slug)}/billing/`),
       ]);
       document.getElementById('workspace-role').textContent = controls.membership.role.replace('_', ' ');
+      populateBranding(controls.workspace, controls.membership.role);
       renderOnboarding(controls.onboarding);
       document.getElementById('workspace-member-count').textContent = `${members.length} member${members.length === 1 ? '' : 's'}`;
       document.getElementById('workspace-metrics').innerHTML = `
@@ -82,6 +95,19 @@
     event.preventDefault(); const form = event.currentTarget; const button = form.querySelector('button'); button.disabled = true;
     try { const invitation = await request(`/api/workspaces/${encodeURIComponent(selected.slug)}/invite/`, { method: 'POST', body: Object.fromEntries(new FormData(form).entries()) }); form.reset(); setStatus(document.getElementById('workspace-invite-status'), `Invitation sent to ${invitation.email}.`); await showDetails(selected); }
     catch (error) { setStatus(document.getElementById('workspace-invite-status'), error.message, true); } finally { button.disabled = false; }
+  });
+  document.getElementById('workspace-branding-settings').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!selected) return;
+    const form = event.currentTarget;
+    const button = form.querySelector('button');
+    button.disabled = true;
+    try {
+      const workspace = await request(`/api/workspaces/${encodeURIComponent(selected.slug)}/settings/`, { method: 'PATCH', body: Object.fromEntries(new FormData(form).entries()) });
+      selected = { ...selected, ...workspace };
+      setStatus(document.getElementById('workspace-branding-status'), 'Workspace identity saved.');
+      await load();
+    } catch (error) { setStatus(document.getElementById('workspace-branding-status'), error.message, true); } finally { button.disabled = false; }
   });
   load();
 })();

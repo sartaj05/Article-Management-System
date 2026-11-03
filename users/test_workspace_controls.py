@@ -34,3 +34,23 @@ class WorkspaceControlsTests(TestCase):
         self.client.force_authenticate(self.outsider)
         response = self.client.get('/articles/api/v2/analytics/?workspace=controls-newsroom')
         self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_update_workspace_branding(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.patch('/api/workspaces/controls-newsroom/settings/', {
+            'name': 'Northstar Desk',
+            'description': 'A focused local newsroom',
+            'logo_url': 'https://example.com/logo.svg',
+            'primary_color': '#4455aa',
+            'accent_color': '#ee8866',
+        }, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.workspace.refresh_from_db()
+        self.assertEqual(self.workspace.name, 'Northstar Desk')
+        self.assertEqual(self.workspace.primary_color, '#4455aa')
+        self.assertEqual(response.data['logo_url'], 'https://example.com/logo.svg')
+
+    def test_regular_member_cannot_update_workspace_branding(self):
+        self.client.force_authenticate(self.member)
+        response = self.client.patch('/api/workspaces/controls-newsroom/settings/', {'name': 'Not allowed'}, format='json')
+        self.assertEqual(response.status_code, 403)

@@ -1075,6 +1075,14 @@ html.theme-dark .provider-health .is-error { color: #ffc2bb; }
 .workspace-onboarding__item.is-complete .workspace-onboarding__item-icon { color: #fff; background: #14966d; }
 .workspace-onboarding__item > span:nth-child(2) { overflow: hidden; font-size: .72rem; font-weight: 750; text-overflow: ellipsis; }
 .workspace-onboarding__item small { grid-column: 2; color: var(--muted); font-size: .65rem; }
+.workspace-hub__branding { margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.workspace-hub__branding-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.workspace-hub__branding-form label { display: grid; gap: 6px; color: var(--muted); font-size: .76rem; font-weight: 750; }
+.workspace-hub__branding-form input, .workspace-hub__branding-form textarea { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--surface-soft); }
+.workspace-hub__branding-form input[type='color'] { min-height: 40px; padding: 4px; }
+.workspace-hub__branding-form textarea { resize: vertical; }
+.workspace-hub__branding-form--wide { grid-column: 1 / -1; }
+.workspace-hub__branding-form button { width: fit-content; }
 .workspace-hub__columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr); gap: 22px; }
 .workspace-hub__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
 .workspace-hub__section-heading h3 { margin: 0; font-size: 1rem; }
@@ -1092,6 +1100,7 @@ html.theme-dark .provider-health .is-error { color: #ffc2bb; }
 @media (max-width: 900px) { .workspace-onboarding__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .workspace-hub__hero { align-items: flex-start; }.workspace-hub__hero-art { flex-basis: 100px; width: 100px; height: 100px; }.workspace-hub__hero-art span { inset: 20px; font-size: 1.7rem; }.workspace-hub__layout, .workspace-hub__columns { grid-template-columns: 1fr; }.workspace-hub__metrics { grid-template-columns: 1fr; }.workspace-hub__details-heading { flex-direction: column; } }
 @media (max-width: 520px) { .workspace-onboarding__list { grid-template-columns: 1fr; } .workspace-onboarding__heading { flex-direction: column; gap: 6px; } }
+@media (max-width: 520px) { .workspace-hub__branding-form { grid-template-columns: 1fr; } .workspace-hub__branding-form--wide { grid-column: auto; } }
 
 /* Membership billing lifecycle. */
 .membership-billing { margin-top: 22px; }

@@ -57,6 +57,18 @@
             <p id="onboarding-progress-status" class="account-status" role="status" aria-live="polite">Complete the checklist to prepare your newsroom.</p>
             <div id="onboarding-checklist" class="workspace-onboarding__list"></div>
         </section>
+        <section class="workspace-hub__branding" id="workspace-branding-form">
+            <div class="workspace-hub__section-heading"><div><span class="feature-eyebrow">Workspace identity</span><h3>Branding settings</h3></div><span id="workspace-branding-permission">Admin only</span></div>
+            <form id="workspace-branding-settings" class="workspace-hub__branding-form">
+                <label>Workspace name<input name="name" maxlength="120" required></label>
+                <label>Logo URL<input name="logo_url" type="url" maxlength="255" placeholder="https://.../logo.svg"></label>
+                <label>Primary color<input name="primary_color" type="color" value="#2f5d62"></label>
+                <label>Accent color<input name="accent_color" type="color" value="#f28f6b"></label>
+                <label class="workspace-hub__branding-form--wide">Description<textarea name="description" maxlength="500" rows="2"></textarea></label>
+                <button class="button" type="submit">Save workspace identity</button>
+            </form>
+            <p id="workspace-branding-status" class="account-status" role="status" aria-live="polite"></p>
+        </section>
         <div class="workspace-hub__columns">
             <section>
                 <div class="workspace-hub__section-heading"><h3>Members</h3><span id="workspace-member-count"></span></div>
