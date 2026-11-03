@@ -15,9 +15,11 @@
     element.classList.toggle("is-error", error);
   };
   const request = async (url, options = {}) => {
+    const method = String(options.method || "GET").toUpperCase();
+    const mutating = !["GET", "HEAD", "OPTIONS"].includes(method);
     const response = await fetch(url, {
       credentials: "same-origin",
-      headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json", "X-CSRFToken": csrfToken() } : {}) },
+      headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}), ...(mutating ? { "X-CSRFToken": csrfToken() } : {}) },
       ...options,
     });
     const payload = await response.json().catch(() => ({}));
