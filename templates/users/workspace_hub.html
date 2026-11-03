@@ -43,6 +43,20 @@
             <span id="workspace-role" class="workspace-hub__role"></span>
         </header>
         <div class="workspace-hub__metrics" id="workspace-metrics"></div>
+        <section class="workspace-onboarding" aria-labelledby="workspace-onboarding-title">
+            <div class="workspace-onboarding__heading">
+                <div>
+                    <span class="feature-eyebrow">Launch checklist</span>
+                    <h3 id="workspace-onboarding-title">Make this workspace yours</h3>
+                </div>
+                <strong id="onboarding-progress-label">0 / 5 complete</strong>
+            </div>
+            <div class="workspace-onboarding__progress" role="progressbar" aria-label="Workspace setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span id="onboarding-progress-bar"></span>
+            </div>
+            <p id="onboarding-progress-status" class="account-status" role="status" aria-live="polite">Complete the checklist to prepare your newsroom.</p>
+            <div id="onboarding-checklist" class="workspace-onboarding__list"></div>
+        </section>
         <div class="workspace-hub__columns">
             <section>
                 <div class="workspace-hub__section-heading"><h3>Members</h3><span id="workspace-member-count"></span></div>

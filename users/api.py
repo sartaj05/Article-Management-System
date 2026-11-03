@@ -2286,6 +2286,39 @@ class WorkspaceControlsView(APIView):
         membership = WorkspaceMembership.objects.get(workspace=workspace, user=request.user)
         article_queryset = Article.objects.filter(workspace=workspace)
         article_limit = {'starter': 100, 'team': 1000, 'enterprise': None}[workspace.plan]
+        checklist = [
+            {
+                'key': 'workspace_profile',
+                'label': 'Add a workspace description',
+                'complete': bool(workspace.description.strip()),
+                'href': '#workspace-details',
+            },
+            {
+                'key': 'invite_team',
+                'label': 'Invite a teammate',
+                'complete': workspace.memberships.count() > 1,
+                'href': '#workspace-invite-form',
+            },
+            {
+                'key': 'create_story',
+                'label': 'Create your first story',
+                'complete': article_queryset.exists(),
+                'href': '/editor/dashboard/?section=create-article-page',
+            },
+            {
+                'key': 'configure_brand',
+                'label': 'Personalize workspace branding',
+                'complete': bool(workspace.logo_url or workspace.primary_color != '#2f5d62' or workspace.accent_color != '#f28f6b'),
+                'href': '#workspace-details',
+            },
+            {
+                'key': 'connect_integration',
+                'label': 'Connect a delivery integration',
+                'complete': workspace.integrations.filter(is_active=True).exists(),
+                'href': '/workspace/integrations/',
+            },
+        ]
+        checklist_complete = sum(item['complete'] for item in checklist)
         return Response({
             'workspace': WorkspaceSerializer(workspace).data,
             'membership': WorkspaceMembershipSerializer(membership).data,
@@ -2295,6 +2328,12 @@ class WorkspaceControlsView(APIView):
                 'articles': {'used': article_queryset.count(), 'limit': article_limit},
             },
             'analytics_scope': {'workspace_id': workspace.id, 'workspace_slug': workspace.slug},
+            'onboarding': {
+                'completed': checklist_complete,
+                'total': len(checklist),
+                'percent': round(checklist_complete / len(checklist) * 100),
+                'items': checklist,
+            },
         })
 
     def patch(self, request, slug):

@@ -16,6 +16,19 @@
   };
 
   const setStatus = (element, message, error = false) => { element.textContent = message; element.classList.toggle('is-error', error); };
+  const renderOnboarding = (onboarding) => {
+    if (!onboarding) return;
+    const label = document.getElementById('onboarding-progress-label');
+    const bar = document.getElementById('onboarding-progress-bar');
+    const progress = bar?.parentElement;
+    const status = document.getElementById('onboarding-progress-status');
+    const checklist = document.getElementById('onboarding-checklist');
+    label.textContent = `${onboarding.completed} / ${onboarding.total} complete`;
+    bar.style.width = `${onboarding.percent}%`;
+    progress?.setAttribute('aria-valuenow', String(onboarding.percent));
+    status.textContent = onboarding.completed === onboarding.total ? 'Your newsroom is ready to welcome the team.' : `${onboarding.total - onboarding.completed} step${onboarding.total - onboarding.completed === 1 ? '' : 's'} left to complete.`;
+    checklist.innerHTML = onboarding.items.map((item) => `<a class="workspace-onboarding__item ${item.complete ? 'is-complete' : ''}" href="${escape(item.href)}"><span class="workspace-onboarding__item-icon" aria-hidden="true">${item.complete ? '✓' : '○'}</span><span>${escape(item.label)}</span><small>${item.complete ? 'Complete' : 'Open'}</small></a>`).join('');
+  };
   const showDetails = async (workspace) => {
     selected = workspace;
     details.hidden = false;
@@ -29,6 +42,7 @@
         request(`/api/workspaces/${encodeURIComponent(workspace.slug)}/billing/`),
       ]);
       document.getElementById('workspace-role').textContent = controls.membership.role.replace('_', ' ');
+      renderOnboarding(controls.onboarding);
       document.getElementById('workspace-member-count').textContent = `${members.length} member${members.length === 1 ? '' : 's'}`;
       document.getElementById('workspace-metrics').innerHTML = `
         <article><span>Plan</span><strong>${escape(billing.plan)}</strong><small>${escape(billing.billing_status)}</small></article>

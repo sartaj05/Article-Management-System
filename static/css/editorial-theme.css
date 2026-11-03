@@ -1044,6 +1044,21 @@ html.theme-dark .provider-health .is-error { color: #ffc2bb; }
 .workspace-hub__metrics article { display: grid; gap: 4px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-soft); }
 .workspace-hub__metrics span, .workspace-hub__metrics small { color: var(--muted); font-size: .72rem; text-transform: capitalize; }
 .workspace-hub__metrics strong { font-size: 1.35rem; letter-spacing: -.04em; }
+.workspace-onboarding { margin: 22px 0; padding: 18px; border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line)); border-radius: 16px; background: linear-gradient(135deg, var(--surface-tint), var(--surface)); }
+.workspace-onboarding__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.workspace-onboarding__heading h3 { margin: 5px 0 0; font-size: 1.05rem; }
+.workspace-onboarding__heading strong { color: var(--brand); font-size: .8rem; white-space: nowrap; }
+.workspace-onboarding__progress { height: 8px; margin: 16px 0 8px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--brand) 12%, var(--surface)); }
+.workspace-onboarding__progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--accent)); transition: width .35s ease; }
+.workspace-onboarding > .account-status { margin: 0 0 12px; font-size: .75rem; }
+.workspace-onboarding__list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.workspace-onboarding__item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 11px; color: var(--ink); background: var(--surface); text-decoration: none; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.workspace-onboarding__item:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+.workspace-onboarding__item.is-complete { border-color: color-mix(in srgb, #14966d 35%, var(--line)); }
+.workspace-onboarding__item-icon { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; color: var(--brand); background: var(--surface-tint); font-weight: 850; }
+.workspace-onboarding__item.is-complete .workspace-onboarding__item-icon { color: #fff; background: #14966d; }
+.workspace-onboarding__item > span:nth-child(2) { overflow: hidden; font-size: .72rem; font-weight: 750; text-overflow: ellipsis; }
+.workspace-onboarding__item small { grid-column: 2; color: var(--muted); font-size: .65rem; }
 .workspace-hub__columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr); gap: 22px; }
 .workspace-hub__section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
 .workspace-hub__section-heading h3 { margin: 0; font-size: 1rem; }
@@ -1058,7 +1073,9 @@ html.theme-dark .provider-health .is-error { color: #ffc2bb; }
 .workspace-invitation__panel { max-width: 680px; margin: 0 auto; text-align: center; }
 .workspace-invitation__panel h1 { margin: 9px 0; }
 .workspace-invitation__panel .account-status { margin: 0 0 22px; }
+@media (max-width: 900px) { .workspace-onboarding__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .workspace-hub__hero { align-items: flex-start; }.workspace-hub__hero-art { flex-basis: 100px; width: 100px; height: 100px; }.workspace-hub__hero-art span { inset: 20px; font-size: 1.7rem; }.workspace-hub__layout, .workspace-hub__columns { grid-template-columns: 1fr; }.workspace-hub__metrics { grid-template-columns: 1fr; }.workspace-hub__details-heading { flex-direction: column; } }
+@media (max-width: 520px) { .workspace-onboarding__list { grid-template-columns: 1fr; } .workspace-onboarding__heading { flex-direction: column; gap: 6px; } }
 
 /* Membership billing lifecycle. */
 .membership-billing { margin-top: 22px; }

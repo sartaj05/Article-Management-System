@@ -23,6 +23,12 @@ class WorkspaceControlsTests(TestCase):
         self.assertEqual(response.data['membership']['role'], 'writer')
         self.assertEqual(response.data['quotas']['articles']['used'], 1)
         self.assertEqual(response.data['analytics_scope']['workspace_slug'], 'controls-newsroom')
+        onboarding = response.data['onboarding']
+        self.assertEqual(onboarding['total'], 5)
+        self.assertEqual(onboarding['completed'], 2)
+        self.assertEqual({item['key'] for item in onboarding['items']}, {
+            'workspace_profile', 'invite_team', 'create_story', 'configure_brand', 'connect_integration',
+        })
 
     def test_non_member_cannot_read_workspace_scoped_analytics(self):
         self.client.force_authenticate(self.outsider)
