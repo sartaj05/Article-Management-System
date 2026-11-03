@@ -886,9 +886,11 @@ class SSOProviderView(APIView):
         provider = str(request.data.get('provider', '')).strip().lower()
         if provider not in {'oidc', 'google', 'microsoft', 'saml'}:
             return Response({'detail': 'Choose oidc, google, microsoft, or saml.'}, status=400)
+        existing = SSOProvider.objects.filter(provider=provider).first()
+        client_secret = str(request.data.get('client_secret', '')).strip()
         item, _ = SSOProvider.objects.update_or_create(provider=provider, defaults={
             'client_id': str(request.data.get('client_id', '')).strip(),
-            'client_secret': str(request.data.get('client_secret', '')).strip(),
+            'client_secret': client_secret or (existing.client_secret if existing else ''),
             'discovery_url': str(request.data.get('discovery_url', '')).strip(),
             'token_url': str(request.data.get('token_url', '')).strip(),
             'userinfo_url': str(request.data.get('userinfo_url', '')).strip(),

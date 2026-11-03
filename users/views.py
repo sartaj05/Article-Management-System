@@ -206,6 +206,11 @@ def account_settings(request):
 
 
 @login_required(login_url='/login-template/')
+def security_center_page(request):
+    return render(request, 'users/security_center.html')
+
+
+@login_required(login_url='/login-template/')
 def workspace_hub(request):
     return render(request, 'users/workspace_hub.html')
 

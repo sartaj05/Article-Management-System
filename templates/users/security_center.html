@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Security, identity, sessions, and developer access controls for Article Studio.">
+    <title>Security &amp; identity | Article Studio</title>
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
+    <link rel="stylesheet" href="{% static 'css/feature-workspace.css' %}">
+    <link rel="stylesheet" href="{% static 'css/editorial-theme.css' %}?v=20261030-control-center-1">
+    <link rel="stylesheet" href="{% static 'css/security-center.css' %}?v=20261103-identity-1">
+</head>
+<body class="dashboard-shell security-center-page" data-user-role="{{ request.user.role }}">
+    {% include 'partials/workspace_header.html' with active_nav='security' %}
+    <main class="feature-page security-center">
+        <header class="feature-page__heading security-center__hero">
+            <div>
+                <span class="feature-eyebrow">Trust &amp; access</span>
+                <h1>Security &amp; identity</h1>
+                <p>Protect your newsroom with clear session controls, stronger sign-in, and auditable integrations.</p>
+            </div>
+            <div class="security-center__hero-badge"><span aria-hidden="true">✦</span><strong>Control center</strong><small>Changes are recorded in the audit trail</small></div>
+        </header>
+
+        <p id="security-center-status" class="feature-status" role="status" aria-live="polite">Loading security controls…</p>
+
+        <section class="security-card security-card--wide" aria-labelledby="mfa-title">
+            <div class="security-card__heading"><div><span class="feature-eyebrow">Account protection</span><h2 id="mfa-title">Multi-factor authentication</h2><p>Require a time-based code when signing in to keep editor and admin accounts protected.</p></div><span id="mfa-badge" class="security-badge">Checking…</span></div>
+            <div class="security-mfa-grid">
+                <div id="mfa-state" class="security-callout">Loading MFA status…</div>
+                <div id="mfa-setup" class="security-form-panel" hidden>
+                    <strong>Finish authenticator setup</strong>
+                    <p>Scan the URI with your authenticator app, then enter the current six-digit code.</p>
+                    <code id="mfa-secret" class="security-secret"></code>
+                    <label>Verification code<input id="mfa-setup-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456"></label>
+                    <button class="button button--small" id="mfa-enable" type="button">Enable MFA</button>
+                    <p id="mfa-backup-codes" class="security-secret security-secret--success" hidden></p>
+                </div>
+                <div id="mfa-disable" class="security-form-panel" hidden>
+                    <strong>Disable MFA</strong>
+                    <p>Confirm with an authenticator code before changing this protection.</p>
+                    <label>Current code<input id="mfa-disable-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="123456"></label>
+                    <button class="button button--secondary button--small" id="mfa-disable-button" type="button">Disable MFA</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="security-layout">
+            <section class="security-card" aria-labelledby="sessions-title">
+                <div class="security-card__heading"><div><span class="feature-eyebrow">Active access</span><h2 id="sessions-title">Security sessions</h2><p>Review devices that have signed in to this account.</p></div><button class="button button--secondary button--small" id="refresh-sessions" type="button">Refresh</button></div>
+                <div id="security-sessions" class="security-list" aria-live="polite"></div>
+            </section>
+            <section class="security-card" aria-labelledby="events-title">
+                <div class="security-card__heading"><div><span class="feature-eyebrow">Account history</span><h2 id="events-title">Recent security events</h2><p>Successful and failed authentication activity.</p></div></div>
+                <div id="security-events" class="security-list" aria-live="polite"></div>
+            </section>
+        </div>
+
+        <section class="security-card security-card--wide" aria-labelledby="api-keys-title">
+            <div class="security-card__heading"><div><span class="feature-eyebrow">Developer access</span><h2 id="api-keys-title">API keys</h2><p>Create scoped keys for trusted integrations. The full value is shown only once.</p></div><span class="security-badge security-badge--neutral">90-day expiry</span></div>
+            <form id="api-key-form" class="security-inline-form">
+                <label>Key name<input name="name" maxlength="100" required placeholder="Website feed"></label>
+                <label>Scopes<select name="scopes"><option value="articles:read">Read published articles</option><option value="articles:write">Manage articles</option><option value="analytics:read">Read analytics</option></select></label>
+                <button class="button button--small" type="submit">Create API key</button>
+            </form>
+            <div id="api-key-reveal" class="security-key-reveal" hidden><strong>Copy this key now</strong><code id="api-key-value"></code><button class="button button--secondary button--small" id="copy-api-key" type="button">Copy key</button></div>
+            <div id="api-keys" class="security-table" aria-live="polite"></div>
+        </section>
+
+        {% if request.user.role == 'Admin' %}
+        <section class="security-card security-card--wide" aria-labelledby="sso-title">
+            <div class="security-card__heading"><div><span class="feature-eyebrow">Enterprise sign-in</span><h2 id="sso-title">SSO providers</h2><p>Configure OIDC, Google, Microsoft, or SAML without exposing client secrets in the browser.</p></div><span class="security-badge security-badge--admin">Admin only</span></div>
+            <form id="sso-form" class="security-form-grid">
+                <label>Provider<select name="provider"><option value="oidc">OIDC</option><option value="google">Google</option><option value="microsoft">Microsoft</option><option value="saml">SAML</option></select></label>
+                <label>Default role<select name="default_role"><option value="Journalist">Journalist</option><option value="Editor">Editor</option></select></label>
+                <label>Client ID<input name="client_id" required></label>
+                <label>Client secret<input name="client_secret" type="password" autocomplete="new-password" placeholder="Enter to set or rotate"></label>
+                <label>Discovery URL<input name="discovery_url" type="url" placeholder="https://idp.example.com/.well-known/openid-configuration"></label>
+                <label>Token URL<input name="token_url" type="url"></label>
+                <label>Userinfo URL<input name="userinfo_url" type="url"></label>
+                <label>Metadata URL<input name="metadata_url" type="url"></label>
+                <label class="security-check"><input name="auto_provision" type="checkbox" checked> Auto-provision approved users</label>
+                <label class="security-check"><input name="is_enabled" type="checkbox"> Enable provider</label>
+                <div class="security-form-actions"><button class="button button--small" type="submit">Save provider</button><p id="sso-status" class="feature-status" role="status" aria-live="polite"></p></div>
+            </form>
+            <div id="sso-providers" class="security-provider-list" aria-live="polite"></div>
+        </section>
+
+        <section class="security-card security-card--wide" aria-labelledby="scim-title">
+            <div class="security-card__heading"><div><span class="feature-eyebrow">Directory provisioning</span><h2 id="scim-title">SCIM directory access</h2><p>Issue a short-lived bearer token for your identity provider to provision workspace members.</p></div><span class="security-badge security-badge--admin">Admin only</span></div>
+            <div class="security-inline-form security-inline-form--scim"><label>Workspace<select id="scim-workspace" aria-label="SCIM workspace"></select></label><button class="button button--small" id="create-scim-token" type="button">Create SCIM token</button></div>
+            <div id="scim-token-reveal" class="security-key-reveal" hidden><strong>Copy this token now</strong><code id="scim-token-value"></code><button class="button button--secondary button--small" id="copy-scim-token" type="button">Copy token</button></div>
+            <div id="scim-tokens" class="security-table" aria-live="polite"></div>
+            <p id="scim-status" class="feature-status" role="status" aria-live="polite"></p>
+        </section>
+        {% endif %}
+    </main>
+    <script src="{% static 'js/security-center.js' %}?v=20261103-identity-1" defer></script>
+</body>
+</html>

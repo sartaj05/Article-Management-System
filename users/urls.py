@@ -29,6 +29,7 @@ path('demo/', views.demo_mode, name='demo-mode'),
     path('logout-template/', views.logout_template, name='user-logout-template'),
     path('forgot-password/', views.password_reset_request_template, name='forgot-password-template'),  # For the forgot-password page
     path('account/settings/', views.account_settings, name='account-settings'),
+    path('account/security/', views.security_center_page, name='security-center-page'),
     path('workspace/', views.workspace_hub, name='workspace-hub'),
     path('workspace/invitations/<uuid:token>/', views.workspace_invitation, name='workspace-invitation'),
     path('newsletter/campaigns/', views.newsletter_campaigns, name='newsletter-campaigns'),
