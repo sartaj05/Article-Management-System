@@ -171,6 +171,7 @@ else:
     }
 
 REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'config.api_errors.structured_exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',  # For Token Authentication
         'rest_framework.authentication.SessionAuthentication',  # For session-based authentication, if required

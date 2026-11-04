@@ -32,3 +32,8 @@ JavaScript example:
 
 Responses include X-API-Version: v2, next_page, and previous_page.
 Keys are scoped to articles:read by default and are rate-limited per minute.
+# API error contract
+
+Non-2xx responses include an `error` object with a stable `code`, human-readable
+`message`, HTTP `status`, optional field-level `fields`, and request correlation
+ID. The legacy `detail` and `errors` keys remain available for compatibility.
