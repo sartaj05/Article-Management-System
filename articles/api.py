@@ -3369,6 +3369,11 @@ class ExecutiveAnalyticsView(WorkspaceScopeMixin, APIView):
     def get(self, request):
         if request.user.role not in {'Editor', 'Admin'}:
             return Response({'detail': 'Only editors and admins can view executive analytics.'}, status=status.HTTP_403_FORBIDDEN)
+        workspace_key = getattr(getattr(request, 'workspace', None), 'slug', 'all')
+        cache_key = f'article-studio:analytics:executive:{request.user.id}:{workspace_key}'
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
         now = timezone.now()
         window_start = now - timedelta(days=7)
         articles = scope_queryset(Article.objects.all(), request)
@@ -3404,7 +3409,7 @@ class ExecutiveAnalyticsView(WorkspaceScopeMixin, APIView):
         for offset in range(6, -1, -1):
             day = (now - timedelta(days=offset)).date()
             incident_trend.append({'date': day, 'alerts': alerts.filter(last_seen_at__date=day).count()})
-        return Response({
+        payload = {
             'generated_at': now,
             'workspace_scope': request.workspace.slug if request.workspace is not None else 'all',
             'content': {'published': articles.filter(workflow_status='published').count(), 'in_review': articles.filter(workflow_status='submitted').count(), 'views': sum(item.views.count() for item in articles), 'shares_7d': events.filter(event_type='share').count()},
@@ -3416,7 +3421,9 @@ class ExecutiveAnalyticsView(WorkspaceScopeMixin, APIView):
             'productivity': {'authors': [{'username': row['author__username'], 'articles': row['articles'], 'published': row['published']} for row in author_rows]},
             'incidents': {'open': alerts.filter(status='open').count(), 'critical': alerts.filter(severity='critical', status__in={'open', 'acknowledged'}).count(), 'trend_7d': incident_trend},
             'ai': {'total_tokens': usage_totals['tokens'] or 0, 'estimated_cost': str(usage_totals['cost'] or 0), 'feedback_total': feedback.count(), 'feedback_accepted': feedback.filter(feedback_type='accepted').count(), 'feedback_rejected': feedback.filter(feedback_type='rejected').count()},
-        })
+        }
+        cache.set(cache_key, payload, timeout=settings.ANALYTICS_CACHE_SECONDS)
+        return Response(payload)
 
 
 class ExecutiveReportExportView(WorkspaceScopeMixin, APIView):
