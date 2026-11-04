@@ -260,6 +260,8 @@ if DEMO_EXTERNAL_INTEGRATIONS_DISABLED:
 STATIC_URL = '/static/'
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_MAX_UPLOAD_BYTES = int(os.getenv('MEDIA_MAX_UPLOAD_BYTES', str(10 * 1024 * 1024)))
+MEDIA_MAX_IMAGE_DIMENSION = int(os.getenv('MEDIA_MAX_IMAGE_DIMENSION', '8000'))
+MEDIA_ARCHIVE_RETENTION_DAYS = int(os.getenv('MEDIA_ARCHIVE_RETENTION_DAYS', '30'))
 MEDIA_PROCESSING_ASYNC = os.getenv('MEDIA_PROCESSING_ASYNC', 'true' if not DEBUG else 'false').lower() in {'1', 'true', 'yes'}
 MEDIA_TRANSCODE_ENABLED = os.getenv('MEDIA_TRANSCODE_ENABLED', 'true' if not DEBUG else 'false').lower() in {'1', 'true', 'yes'}
 MEDIA_CDN_URL = os.getenv('MEDIA_CDN_URL', '').rstrip('/')

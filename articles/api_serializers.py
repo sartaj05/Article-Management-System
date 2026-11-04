@@ -356,6 +356,22 @@ class MediaAssetSerializer(serializers.ModelSerializer):
             content_type = getattr(uploaded_file, 'content_type', '')
             if content_type and content_type not in allowed_types.get(media_type, set()):
                 raise serializers.ValidationError({'file': f'Unsupported {media_type} file type: {content_type}.'})
+            if media_type == 'image':
+                try:
+                    from PIL import Image
+                    image = Image.open(uploaded_file)
+                    max_dimension = getattr(settings, 'MEDIA_MAX_IMAGE_DIMENSION', 8000)
+                    if max(image.size) > max_dimension:
+                        raise serializers.ValidationError({'file': f'Image dimensions cannot exceed {max_dimension}px.'})
+                    image.verify()
+                    uploaded_file.seek(0)
+                except serializers.ValidationError:
+                    raise
+                except Exception:
+                    # The processing worker performs the definitive decode/scan.
+                    # Keep upload compatibility for clients that provide a generic
+                    # image content type and let processing mark invalid files.
+                    uploaded_file.seek(0)
         return attrs
 
 

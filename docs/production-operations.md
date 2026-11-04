@@ -46,3 +46,4 @@ It continuously exercises a read-only endpoint for the requested duration, repor
 - Keep structured request logs enabled; every request includes an `X-Request-ID` and JSON log context.
 - Alert on `/health/` failures, `/status/` degradation, queue delays, failed recovery drills, and elevated 5xx rate from the metrics endpoint.
 - Keep `BACKUP_ENABLED=true`, verify `BACKUP_ROOT` is durable, and schedule both backup creation and recovery drills through Celery beat or the deployment scheduler.
+- Media uploads are validated, malware-scanned, resized into responsive WebP/AVIF variants, and cleaned up by `cleanup_media_assets --apply --purge` after the retention window.
