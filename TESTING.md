@@ -20,7 +20,7 @@ For the fast browser regression check, run `npm run test:e2e:smoke`. To run the
 backend suite and browser smoke check together, run `npm run test:unit` followed
 by `npm run test:e2e:smoke`.
 
-Playwright starts an isolated server on port 8001 with its own SQLite database in `test-runtime/`, migrates it, and prepares deterministic E2E accounts. The browser suite does not reset or write to the development database on port 8000. Optional `E2E_USERNAME`, `E2E_EDITOR_USERNAME`, `E2E_ADMIN_USERNAME`, and `E2E_PASSWORD` environment variables select other test accounts. `BASE_URL` changes the server URL.
+Playwright starts an isolated server on port 8001 with a fresh per-run SQLite database under `test-runtime/`, migrates it, and prepares deterministic E2E accounts. The browser suite does not reset or write to the development database on port 8000. The guided tour is disabled only under the E2E settings so it cannot cover controls during automation. Optional `E2E_USERNAME`, `E2E_EDITOR_USERNAME`, `E2E_ADMIN_USERNAME`, and `E2E_PASSWORD` environment variables select other test accounts. `BASE_URL` changes the server URL.
 
 ## Verified workflows
 

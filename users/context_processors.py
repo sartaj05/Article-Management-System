@@ -12,4 +12,4 @@ def active_workspace(request):
 
 
 def demo_environment(request):
-    return {'demo_mode_enabled': settings.DEMO_MODE_ENABLED}
+    return {'demo_mode_enabled': settings.DEMO_MODE_ENABLED, 'e2e_test_mode': settings.E2E_TEST_MODE}

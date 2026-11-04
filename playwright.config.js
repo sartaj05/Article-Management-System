@@ -1,8 +1,10 @@
 const { defineConfig, devices } = require('@playwright/test');
 const fs = require('node:fs');
+const path = require('node:path');
 const localPython = process.platform === 'win32' ? 'venv/Scripts/python.exe' : 'venv/bin/python';
 const python = process.env.E2E_PYTHON || (fs.existsSync(localPython) ? localPython : 'python');
 const baseURL = process.env.BASE_URL || 'http://127.0.0.1:8001';
+const e2eDatabase = process.env.E2E_DB_NAME || path.join('test-runtime', `db-${Date.now()}.sqlite3`);
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
@@ -18,8 +20,11 @@ module.exports = defineConfig({
   },
   webServer: {
     command: `"${python}" manage.py migrate --settings=config.e2e_settings --noinput && "${python}" manage.py prepare_e2e --settings=config.e2e_settings && "${python}" manage.py runserver 127.0.0.1:8001 --settings=config.e2e_settings --noreload`,
+    env: { ...process.env, E2E_DB_NAME: e2eDatabase },
     url: `${baseURL}/login-template/`,
     timeout: 120_000,
+    // A fresh database is assigned for every server startup; reuse is kept
+    // enabled so Playwright can shut down cleanly on Windows.
     reuseExistingServer: true,
   },
   projects: [

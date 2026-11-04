@@ -55,6 +55,9 @@ test.describe('production critical path release gates', () => {
     const payload = await created.json();
     await expect(page.locator('#api-key-reveal')).toBeVisible();
     await expect(page.locator('#api-key-value')).toContainText(/^as_/);
+    // The key list is refreshed asynchronously after the create response.
+    // Wait for that refresh before resolving the revoke control.
+    await expect(page.locator('[data-revoke-key]')).toHaveCount(1);
     const revokeButton = page.locator(`[data-revoke-key="${payload.details.id}"]`);
     await expect(revokeButton).toBeVisible();
     await revokeButton.click();

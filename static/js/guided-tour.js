@@ -58,5 +58,5 @@
     render();
   };
   launcher.addEventListener('click', () => { index = 0; open(); });
-  if (!window.localStorage.getItem(seenKey)) window.setTimeout(open, 700);
+  if (!window.__ARTICLE_STUDIO_E2E__ && !window.localStorage.getItem(seenKey)) window.setTimeout(open, 700);
 })();

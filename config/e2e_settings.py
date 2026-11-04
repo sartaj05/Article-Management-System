@@ -1,16 +1,19 @@
 """Settings only for the isolated local Playwright server."""
 
 from copy import deepcopy
+import os
 from .settings import *  # noqa: F403
 
 DATABASES = deepcopy(DATABASES)  # noqa: F405
 runtime_dir = BASE_DIR / 'test-runtime'  # noqa: F405
 runtime_dir.mkdir(exist_ok=True)
-DATABASES['default']['NAME'] = runtime_dir / 'db.sqlite3'
+database_name = os.getenv('E2E_DB_NAME', str(runtime_dir / 'db.sqlite3'))
+DATABASES['default']['NAME'] = database_name
 DATABASES['default']['OPTIONS'] = {
     'timeout': 60,
     'init_command': 'PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;',
 }
+E2E_TEST_MODE = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 REST_FRAMEWORK = deepcopy(REST_FRAMEWORK)  # noqa: F405

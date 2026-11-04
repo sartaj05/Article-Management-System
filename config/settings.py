@@ -49,6 +49,7 @@ SECRET_KEY_FALLBACKS = [
 DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
 DEMO_MODE_ENABLED = os.getenv('DEMO_MODE_ENABLED', 'true' if DEBUG else 'false').lower() in {'1', 'true', 'yes'}
 DEMO_EXTERNAL_INTEGRATIONS_DISABLED = os.getenv('DEMO_EXTERNAL_INTEGRATIONS_DISABLED', 'false').lower() in {'1', 'true', 'yes'}
+E2E_TEST_MODE = False
 
 ALLOWED_HOSTS = [
     host.strip()

@@ -1,4 +1,5 @@
 {% load static %}
+<script>window.__ARTICLE_STUDIO_E2E__ = {{ e2e_test_mode|yesno:'true,false' }};</script>
 <header class="workspace-topbar">
     <a class="workspace-topbar__brand" href="{% if request.user.role == 'Admin' %}{% url 'admin-dashboard' %}{% elif request.user.role == 'Editor' %}{% url 'editor-dashboard' %}{% else %}{% url 'journalist-dashboard' %}{% endif %}">
         <span class="workspace-topbar__mark">✦</span>
