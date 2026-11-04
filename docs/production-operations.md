@@ -43,6 +43,7 @@ It continuously exercises a read-only endpoint for the requested duration, repor
 
 - Set `METRICS_TOKEN` before exposing `/metrics/`.
 - Set `SENTRY_DSN` for error capture and `OTEL_ENABLED=true` with an OTLP endpoint for traces.
+- CI runs dependency auditing, Dependabot updates, and a tracked-file secret scan. Keep provider credentials in deployment secrets, never in the repository.
 - Keep structured request logs enabled; every request includes an `X-Request-ID` and JSON log context.
 - Alert on `/health/` failures, `/status/` degradation, queue delays, failed recovery drills, and elevated 5xx rate from the metrics endpoint.
 - The Operations Overview endpoint and dashboard combine 5xx rate, queue workers, failed webhooks/distribution, backup/recovery state, and recent security events.

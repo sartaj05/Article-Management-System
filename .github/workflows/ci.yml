@@ -45,6 +45,8 @@ jobs:
         run: python -m pip check
       - name: Audit Python dependencies
         run: pip-audit -r requirements.txt --progress-spinner off
+      - name: Scan tracked files for secrets
+        run: python scripts/check_secrets.py
       - name: Run tests
         run: python manage.py test
       - name: Verify static collection
