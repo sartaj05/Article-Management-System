@@ -34,6 +34,22 @@ def retry_failed_webhooks_task(self):
     return retry_failed_webhook_deliveries()
 
 
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 3}, name='users.deliver_webhook')
+def deliver_webhook_task(self, delivery_id):
+    from .delivery import retry_webhook_delivery
+    from .models import WebhookDelivery
+    delivery = WebhookDelivery.objects.select_related('endpoint').get(pk=delivery_id)
+    return {'status': retry_webhook_delivery(delivery).status, 'delivery_id': delivery_id}
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 3}, name='users.deliver_email')
+def deliver_email_task(self, delivery_id):
+    from .delivery import deliver_email
+    from .models import NotificationDelivery
+    delivery = NotificationDelivery.objects.select_related('recipient').get(pk=delivery_id)
+    return {'status': deliver_email(delivery).status, 'delivery_id': delivery_id}
+
+
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, retry_jitter=True, retry_kwargs={'max_retries': 2}, name='users.reconcile_pending_payments')
 def reconcile_pending_payments_task(self):
     from .billing_providers import reconcile_pending_payments
