@@ -9,6 +9,8 @@ services:
         value: "false"
       - key: DEMO_MODE_ENABLED
         value: "true"
+      - key: DEMO_EXTERNAL_INTEGRATIONS_DISABLED
+        value: "true"
       - key: DATABASE_ENGINE
         value: postgresql
       - key: CACHE_BACKEND

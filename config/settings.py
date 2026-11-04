@@ -48,6 +48,7 @@ SECRET_KEY_FALLBACKS = [
 # Set DJANGO_DEBUG=false in production.
 DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
 DEMO_MODE_ENABLED = os.getenv('DEMO_MODE_ENABLED', 'true' if DEBUG else 'false').lower() in {'1', 'true', 'yes'}
+DEMO_EXTERNAL_INTEGRATIONS_DISABLED = os.getenv('DEMO_EXTERNAL_INTEGRATIONS_DISABLED', 'false').lower() in {'1', 'true', 'yes'}
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -88,6 +89,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'users.demo_safety.DemoSafetyMiddleware',
     'config.middleware.ImpersonationMiddleware',
     'config.middleware.WorkspaceScopeMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -249,6 +251,8 @@ EMAIL_BACKEND = (
     if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
     else 'django.core.mail.backends.console.EmailBackend'
 )
+if DEMO_EXTERNAL_INTEGRATIONS_DISABLED:
+    EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -381,6 +385,11 @@ SOCIAL_PROVIDER_URL = os.getenv('SOCIAL_PROVIDER_URL', '')
 SOCIAL_PROVIDER_TOKEN = os.getenv('SOCIAL_PROVIDER_TOKEN', '')
 DISTRIBUTION_SITE_URL = os.getenv('DISTRIBUTION_SITE_URL', '')
 DISTRIBUTION_HTTP_TIMEOUT = float(os.getenv('DISTRIBUTION_HTTP_TIMEOUT', '10'))
+if DEMO_EXTERNAL_INTEGRATIONS_DISABLED:
+    NEWSLETTER_PROVIDER_URL = ''
+    NEWSLETTER_PROVIDER_TOKEN = ''
+    SOCIAL_PROVIDER_URL = ''
+    SOCIAL_PROVIDER_TOKEN = ''
 ACCESSIBILITY_PUBLISH_GATE = os.getenv('ACCESSIBILITY_PUBLISH_GATE', 'false').lower() in {'1', 'true', 'yes'}
 PAYMENT_WEBHOOK_SECRET = os.getenv('PAYMENT_WEBHOOK_SECRET', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
@@ -393,6 +402,7 @@ PAYMENT_SUCCESS_URL = os.getenv('PAYMENT_SUCCESS_URL', '')
 PAYMENT_CANCEL_URL = os.getenv('PAYMENT_CANCEL_URL', '')
 PAYMENT_HTTP_TIMEOUT = float(os.getenv('PAYMENT_HTTP_TIMEOUT', '10'))
 PAYMENT_REMOTE_CANCELLATION_ENABLED = os.getenv('PAYMENT_REMOTE_CANCELLATION_ENABLED', 'false').lower() in {'1', 'true', 'yes'}
+PAYMENTS_ENABLED = os.getenv('PAYMENTS_ENABLED', 'false' if DEMO_EXTERNAL_INTEGRATIONS_DISABLED else 'true').lower() in {'1', 'true', 'yes'}
 PROVIDER_MAX_ATTEMPTS = int(os.getenv('PROVIDER_MAX_ATTEMPTS', '5'))
 PROVIDER_RETRY_BASE_SECONDS = int(os.getenv('PROVIDER_RETRY_BASE_SECONDS', '60'))
 PROVIDER_CIRCUIT_FAILURE_THRESHOLD = int(os.getenv('PROVIDER_CIRCUIT_FAILURE_THRESHOLD', '5'))

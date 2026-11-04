@@ -53,6 +53,8 @@ def _minor_units(amount):
 
 def create_checkout(transaction, request):
     """Create a hosted checkout when the selected provider is configured."""
+    if not settings.PAYMENTS_ENABLED:
+        return {'configured': False, 'checkout_url': '', 'provider_reference': '', 'reason': 'payments_disabled'}
     if transaction.provider == 'stripe':
         return _create_stripe_checkout(transaction, request)
     if transaction.provider == 'razorpay':
@@ -62,6 +64,8 @@ def create_checkout(transaction, request):
 
 def create_tip_checkout(tip, request):
     """Create a one-time hosted checkout for an author tip."""
+    if not settings.PAYMENTS_ENABLED:
+        return {'configured': False, 'checkout_url': '', 'provider_reference': '', 'reason': 'payments_disabled'}
     if tip.provider == 'stripe':
         return _create_stripe_tip_checkout(tip, request)
     if tip.provider == 'razorpay':
