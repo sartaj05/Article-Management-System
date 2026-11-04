@@ -13,6 +13,7 @@ class CustomUser(AbstractUser):
         ('Journalist', 'Journalist'),
         ('Editor', 'Editor'),
         ('Admin', 'Admin'),
+        ('Reader', 'Reader'),
     ]
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Journalist')
@@ -27,6 +28,8 @@ class CustomUser(AbstractUser):
             self.user_permissions.set(Permission.objects.filter(codename__in=['change_article', 'view_article']))
         elif self.role == 'Admin':
             self.user_permissions.set(Permission.objects.all())
+        elif self.role == 'Reader':
+            self.user_permissions.set(Permission.objects.filter(codename='view_article'))
 
     def __str__(self):
         return self.username

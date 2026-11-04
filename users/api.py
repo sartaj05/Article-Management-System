@@ -63,6 +63,7 @@ class DemoModeView(APIView):
         'journalist': {'label': 'Journalist', 'description': 'Write, revise, and follow the reader experience.', 'icon': 'pen-nib', 'dashboard_url': '/journalist/dashboard/'},
         'editor': {'label': 'Editor', 'description': 'Review assignments, collaborate, and publish with confidence.', 'icon': 'check-double', 'dashboard_url': '/editor/dashboard/'},
         'admin': {'label': 'Admin', 'description': 'Manage workspaces, billing, permissions, and operations.', 'icon': 'shield-halved', 'dashboard_url': '/adminMain/dashboard/'},
+        'reader': {'label': 'Reader', 'description': 'Explore published stories, save articles, and personalize the reading experience.', 'icon': 'book-open-reader', 'dashboard_url': '/'},
     }
 
     def dispatch(self, request, *args, **kwargs):

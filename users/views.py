@@ -194,7 +194,7 @@ class UserLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 def login_template(request):
-    return render(request, 'users/login.html')
+    return render(request, 'users/login.html', {'demo_mode_enabled': settings.DEMO_MODE_ENABLED})
 
 def logout_template(request):
     return render(request, 'users/logout.html')

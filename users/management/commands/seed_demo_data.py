@@ -56,6 +56,15 @@ DEMO_USERS = {
         "last_name": "Nair",
         "is_staff": True,
     },
+    "reader": {
+        "username": "demo_reader",
+        "email": "anika.shah@northstarnewsroom.example",
+        "password": "DemoReader123!",
+        "role": "Reader",
+        "first_name": "Anika",
+        "last_name": "Shah",
+        "is_staff": False,
+    },
 }
 
 
@@ -91,7 +100,7 @@ class Command(BaseCommand):
         workspace.owner = users["editor"]
         workspace.save(update_fields=["name", "description", "owner", "updated_at"])
 
-        for user, role in ((users["editor"], "owner"), (users["journalist"], "writer"), (users["admin"], "admin")):
+        for user, role in ((users["editor"], "owner"), (users["journalist"], "writer"), (users["admin"], "admin"), (users["reader"], "viewer")):
             WorkspaceMembership.objects.update_or_create(workspace=workspace, user=user, defaults={"role": role})
 
         WorkspaceApprovalPolicy.objects.update_or_create(
@@ -453,7 +462,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Northstar client newsroom is ready."))
         self.stdout.write("Login accounts:")
-        for key in ("journalist", "editor", "admin"):
+        for key in ("journalist", "editor", "admin", "reader"):
             account = DEMO_USERS[key]
             self.stdout.write(f"  {account['role']}: {account['username']} / {account['password']}")
         self.stdout.write(f"Workspace: {DEMO_WORKSPACE_NAME}")

@@ -14,7 +14,7 @@ class DemoModeTests(TestCase):
         response = self.client.get('/demo/api/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['workspace'], 'Northstar Newsroom')
-        self.assertEqual({item['key'] for item in response.data['personas']}, {'journalist', 'editor', 'admin'})
+        self.assertEqual({item['key'] for item in response.data['personas']}, {'journalist', 'editor', 'admin', 'reader'})
         self.assertIn('Reader personalization', response.data['features'])
 
     def test_demo_login_and_reset_refresh_the_workspace(self):

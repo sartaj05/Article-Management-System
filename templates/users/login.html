@@ -30,6 +30,7 @@
                     <button class="button auth-submit" type="submit">Log in</button>
                 </form>
                 <div class="auth-links"><span>New to Article Studio?</span><a href="{% url 'user-register-template' %}">Create an account</a></div>
+                {% if demo_mode_enabled %}<a class="button button--secondary auth-demo-link" href="{% url 'demo-mode' %}"><i class="fa-solid fa-sparkles" aria-hidden="true"></i> Try the client demo</a>{% endif %}
             </section>
         </div>
     </main>
