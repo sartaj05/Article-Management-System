@@ -670,6 +670,8 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 .demo-hero__copy { position: relative; z-index: 1; max-width: 690px; }
 .demo-hero h1 { max-width: 620px; margin: 14px 0 17px; color: #fff; font-size: clamp(2.35rem, 6vw, 4.6rem); line-height: .98; letter-spacing: -.07em; }
 .demo-hero p { max-width: 620px; margin: 0; color: rgb(255 255 255 / 78%); font-size: 1.05rem; line-height: 1.75; }
+.demo-hero__notice { display: flex; align-items: flex-start; gap: 8px; max-width: 620px; margin-top: 18px !important; color: rgb(255 255 255 / 68%) !important; font-size: .78rem !important; line-height: 1.5 !important; }
+.demo-hero__notice i { margin-top: 3px; }
 .demo-hero__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 28px; }
 .demo-status { color: rgb(255 255 255 / 72%); font-size: .82rem; }
 .demo-hero__orb { position: relative; flex: 0 0 210px; width: 210px; height: 210px; border: 1px solid rgb(255 255 255 / 26%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 28%), transparent 25%), rgb(255 255 255 / 9%); box-shadow: 0 0 0 24px rgb(255 255 255 / 4%), 0 0 0 52px rgb(255 255 255 / 3%); animation: demo-orb-float 6s ease-in-out infinite; }
@@ -679,6 +681,7 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 .demo-hero__orb b { inset: 62px; background: rgb(255 255 255 / 8%); }
 .demo-section { margin-top: 30px; padding: clamp(24px, 4vw, 38px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-sm); }
 .demo-section__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.demo-section__intro { margin: 8px 0 0; color: var(--muted); font-size: .86rem; }
 .demo-section h2 { margin: 6px 0 0; color: var(--ink); font-size: clamp(1.5rem, 3vw, 2.2rem); letter-spacing: -.05em; }
 .demo-badge { display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid rgb(32 185 155 / 22%); border-radius: 999px; color: #087c69; background: #e8faf5; font-size: .75rem; font-weight: 800; }
 .demo-badge i { font-size: .48rem; }
@@ -691,6 +694,8 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 .demo-persona--reader .demo-persona__icon { background: linear-gradient(135deg, #e2a84b, #bd6b25); }
 .demo-persona h3 { margin: 6px 0 5px; color: var(--ink); font-size: 1.15rem; }
 .demo-persona p { min-height: 52px; margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.65; }
+.demo-persona__next { display: grid; gap: 3px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--brand); font-size: .78rem; line-height: 1.4; }
+.demo-persona__next strong { color: var(--muted); font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; }
 .demo-persona .button { width: 100%; margin-top: auto; }
 .demo-loading, .demo-error { grid-column: 1 / -1; padding: 24px; color: var(--muted); text-align: center; }
 .demo-tour { display: grid; grid-template-columns: minmax(190px, .7fr) minmax(0, 1.7fr); gap: 32px; }

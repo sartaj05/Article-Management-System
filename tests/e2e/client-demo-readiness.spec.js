@@ -39,6 +39,10 @@ test.describe('client demo public newsroom', () => {
     await expect(page.locator('#demo-personas')).toContainText('Journalist');
     await expect(page.locator('#demo-personas')).toContainText('Editor');
     await expect(page.locator('#demo-personas')).toContainText('Admin');
+    await expect(page.locator('#demo-personas')).toContainText('Reader');
+    await expect(page.locator('.demo-section__intro')).toContainText('Journalist');
+    await expect(page.locator('.demo-hero__notice')).toContainText('temporary');
+    await expect(page.locator('[data-demo-persona="reader"]')).toContainText('Open reader experience');
     await expect(page.locator('#demo-personas')).not.toContainText('Sample');
     await expect(page.locator('#demo-personas')).not.toContainText('Demo');
   });
