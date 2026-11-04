@@ -125,3 +125,35 @@ sleep when idle and local files are not durable. Use PostgreSQL, set
 `CACHE_BACKEND=locmem`, disable asynchronous workers, and configure
 `MEDIA_STORAGE_BACKEND=cloudinary` with `CLOUDINARY_URL` before accepting uploads.
 The Docker Compose topology remains the production reference architecture.
+
+### Render deployment checklist
+
+Use this order for the free interview/client preview:
+
+1. Create the Render PostgreSQL database.
+2. Create the Render web service from [`render.yaml`](render.yaml).
+3. Add the `CLOUDINARY_URL` secret for durable media uploads.
+4. Add the required production security variables below.
+5. Deploy the service and wait for the health check to pass.
+6. Open `https://<your-render-host>/health/` and confirm a healthy response.
+7. Open `https://<your-render-host>/demo/`.
+8. Test the Journalist -> Editor -> Admin -> Reader walkthrough.
+9. Test image upload and **Refresh workspace** demo reset.
+
+Required Render security variables:
+
+```env
+ENFORCE_PRODUCTION_SECURITY=true
+SESSION_COOKIE_SECURE=true
+CSRF_COOKIE_SECURE=true
+SECURE_SSL_REDIRECT=true
+SECURE_HSTS_SECONDS=31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS=true
+SECURE_HSTS_PRELOAD=true
+CSRF_TRUSTED_ORIGINS=https://<your-render-host>
+```
+
+Also verify `DJANGO_ALLOWED_HOSTS` contains the Render hostname and keep
+`DEMO_EXTERNAL_INTEGRATIONS_DISABLED=true` for the free preview. The free
+service may sleep when idle, and `BACKUP_ENABLED=false` is intentional for the
+demo topology; use the production Compose topology for real customer data.
