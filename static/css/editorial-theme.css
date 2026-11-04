@@ -658,9 +658,15 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 /* Client demo launcher. */
 .demo-page { width: min(1180px, calc(100% - 40px)); margin-inline: auto; padding: 42px 0 80px; }
 .demo-hero { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: 36px; overflow: hidden; min-height: 360px; padding: clamp(34px, 6vw, 72px); border-radius: 28px; color: #fff; background: radial-gradient(circle at 86% 18%, rgb(255 173 154 / 36%), transparent 25%), linear-gradient(135deg, #252052, #594fc8 60%, #d37a6d); box-shadow: 0 28px 70px rgb(63 55 146 / 20%); }
-.demo-environment-banner { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 34px; padding: 7px 16px; color: #174d47; background: #d9f5ed; border-bottom: 1px solid #b9e8dd; font-size: .78rem; font-weight: 750; letter-spacing: .01em; }
-.demo-environment-banner i { color: #087c69; }
-.demo-environment-banner a { color: #087c69; text-decoration: underline; text-underline-offset: 3px; }
+.demo-environment-banner { display: flex; align-items: center; justify-content: center; gap: 9px; width: fit-content; max-width: calc(100% - 28px); min-height: 30px; margin: 10px auto 0; padding: 5px 9px 5px 11px; border: 1px solid color-mix(in srgb, var(--brand, #2f5d62) 18%, var(--line, #dfe3f2)); border-radius: 999px; color: var(--muted, #647087); background: color-mix(in srgb, var(--surface, #fff) 92%, var(--brand, #2f5d62)); box-shadow: 0 5px 18px rgb(35 48 78 / 6%); font-size: .72rem; letter-spacing: .01em; }
+.demo-environment-banner__dot { width: 7px; height: 7px; border-radius: 50%; background: #2a9d8f; box-shadow: 0 0 0 3px rgb(42 157 143 / 13%); }
+.demo-environment-banner__label { color: var(--ink, #25324a); font-weight: 800; }
+.demo-environment-banner__copy { color: var(--muted, #647087); }
+.demo-environment-banner a { color: var(--brand, #2f5d62); font-weight: 800; text-decoration: none; }
+.demo-environment-banner a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.demo-environment-banner button { display: grid; width: 19px; height: 19px; margin-left: 2px; padding: 0; place-items: center; border: 0; border-radius: 50%; color: var(--muted, #647087); background: transparent; cursor: pointer; font: inherit; font-size: 1rem; line-height: 1; }
+.demo-environment-banner button:hover { color: var(--ink, #25324a); background: rgb(35 48 78 / 8%); }
+@media (max-width: 560px) { .demo-environment-banner__copy { display: none; } }
 .demo-hero__copy { position: relative; z-index: 1; max-width: 690px; }
 .demo-hero h1 { max-width: 620px; margin: 14px 0 17px; color: #fff; font-size: clamp(2.35rem, 6vw, 4.6rem); line-height: .98; letter-spacing: -.07em; }
 .demo-hero p { max-width: 620px; margin: 0; color: rgb(255 255 255 / 78%); font-size: 1.05rem; line-height: 1.75; }

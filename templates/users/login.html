@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="auth-shell">
-    {% if demo_mode_enabled %}<div class="demo-environment-banner" role="status"><i class="fa-solid fa-flask" aria-hidden="true"></i><span>Interview demo environment</span><a href="{% url 'demo-mode' %}">Try the client demo</a></div>{% endif %}
+    {% if demo_mode_enabled %}{% include 'partials/demo_banner.html' %}{% endif %}
     {% include 'partials/site_header.html' %}
     <main class="auth-main">
         <div class="auth-layout">
@@ -38,6 +38,7 @@
     {% include 'partials/site_footer.html' %}
     <script src="{% static 'js/home.js' %}?v=20261013-desk-2" defer></script>
     <script src="{% static 'js/auth.js' %}?v=20261014-1" defer></script>
+    <script src="{% static 'js/demo-banner.js' %}" defer></script>
     <script src="{% static 'js/app-dialogs.js' %}?v=20261014-1" defer></script>
 </body>
 </html>
