@@ -658,6 +658,9 @@ html.theme-dark .desk-masthead .button--light { color: var(--ink) !important; ba
 /* Client demo launcher. */
 .demo-page { width: min(1180px, calc(100% - 40px)); margin-inline: auto; padding: 42px 0 80px; }
 .demo-hero { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: space-between; gap: 36px; overflow: hidden; min-height: 360px; padding: clamp(34px, 6vw, 72px); border-radius: 28px; color: #fff; background: radial-gradient(circle at 86% 18%, rgb(255 173 154 / 36%), transparent 25%), linear-gradient(135deg, #252052, #594fc8 60%, #d37a6d); box-shadow: 0 28px 70px rgb(63 55 146 / 20%); }
+.demo-environment-banner { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 34px; padding: 7px 16px; color: #174d47; background: #d9f5ed; border-bottom: 1px solid #b9e8dd; font-size: .78rem; font-weight: 750; letter-spacing: .01em; }
+.demo-environment-banner i { color: #087c69; }
+.demo-environment-banner a { color: #087c69; text-decoration: underline; text-underline-offset: 3px; }
 .demo-hero__copy { position: relative; z-index: 1; max-width: 690px; }
 .demo-hero h1 { max-width: 620px; margin: 14px 0 17px; color: #fff; font-size: clamp(2.35rem, 6vw, 4.6rem); line-height: .98; letter-spacing: -.07em; }
 .demo-hero p { max-width: 620px; margin: 0; color: rgb(255 255 255 / 78%); font-size: 1.05rem; line-height: 1.75; }

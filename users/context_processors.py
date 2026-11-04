@@ -1,4 +1,5 @@
 from .models import Workspace
+from django.conf import settings
 
 
 def active_workspace(request):
@@ -8,3 +9,7 @@ def active_workspace(request):
         if slug:
             workspace = Workspace.objects.filter(slug=slug, is_active=True, memberships__user=request.user).first()
     return {'active_workspace': workspace}
+
+
+def demo_environment(request):
+    return {'demo_mode_enabled': settings.DEMO_MODE_ENABLED}

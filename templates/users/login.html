@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body class="auth-shell">
+    {% if demo_mode_enabled %}<div class="demo-environment-banner" role="status"><i class="fa-solid fa-flask" aria-hidden="true"></i><span>Interview demo environment</span><a href="{% url 'demo-mode' %}">Try the client demo</a></div>{% endif %}
     {% include 'partials/site_header.html' %}
     <main class="auth-main">
         <div class="auth-layout">
