@@ -29,7 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.models import CustomUser, MembershipInvoice, MembershipWebhookEvent, MembershipSubscription, NewsletterCampaignAttribution, NewsletterEdition, NotificationDelivery, PaymentTransaction, PersonalizationPreference, ReaderDigestDelivery, ReaderInterest, WebhookDelivery, Workspace, WorkspaceMembership, has_active_membership
+from users.models import CustomUser, MembershipInvoice, MembershipWebhookEvent, MembershipSubscription, NewsletterCampaignAttribution, NewsletterEdition, NotificationDelivery, PaymentTransaction, PersonalizationPreference, ReaderDigestDelivery, ReaderInterest, SecurityEvent, WebhookDelivery, Workspace, WorkspaceMembership, has_active_membership
 from users.api import resolve_public_api_key
 from users.delivery import dispatch_article_alert, dispatch_webhook_event
 from config.workspace_scope import WorkspaceScopeMixin, scope_queryset
@@ -2967,6 +2967,10 @@ class OperationsOverviewView(WorkspaceScopeMixin, APIView):
             incidents.append({'severity': 'low', 'area': 'Queue', 'message': f"{summary['distribution_queued']} distribution job(s) are waiting for processing.", 'action_url': '/articles/workspace/integrations/'})
         from .operations import refresh_operational_alerts
         alert_snapshot = refresh_operational_alerts()
+        from config.observability import request_error_rate
+        from .queue_health import inspect_workers
+        latest_backup = BackupRecord.objects.filter(status='completed').first()
+        queue = inspect_workers()
         return Response({
             'status': 'attention' if incidents else 'clear',
             'summary': summary,
@@ -2975,6 +2979,10 @@ class OperationsOverviewView(WorkspaceScopeMixin, APIView):
                 {'id': alert.id, 'fingerprint': alert.fingerprint, 'area': alert.area, 'severity': alert.severity, 'message': alert.message, 'status': alert.status, 'occurrences': alert.occurrences, 'details': alert.details, 'first_seen_at': alert.first_seen_at, 'last_seen_at': alert.last_seen_at}
                 for alert in alert_snapshot['alerts']
             ],
+            'http': {'last_5m': request_error_rate(5)},
+            'queue': queue,
+            'backups': {'latest_completed_at': latest_backup.completed_at if latest_backup else None, 'latest_status': latest_backup.status if latest_backup else 'missing', 'recovery_drills_failed': RecoveryDrill.objects.filter(status='failed').count()},
+            'security': {'events_24h': SecurityEvent.objects.filter(created_at__gte=now - timedelta(hours=24)).count(), 'failed_logins_24h': SecurityEvent.objects.filter(event_type='login_failed', created_at__gte=now - timedelta(hours=24)).count()},
             'last_checked_at': now,
         })
 
