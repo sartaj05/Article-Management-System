@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: article-studio-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DEMO_MODE_ENABLED
+        value: "true"
+      - key: DATABASE_ENGINE
+        value: postgresql
+      - key: CACHE_BACKEND
+        value: locmem
+      - key: MEDIA_STORAGE_BACKEND
+        value: cloudinary
+      - key: MEDIA_PROCESSING_ASYNC
+        value: "false"
+      - key: MEDIA_TRANSCODE_ENABLED
+        value: "false"
+      - key: SOURCE_INGESTION_ASYNC
+        value: "false"
+      - key: AI_JOBS_ASYNC
+        value: "false"
+      - key: BACKUP_ENABLED
+        value: "false"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: article-studio-demo.onrender.com
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: article-studio-demo-db
+          property: databaseName
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: article-studio-demo-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: article-studio-demo-db
+          property: password
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: article-studio-demo-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: article-studio-demo-db
+          property: port
+
+databases:
+  - name: article-studio-demo-db
+    plan: free

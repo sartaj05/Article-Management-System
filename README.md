@@ -101,3 +101,29 @@ npm run test:e2e
 Pull requests also run a PostgreSQL/Redis integration job and deployment smoke checks.
 Browser failures are uploaded as Playwright artifacts for review; visual baselines are
 stored under `tests/e2e/*-snapshots/`.
+
+## Interview demo
+
+Run `python manage.py seed_demo_data` after migrations and open `/demo/`.
+
+| Persona | Username | Password |
+| --- | --- | --- |
+| Journalist | `demo_journalist` | `DemoJournalist123!` |
+| Editor | `demo_editor` | `DemoEditor123!` |
+| Admin | `demo_admin` | `DemoAdmin123!` |
+| Reader | `demo_reader` | `DemoReader123!` |
+
+These accounts are for local/demo environments only. Disable them with
+`DEMO_MODE_ENABLED=false` in real deployments. See
+[`docs/interview-demo.md`](docs/interview-demo.md) for the walkthrough.
+
+Interactive API documentation is available at `/api/docs/`; the OpenAPI JSON is
+available at `/api/openapi.json`.
+
+## Free Render preview
+
+`render.yaml` is a starting point for a free interview preview. Free instances
+sleep when idle and local files are not durable. Use PostgreSQL, set
+`CACHE_BACKEND=locmem`, disable asynchronous workers, and configure
+`MEDIA_STORAGE_BACKEND=cloudinary` with `CLOUDINARY_URL` before accepting uploads.
+The Docker Compose topology remains the production reference architecture.

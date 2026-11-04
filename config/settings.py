@@ -281,6 +281,12 @@ if MEDIA_STORAGE_BACKEND == 's3':
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     if AWS_S3_CUSTOM_DOMAIN:
         MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+elif MEDIA_STORAGE_BACKEND == 'cloudinary':
+    # Cloudinary keeps demo uploads durable when the host filesystem is ephemeral.
+    STORAGES = {
+        'default': {'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'},
+    }
 
 
 # Static files (CSS, JavaScript, images)
