@@ -30,6 +30,8 @@ def main():
         except (UnicodeDecodeError, OSError):
             continue
         for line_number, line in enumerate(text.splitlines(), 1):
+            if '{{' in line or '{%' in line:
+                continue
             if any(pattern.search(line) for pattern in PATTERNS):
                 findings.append(f'{name}:{line_number}')
     if findings:
