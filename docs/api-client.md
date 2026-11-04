@@ -32,6 +32,33 @@ JavaScript example:
 
 Responses include X-API-Version: v2, next_page, and previous_page.
 Keys are scoped to articles:read by default and are rate-limited per minute.
+
+## Authenticated workflow example
+
+The browser/API login endpoint returns short-lived access and refresh tokens:
+
+```bash
+curl -X POST https://news.example.com/api/login/ \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"demo_editor","password":"DemoEditor123!"}'
+```
+
+Use the returned access token as `Authorization: Bearer <access-token>` for
+authenticated workflow endpoints. Session authentication remains available for
+the web application.
+
+## Pagination and errors
+
+List responses use `results`, `next_page`, and `previous_page`. Non-2xx
+responses include `error.code`, `error.message`, `error.status`, optional
+`error.fields`, and `error.request_id`; `detail` and `errors` remain for older
+clients.
+
+## Version migration
+
+Clients should pin `/api/v2/` and check `X-API-Version: v2`. A future v3 will
+be introduced alongside v2 with a deprecation window; clients should avoid
+depending on undocumented fields and should log the request ID on failures.
 # API error contract
 
 Non-2xx responses include an `error` object with a stable `code`, human-readable
