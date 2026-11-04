@@ -14,8 +14,6 @@ Article-Management-System/
 ├── static/                      # Source static assets
 ├── manage.py
 ├── requirements.txt
-├── vercel.json
-├── build_files.sh
 ├── scripts/
 │   ├── migrate.py               # Create migrations and apply them
 │   └── clean_migrations.py      # Remove local custom-app migrations/caches after confirmation
